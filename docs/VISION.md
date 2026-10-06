@@ -64,3 +64,7 @@ Solo temas: sin orden y sin estado. El trabajo concreto pasa a ser GitHub Issues
 ## V0 como primer paso
 
 V0 valida el pipeline base para un solo usuario: los documentos se convierten en contexto estructurado, se guardan y se usan para responder preguntas. No tiene comportamiento proactivo. Su alcance y sus restricciones están definidos en `docs/SPEC.md`.
+
+## Cómo evoluciona el producto
+
+Lo pendiente se va registrando como issues, agrupados por milestone. Cuando V0 cumple su definición de terminado, se revisa lo aprendido usándolo y se redefine la próxima etapa: de las expansiones de arriba y de los issues acumulados se elige lo que más duele, se escribe un alcance chico para V1 con el mismo formato que V0 y se arman sus issues. El mismo ciclo se repite en cada versión.

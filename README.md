@@ -24,6 +24,8 @@ Environment variables are listed in `.env.example`, which is the only source.
 - Single user, no authentication.
 - Content is synthetic and in Spanish.
 - Commitments have no status: all extracted commitments are treated as open.
+- Each commitment points to a single source document. The same commitment mentioned in later documents is stored again as a new one, so near-duplicates can appear.
+- Every document must come with its type, date and participants as metadata. Sources that do not carry them (meetings, group chats) are not supported yet.
 
 ## Documentation
 
