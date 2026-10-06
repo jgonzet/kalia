@@ -5,7 +5,7 @@
 1. #1 — Project skeleton, fake LLM, smoke test and CI
 2. #2 — Design the synthetic dataset and the prompts to generate it
 
-Synced at: 598a918
+Synced at: ab0ca11
 
 This file is filled in with each /close-feature.
 
@@ -33,3 +33,5 @@ This file is filled in with each /close-feature.
 **Location:** `app/`, `scripts/smoke_test.py`, `scripts/check_llm.py`, `Dockerfile`, `compose.yaml`, `.github/workflows/ci.yml`, `.env.example`, `pyproject.toml`.
 
 **Tests:** `uv run scripts/smoke_test.py` passes locally. `docker build` and `docker compose up` work, and `scripts/check_llm.py` got an answer from `qwen2.5:14b` inside the container. No unit tests.
+
+— Resolved 2026-10-05: unit tests for `Settings.from_env` added (`tests/test_config.py`) and run in CI.
