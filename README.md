@@ -15,6 +15,23 @@ V0, a first slice that runs locally for a single user on a synthetic dataset. It
 
 The LLM is replaceable: any OpenAI-compatible endpoint works, local (Ollama by default) or API-based.
 
+## Run
+
+Requires Docker and [Ollama](https://ollama.com) running on the host with the model pulled (default `qwen2.5:14b`). Ollama must listen on an address the container can reach, not only on `127.0.0.1` (for example, set `OLLAMA_HOST=0.0.0.0`).
+
+```bash
+docker compose up --build
+```
+
+Defaults need no setup. To override any setting, copy `.env.example` to `.env` and uncomment the lines you want to change.
+
+The app listens on <http://localhost:8000> (`/health` answers when it is up). The SQLite file lives in a Docker volume.
+
+## Checks
+
+- Smoke test (fake LLM, needs no Ollama, also what CI runs): `uv run scripts/smoke_test.py`
+- Manual check against the real LLM: `docker compose run --rm app python scripts/check_llm.py`
+
 ## Configuration
 
 Environment variables are listed in `.env.example`, which is the only source.
