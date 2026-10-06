@@ -1,0 +1,18 @@
+# Design diagrams from an earlier version (may move to docs/ later)
+/ChatGPT Image 2 jun 2026, 22_53_01.png
+/Screenshot from 2026-06-01 21-19-45.png
+/Screenshot from 2026-06-01 21-34-11.png
+/Screenshot from 2026-06-01 21-42-10.png
+
+# Secrets and local data
+.env
+*.db
+*.sqlite
+*.sqlite3
+
+# Python / uv
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
