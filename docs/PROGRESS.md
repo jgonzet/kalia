@@ -2,9 +2,12 @@
 
 ## Next
 
-1. #2 — Design the synthetic dataset and the prompts to generate it
+1. #2 — Design the synthetic catalog and the dataset layout
+2. #5 — Design the expected commitments for the 25 documents
+3. #6 — Write the generator prompts and the dataset check script
+4. #7 — Generate and review the 25 synthetic documents
 
-Synced at: 64eeb69
+Synced at: dd32678
 
 This file is filled in with each /close-feature.
 
