@@ -2,6 +2,26 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## LLM failures are raised as `LLMError`
+Date: 2026-10-05
+Chose: every LLM client raises `LLMError` for failed requests, timeouts and empty answers; callers are expected to catch it and degrade instead of failing the whole request.
+Rejected: letting provider exceptions (`openai.OpenAIError`) reach callers (every module would depend on the provider library); returning an empty string on failure (hides the failure).
+Source: issue #1, commit 598a918.
+
+## Module contracts are `Protocol` interfaces and frozen dataclasses
+Date: 2026-10-05
+Chose: each module (ingestion, extraction, storage, answering, llm) exposes a `typing.Protocol`; the shapes passed between them (`Document`, `Commitment`, `Catalog`) are frozen dataclasses in `app/models.py`.
+Rejected: abstract base classes (implementations would have to inherit from them); `TypedDict` for the shapes (plain mutable dicts, no attribute access).
+Why: any class with the right methods fits, so swapping SQLite or the LLM client needs no change elsewhere.
+Source: issue #1, commit 598a918.
+
+## The app is built by a `create_app` factory
+Date: 2026-10-05
+Chose: `create_app(settings=None, llm=None)` in `app/main.py` builds the app on demand; uvicorn runs it with `--factory`. Without arguments it reads settings from the environment; tests and scripts can pass settings or an LLM directly.
+Rejected: a module-level `app = FastAPI(...)` (settings are read when the module is imported, so swapping the LLM in a test needs environment tricks).
+Why: the LLM must be replaceable (fake in CI, real locally) without touching the rest of the app.
+Source: issue #1, commit 598a918.
+
 ## Configuration defaults live in the code only
 Date: 2026-10-05
 Chose: defaults are written in `app/config.py` (plus the Dockerfile for the two container-specific ones); `.env.example` lists variable names and comments, all commented out and without values.
