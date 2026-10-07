@@ -5,7 +5,7 @@
 1. #6 — Write the generator prompts and the dataset check script
 2. #7 — Generate and review the 25 synthetic documents
 
-Synced at: bd023e3
+Synced at: a8ed117
 
 This file is filled in with each /close-feature.
 
@@ -67,6 +67,8 @@ This file is filled in with each /close-feature.
 
 **Issues:** closed #2.
 
+— Resolved 2026-10-07: the reference date is 2026-10-12 and lives in `company.json` (`reference_date`), set in #5.
+
 ## 2026-10-07 — Expected commitments, story and acceptance questions for La Manija Games
 
 **Purpose:** fix, before any text exists, what each of the 25 documents must contain and what the chat must answer, so the generator prompts (#6) and the documents (#7) are written from a single reference.
@@ -96,3 +98,5 @@ This file is filled in with each /close-feature.
 **Tests:** none saved. One-off checks, not kept as a script: every due date is a weekday, every mention points to a commitment of an earlier document, names match the catalog, relative deadlines were checked by hand against each document's date. The questions were computed by a throwaway script. The permanent check is `check_dataset.py` (#6).
 
 **Issues:** closed #5. Opened #8.
+
+— Resolved 2026-10-07: the formats named in Logic step 5 and Location now live in `docs/DATASET.md` instead of `docs/PLAN.md` section 12; the rules for extending the dataset are in the "Synthetic dataset" section of `CLAUDE.md`.
