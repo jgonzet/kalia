@@ -2,11 +2,10 @@
 
 ## Next
 
-1. #5 — Design the expected commitments for the 25 documents
-2. #6 — Write the generator prompts and the dataset check script
-3. #7 — Generate and review the 25 synthetic documents
+1. #6 — Write the generator prompts and the dataset check script
+2. #7 — Generate and review the 25 synthetic documents
 
-Synced at: eae6c79
+Synced at: bd023e3
 
 This file is filled in with each /close-feature.
 
@@ -67,3 +66,33 @@ This file is filled in with each /close-feature.
 **Tests:** none. `company.json` and both JSONL files parse, every `reports_to` points to an existing person, and `user_id` points to an existing person (one-off check, not saved as a script; the permanent check is #6).
 
 **Issues:** closed #2.
+
+## 2026-10-07 — Expected commitments, story and acceptance questions for La Manija Games
+
+**Purpose:** fix, before any text exists, what each of the 25 documents must contain and what the chat must answer, so the generator prompts (#6) and the documents (#7) are written from a single reference.
+
+**Input:** the catalog from the previous entry and the acceptance questions of `docs/SPEC.md`.
+
+**Output:** in `data/lamanija/`: `story.md` (background facts), `expected/lamanija-0001..0025.json` (25 files, 75 commitments, 15 mentions, 3 non-commitments), `questions.jsonl` (11 concrete questions, version `v1`), and `reference_date` and `held_out` in `company.json`. No app code.
+
+**Logic:**
+1. `story.md` lists per project a situation and dated facts that no document may contradict. Its header states the rule.
+2. Each `expected` file first got the document frame (type, date, participants, projects, author for emails, one-line `brief`) so coverage could be checked: Lalo in all 25, Smithers (his boss) in 13, Burns in 3 meetings, every project in at least 4 documents.
+3. Then the commitments were filled in for all 25: who, to whom, what, absolute `due`, the original `due_text`, and project. Deadlines are spread around the reference date 2026-10-12: 25 overdue, 16 in the week 12–18/10, 20 later, 14 undated. A commitment is promised in one document only; other documents may name it (`mentions`) without promising it again.
+4. `questions.jsonl` was computed from the `expected` files with the rules in the decision "Acceptance questions as a versioned JSONL". `lamanija-0025` is held out: question 5 has the answer before and after ingesting it.
+5. Formats and coverage targets are in `docs/PLAN.md` section 12. Decisions: "One story file per company, pasted whole into every generation batch", "The dataset defines the reference date", "Expected files carry commitment ids, raw deadline text and negative cases" and "Acceptance questions as a versioned JSONL with fixed answer rules".
+
+**Important assumptions:**
+- 9 emails, 8 meetings, 8 chats; the meetings 0012 and 0023 are the long ones (up to about 1200 words, 7 and 8 commitments).
+- Turrokiller has 34 commitments, Choripixels 12, Motocrotos 16, Jimboland 9: the studio's priority is the festival demo, so the dataset is not balanced between projects.
+- The festival has costs (participation budget); the catalog says nothing about it, it was invented for the story.
+- A commitment exists only if the text shows the person accepting it, so in emails with commitments from others the reply is inside the same document.
+- A missing `extractions` key means "designed, not annotated"; an empty list means "annotated, nothing to extract".
+- Four commitments have a `due_text` that cannot be resolved to a date ("todos los viernes", "apenas lo configure"); two depend on another dated fact ("dos semanas antes de la revisión del prototipo"). They are on purpose the hardest cases.
+- Whether the local model resolves relative deadlines or tells a mention from a new promise is not verified; the data is what will measure it.
+
+**Location:** `data/lamanija/` (`story.md`, `expected/`, `questions.jsonl`, `company.json`), `docs/PLAN.md` section 12.
+
+**Tests:** none saved. One-off checks, not kept as a script: every due date is a weekday, every mention points to a commitment of an earlier document, names match the catalog, relative deadlines were checked by hand against each document's date. The questions were computed by a throwaway script. The permanent check is `check_dataset.py` (#6).
+
+**Issues:** closed #5. Opened #8.

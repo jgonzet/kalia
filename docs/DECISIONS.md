@@ -2,6 +2,31 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## One story file per company, pasted whole into every generation batch
+Date: 2026-10-07
+Chose: `data/<company>/story.md` lists, per project, a situation and dated facts that no document may contradict. Every batch prompt includes it whole, and new documents add their facts to it before their `expected` files are designed.
+Rejected: one story file per project (every batch would need a selection of parts); facts with ids referenced from each `expected` file (ids to maintain and prompts to assemble by hand).
+Why: about 60 lines are cheap to paste, and a single file is the one place where consistency between documents is kept.
+Source: issue #5, commit 8adbaa5; the rule goes into `data/generation/base.md` in #6.
+
+## Acceptance questions as a versioned JSONL with fixed answer rules
+Date: 2026-10-07
+Chose: `data/<company>/questions.jsonl`, one line per concrete question with a `version` (`v1`; published questions are never edited, new ones get `v2`), the expected answer as commitment ids, and fixed rules: "this week" is the reference date plus 6 days, without overdue or undated commitments; every commitment counts as open; "my boss" is the user's boss in the catalog.
+Rejected: a hand-written table from question to documents (cannot be checked against the data and drifts); one file per version (adding questions stops being adding a line).
+Source: issue #5, commit 66925d0; format in `docs/PLAN.md` section 12.
+
+## Expected files carry commitment ids, raw deadline text and negative cases
+Date: 2026-10-07
+Chose: each commitment in `expected/<document id>.json` has an id (`<document id>-cN`) and both `due` (absolute) and `due_text` (the phrase as written); `mentions` lists commitments of other documents that the text names without promising again; `not_commitments` lists phrases the text must contain that are not commitments.
+Rejected: no ids (questions could not cite their answers); only `due` (a failed extraction could not be traced to date arithmetic); leaving out mentions and conditionals (duplicates and false positives would go unmeasured).
+Source: issue #5, commit 8adbaa5; format in `docs/PLAN.md` section 12.
+
+## The dataset defines the reference date
+Date: 2026-10-07
+Chose: `company.json` holds `reference_date` (2026-10-12) and `held_out` (documents left out of the initial load, for question 5); questions do not repeat the date.
+Rejected: a date per question (two sources that drift); defining it only in the app configuration (the SPEC says the default comes from the dataset).
+Source: issue #5, commit 8adbaa5.
+
 ## Synthetic catalog as per-company JSONL files
 Date: 2026-10-07
 Chose: `data/<company>/` holds `company.json` plus one JSONL file per entity type (`people.jsonl`, `projects.jsonl`); every record has a stable id `<company>-pNN` / `<company>-jNN` and a `company` field. The files are the test fixture; the app stores everything in SQLite.
