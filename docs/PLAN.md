@@ -106,6 +106,20 @@ No se hace todo en una sesión. Lo que no entra hoy se levanta como issue y va a
 - No hay sobreingeniería de código: solo un script chico. Lo más "extra" son el hash y los ids por empresa, que responden a trazabilidad y a la segunda empresa que pediste.
 - Seguridad: todo sintético; no hay datos reales, credenciales ni cambios en `.gitignore`.
 
+## 12. Issue #5: historia, `expected` y preguntas concretas [OPEN]
+
+Reabre y amplía el formato de la sección 6 (que sigue valiendo para todo lo demás). Agregado 2026-10-07.
+
+**Entregables** (`data/lamanija/`): `story.md` (historia de fondo, formato fijo, se pega entero en el prompt de cada tanda), `expected/lamanija-NNNN.json` ×25, `questions.jsonl` (preguntas concretas con los ids de compromiso esperados) y, en `company.json`, `reference_date` (2026-10-12) y `held_out` (`lamanija-0025`).
+
+**Campos de cada `expected`** (además de los de la sección 6): `projects` (nombres del catálogo), `brief` (una línea: de qué trata el documento; es lo que lee el generador), `author` (solo mails; reuniones y chats no tienen un autor único), cada compromiso con `id` (`lamanija-NNNN-cK`) y `due_text` (frase original del plazo; solo para diagnosticar evaluaciones, no entra al modelo de la app), `mentions` (ids de compromisos de otros documentos que el texto nombra sin volver a prometerlos) y `not_commitments` (frases que el texto debe incluir y que NO son compromisos: condicionales, hipótesis; el generador las necesita y la evaluación las cuenta como falsos positivos si aparecen). Un compromiso solo existe si el texto muestra que la persona lo acepta (en un mail, la respuesta va dentro del mismo documento). Un compromiso se promete en un solo documento. Clave `extractions` ausente = documento diseñado pero compromisos todavía no anotados.
+
+**Reglas de la historia:** los hechos de `story.md` son verdad en todos los documentos; la regla está en su encabezado y se repite en `data/generation/base.md` (#6).
+
+**Objetivos de cobertura** (esqueleto aprobado; el chequeo mecánico es `check_dataset.py`, #6): 25 documentos (9 mails, 8 reuniones, 8 chats), 2026-09-14 a 2026-10-12, Lalo en todos, el reservado fechado en la fecha de referencia. Smithers (jefe de Lalo) en 13 documentos; Burns en 3 reuniones; cada otra persona en ≥3; cada proyecto en ≥4 documentos y ≥5 compromisos; 2 reuniones largas (0012, 0023, hasta ~1200 palabras); 0010 y 0013 sin compromisos. Distribución de plazos respecto de la fecha de referencia (resultado de los `expected` terminados el 2026-10-07; los documentos de septiembre generan vencidos de forma natural y V0 no tiene estado): 75 compromisos, 25 vencidos antes de la semana, 16 dentro (12–18/10), 20 después, 14 sin fecha (algunos con `due_text` que no se puede resolver, como "apenas lo configure" o "todos los viernes"); 15 menciones; 2 plazos que dependen de la fecha de otro hecho ("dos semanas antes de la revisión del prototipo"), que son los más difíciles; ≥10 relativos (de "mañana" a "la semana que viene", sin ambiguos) y ≥10 absolutos; ~6 menciones.
+
+**Fuera de #5, a decidir más adelante:** vínculos 1 a 1 de cada persona con Lalo por proyecto (a veces es el jefe del proyecto, a veces al revés). La SPEC de V0 deriva la relación solo de la jerarquía del catálogo, así que esto cambia la SPEC. El catálogo ya lo admite sin rehacer nada: sería otro archivo (`relationships.jsonl`) con ids de persona y de proyecto, según la sección 5.
+
 ## Verificación
 
 - Para cada pregunta de aceptación hay una tabla con los documentos que la responden.
