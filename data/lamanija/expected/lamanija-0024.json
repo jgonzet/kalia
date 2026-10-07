@@ -10,7 +10,7 @@
   "projects": [
     "Turrokiller"
   ],
-  "brief": "Smithers le avisa a Lalo que Burns quiere un informe del estado de Turrokiller para el festival.",
+  "brief": "Smithers le avisa a Lalo que el festival pide un informe del estado de Turrokiller para confirmar la participación, y que Burns quiere revisarlo.",
   "extractions": {
     "commitments": [
       {

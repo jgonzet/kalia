@@ -17,7 +17,7 @@ Situación: tower defense con humor negro, en producción. Hay que entregar una 
 Hechos:
 - 2026-09-10 — Se cierra el diseño de las primeras cuatro torres.
 - 2026-09-21 — Reunión de arte para definir los enemigos de la demo.
-- 2026-10-06 — Retro de QA sobre la primera build de la demo.
+- 2026-10-06 — Retro de QA sobre las builds de prueba de la demo.
 
 ## Motocrotos Adventures (lamanija-j02)
 Situación: juego de carreras de motos para mobile, ya publicado. Se prepara el update de temporada, con fecha 2026-11-20. Patty Bouvier (Community Manager) coordina los anuncios.
@@ -25,7 +25,7 @@ Situación: juego de carreras de motos para mobile, ya publicado. Se prepara el 
 Hechos:
 - 2026-09-22 — Usuarios reportan que algunas compras dentro del juego no se acreditan.
 - 2026-09-30 — Se despliega un hotfix que corrige el problema de pagos.
-- 2026-10-09 — Reunión de lanzamiento del trabajo del update de temporada.
+- 2026-10-09 — Reunión de coordinación del update de temporada.
 
 ## Choripixels (lamanija-j01)
 Situación: roguelike cooperativo de supervivencia, el título principal. Se lanza en Steam el 2027-02-26. El mayor riesgo técnico es el netcode cooperativo (reconexiones y sincronización).
