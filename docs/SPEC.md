@@ -83,7 +83,7 @@ If something is not necessary for the core flow or for the design constraints ab
 ## V0 dataset and acceptance questions
 
 - **Catalog:** one fictional company, its active projects (name, description, status, deadline), its people (name, role, area, hierarchy level, reports to), and the protagonist user.
-- **Documents:** 25 short documents written for the fictional company, mixing the three types (email, meeting transcript, chat), each with date and participants.
+- **Documents:** 25 documents written for the fictional company, mixing the three types (email, meeting transcript, chat), each with date and participants. Most are short; two meeting transcripts are longer (up to about 1200 words) to exercise long inputs.
 - **Content language:** Spanish.
 - **Acceptance questions:**
   1. What did I commit to a given person, and what did that person commit to me, and by when?

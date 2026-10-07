@@ -46,4 +46,4 @@ Environment variables are listed in `.env.example`, which is the only source.
 
 ## Documentation
 
-`docs/SPEC.md` defines the V0 scope, `docs/VISION.md` the product direction, `docs/PROGRESS.md` logs closed work and `docs/DECISIONS.md` logs technical decisions. Pending work is tracked as GitHub Issues.
+`docs/SPEC.md` defines the V0 scope, `docs/VISION.md` the product direction, `docs/DATASET.md` the format of the synthetic dataset, `docs/PROGRESS.md` logs closed work and `docs/DECISIONS.md` logs technical decisions. Pending work is tracked as GitHub Issues.
