@@ -1,0 +1,12 @@
+{"id":"lamanija-p01","company":"lamanija","name":"Montgomery Burns","role":"CEO y fundador","area":"Dirección","level":1,"reports_to":null}
+{"id":"lamanija-p02","company":"lamanija","name":"Waylon Smithers","role":"Director de Producción","area":"Producción","level":2,"reports_to":"lamanija-p01"}
+{"id":"lamanija-p03","company":"lamanija","name":"Seymour Skinner","role":"Director Técnico","area":"Programación","level":2,"reports_to":"lamanija-p01"}
+{"id":"lamanija-p04","company":"lamanija","name":"Marge Simpson","role":"Directora de Arte","area":"Arte","level":2,"reports_to":"lamanija-p01"}
+{"id":"lamanija-p05","company":"lamanija","name":"Lalo Landa","role":"Producer","area":"Producción","level":3,"reports_to":"lamanija-p02"}
+{"id":"lamanija-p06","company":"lamanija","name":"Milhouse Van Houten","role":"QA Lead","area":"Producción","level":3,"reports_to":"lamanija-p02"}
+{"id":"lamanija-p07","company":"lamanija","name":"Patty Bouvier","role":"Community Manager","area":"Producción","level":3,"reports_to":"lamanija-p02"}
+{"id":"lamanija-p08","company":"lamanija","name":"Edna Krabappel","role":"Gameplay Programmer","area":"Programación","level":3,"reports_to":"lamanija-p03"}
+{"id":"lamanija-p09","company":"lamanija","name":"Profesor Frink","role":"Backend Programmer","area":"Programación","level":3,"reports_to":"lamanija-p03"}
+{"id":"lamanija-p10","company":"lamanija","name":"Manjula Nahasapeemapetilon","role":"Tools Programmer","area":"Programación","level":3,"reports_to":"lamanija-p03"}
+{"id":"lamanija-p11","company":"lamanija","name":"Selma Bouvier","role":"Animadora","area":"Arte","level":3,"reports_to":"lamanija-p04"}
+{"id":"lamanija-p12","company":"lamanija","name":"Helen Lovejoy","role":"Concept Artist","area":"Arte","level":3,"reports_to":"lamanija-p04"}
