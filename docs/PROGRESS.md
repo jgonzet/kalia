@@ -2,12 +2,11 @@
 
 ## Next
 
-1. #2 — Design the synthetic catalog and the dataset layout
-2. #5 — Design the expected commitments for the 25 documents
-3. #6 — Write the generator prompts and the dataset check script
-4. #7 — Generate and review the 25 synthetic documents
+1. #5 — Design the expected commitments for the 25 documents
+2. #6 — Write the generator prompts and the dataset check script
+3. #7 — Generate and review the 25 synthetic documents
 
-Synced at: dd32678
+Synced at: eae6c79
 
 This file is filled in with each /close-feature.
 
@@ -39,3 +38,32 @@ This file is filled in with each /close-feature.
 — Resolved 2026-10-05: unit tests for `Settings.from_env` added (`tests/test_config.py`) and run in CI.
 
 — Resolved 2026-10-05: CI ran green on main after pinning setup-uv to v10.2.0. Closed #1.
+
+## 2026-10-07 — Synthetic catalog for La Manija Games
+
+**Purpose:** fix the fictional company that every later piece of the dataset (expected commitments, generator prompts, documents) refers to, and the layout those pieces will live in.
+
+**Input:** none; the content was designed with the project owner. The layout and formats come from `docs/PLAN.md`.
+
+**Output:** `data/lamanija/` with `company.json` (name, description, `user_id` of the protagonist), `people.jsonl` (12 people), `projects.jsonl` (4 projects) and `ORGCHART.md` (a table of the org chart). No code in the app reads these files yet.
+
+**Logic:**
+1. The company is an indie game studio, La Manija Games. People have role, area, `level` (1 = CEO, 2 = directors, 3 = everyone else) and `reports_to`. The protagonist is Lalo Landa, a Producer who reports to the Director of Production; his hierarchy and boss are derived from `reports_to`, as the SPEC requires.
+2. Names are The Simpsons characters with their Latin American dubbing names, 6 women and 6 men, to keep the catalog fun without losing a realistic structure.
+3. Projects (Choripixels, Motocrotos Adventures, Jimboland, Turrokiller) have status and a deadline each, between 2026-11-13 and 2027-02-26, so the acceptance question about "due this week" can have deadlines before, within and after the reference week.
+4. `scripts/orgchart.py` regenerates `ORGCHART.md` from `people.jsonl`; the table is never edited by hand.
+5. Catalog format and ids: see "Synthetic catalog as per-company JSONL files" in `docs/DECISIONS.md`.
+
+**Important assumptions:**
+- Catalog values (roles, statuses, descriptions) are in Spanish; keys are in English.
+- The company slug `lamanija` is the prefix of every id and will be the prefix of the document ids (`lamanija-NNNN`).
+- `level` is only an integer where 1 is the top; nothing consumes it yet.
+- `ORGCHART.md` is a table because a Mermaid diagram rendered too small to read.
+- The names are copyrighted characters; this is fine in a private repo and should be reviewed with `/prep-public` before making it public. The Latin American dubbing names were written from memory and not verified.
+- The deadlines are chosen relative to a reference date that is not set yet (decided in #5).
+
+**Location:** `data/lamanija/`, `scripts/orgchart.py`.
+
+**Tests:** none. `company.json` and both JSONL files parse, every `reports_to` points to an existing person, and `user_id` points to an existing person (one-off check, not saved as a script; the permanent check is #6).
+
+**Issues:** closed #2.

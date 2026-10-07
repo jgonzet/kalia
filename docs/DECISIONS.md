@@ -2,6 +2,13 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## Synthetic catalog as per-company JSONL files
+Date: 2026-10-07
+Chose: `data/<company>/` holds `company.json` plus one JSONL file per entity type (`people.jsonl`, `projects.jsonl`); every record has a stable id `<company>-pNN` / `<company>-jNN` and a `company` field. The files are the test fixture; the app stores everything in SQLite.
+Rejected: a single JSON file (noisy diffs, any new field touches the whole object); loading the catalog into a database now (the storage module does not exist yet, and the dataset must be readable and reviewable as text).
+Why: adding a person, a project or a whole new entity type or company is adding a line or a file.
+Source: issue #2, commit eae6c79; layout in `docs/PLAN.md`.
+
 ## LLM failures are raised as `LLMError`
 Date: 2026-10-05
 Chose: every LLM client raises `LLMError` for failed requests, timeouts and empty answers; callers are expected to catch it and degrade instead of failing the whole request.

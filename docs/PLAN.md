@@ -87,7 +87,9 @@ Prompt de una tanda = `base.md` + `types/<tipo>.md` + extracto del catálogo + c
 
 Pregunta: ¿los JSONL tienen que migrar a una base de datos? **No hace falta migrar los archivos.** La app ya guarda todo en SQLite (DECISIONS: "Storage: SQLite"); el cargador del dataset lee estos archivos y los inserta en SQLite. Los archivos son la fuente del dataset de prueba (como un fixture), no el almacenamiento de la app. Empezar con base de datos ahora no conviene: (a) el módulo de almacenamiento todavía no existe, (b) un chatbot y vos tienen que poder crear, leer y revisar el dataset como texto, con diffs en git, y una base no sirve para eso. Por eso no se abre un issue de migración; el paso "archivos -> SQLite" ya es el issue del cargador (se propone al cierre). Si algún día el catálogo se edita desde la app, la base pasaría a ser la fuente: es una decisión de V1 y no se puede verificar desde hoy.
 
-## 10. Sesiones e issues [OPEN]
+## 10. Sesiones e issues [RESOLVED]
+
+**Resuelto 2026-10-07:** #2 cerrado con la empresa La Manija Games (`data/lamanija/`, id `lamanija`): `company.json`, `people.jsonl` (12 personas, protagonista `lamanija-p05`) y `projects.jsonl` (4 proyectos). Se agregó `data/lamanija/ORGCHART.md`, generado por `scripts/orgchart.py` a partir de `people.jsonl` (no estaba en el plan). Los issues A, B y C ya existen como #5, #6 y #7.
 
 No se hace todo en una sesión. Lo que no entra hoy se levanta como issue y va a `## Next` de `docs/PROGRESS.md` (con el hash actualizado). Etiqueta `type: feature` y milestone `V0` en todos (existen en el repo). Propuesta, a confirmar antes de correr `gh`:
 
