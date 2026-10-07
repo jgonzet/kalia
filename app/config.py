@@ -8,6 +8,8 @@ from typing import Literal
 LLMBackend = Literal["real", "fake"]
 
 
+# dataclass: Python writes the boilerplate that builds the class from its fields.
+# frozen=True: values can't be changed after a Settings object is created.
 @dataclass(frozen=True)
 class Settings:
     llm_backend: LLMBackend = "real"
@@ -17,11 +19,13 @@ class Settings:
     reference_date: date | None = None
     db_path: str = "kalia.db"
 
+    # property: use it like a field, `settings.today`, without parentheses.
     @property
     def today(self) -> date:
         """The date the app treats as "today": the reference date if set, else the system date."""
         return self.reference_date or date.today()
 
+    # classmethod: called on the class itself, `Settings.from_env()`, to create a new Settings.
     @classmethod
     def from_env(cls) -> "Settings":
         """Build settings from the environment; empty or missing variables fall back to defaults."""
