@@ -30,7 +30,7 @@ Markdown, pasted whole into every generation batch. A blockquote header states t
 | `participants` | person names as written in `people.jsonl`; includes the user |
 | `projects` | project names as written in `projects.jsonl`; empty when none |
 | `author` | emails only: the sender |
-| `brief` | one line saying what the document is about; what the generator reads |
+| `brief` | one line saying what the document is about; what the generator reads. It also says when a document is meant to be long |
 | `extractions.commitments` | list of commitments (below). The key `extractions` missing means "designed, not annotated yet"; an empty list means "annotated, nothing to extract" |
 | `mentions` | ids of commitments of other documents that this text names without promising them again |
 | `not_commitments` | phrases the text must contain that are not commitments (conditionals, hypotheses); an extractor that returns them makes a false positive |
@@ -47,6 +47,8 @@ One question per line: `id`, `version`, `acceptance` (`Q1` to `Q5`, the question
 - `expected`: ids of the commitments the answer must contain after the initial load, that is, every document except those in `held_out`.
 - `after_held_out`: `null`, or `{"document": <id>, "expected": [...]}` with the answer once that document is ingested (question 5 only).
 - A published question is never edited; new or changed questions get a new `version`.
+- The questions do not cover every commitment; how well each document is extracted is checked against its `expected` file.
+- Question 5 entries repeat a Q2 or Q4 question on purpose: the same question, answered before and after the held-out document.
 
 Rules the answers are computed with:
 - "This week" is the commitments whose `due` falls between `reference_date` and six days later; overdue and undated commitments are left out.

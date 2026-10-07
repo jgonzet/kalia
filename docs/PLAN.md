@@ -1,6 +1,8 @@
 # Plan — Issue #2: dataset sintético y prompts del generador
 
 > Plan de trabajo vivo. Cada sección tiene un estado: `[OPEN]` o `[RESOLVED]`. Una sección `[RESOLVED]` no se vuelve a mostrar salvo que se reabra.
+>
+> Los formatos vigentes de los archivos del dataset están en `docs/DATASET.md`. Las secciones 3, 5 y 6 describen el diseño original y no se actualizan.
 
 ## 1. Contexto [RESOLVED]
 
@@ -106,7 +108,7 @@ No se hace todo en una sesión. Lo que no entra hoy se levanta como issue y va a
 - No hay sobreingeniería de código: solo un script chico. Lo más "extra" son el hash y los ids por empresa, que responden a trazabilidad y a la segunda empresa que pediste.
 - Seguridad: todo sintético; no hay datos reales, credenciales ni cambios en `.gitignore`.
 
-## 12. Issue #5: historia, `expected` y preguntas concretas [OPEN]
+## 12. Issue #5: historia, `expected` y preguntas concretas [RESOLVED]
 
 Reabre y amplía el formato de la sección 6 (que sigue valiendo para todo lo demás). Agregado 2026-10-07.
 
@@ -116,7 +118,7 @@ Reabre y amplía el formato de la sección 6 (que sigue valiendo para todo lo de
 
 **Objetivos de cobertura** (esqueleto aprobado; el chequeo mecánico es `check_dataset.py`, #6): 25 documentos (9 mails, 8 reuniones, 8 chats), 2026-09-14 a 2026-10-12, Lalo en todos, el reservado fechado en la fecha de referencia. Smithers (jefe de Lalo) en 13 documentos; Burns en 3 reuniones; cada otra persona en ≥3; cada proyecto en ≥4 documentos y ≥5 compromisos; 2 reuniones largas (0012, 0023, hasta ~1200 palabras); 0010 y 0013 sin compromisos. Distribución de plazos respecto de la fecha de referencia (resultado de los `expected` terminados el 2026-10-07; los documentos de septiembre generan vencidos de forma natural y V0 no tiene estado): 75 compromisos, 25 vencidos antes de la semana, 16 dentro (12–18/10), 20 después, 14 sin fecha (algunos con `due_text` que no se puede resolver, como "apenas lo configure" o "todos los viernes"); 15 menciones; 2 plazos que dependen de la fecha de otro hecho ("dos semanas antes de la revisión del prototipo"), que son los más difíciles; ≥10 relativos (de "mañana" a "la semana que viene", sin ambiguos) y ≥10 absolutos.
 
-**Fuera de #5, a decidir más adelante:** vínculos 1 a 1 de cada persona con Lalo por proyecto (a veces es el jefe del proyecto, a veces al revés). La SPEC de V0 deriva la relación solo de la jerarquía del catálogo, así que esto cambia la SPEC. El catálogo ya lo admite sin rehacer nada: sería otro archivo (`relationships.jsonl`) con ids de persona y de proyecto, según la sección 5.
+**Fuera de #5, sin issue (el usuario lo retoma más adelante):** vínculos 1 a 1 de cada persona con Lalo por proyecto (a veces es el jefe del proyecto, a veces al revés). La SPEC de V0 deriva la relación solo de la jerarquía del catálogo, así que esto cambia la SPEC. El catálogo ya lo admite sin rehacer nada: sería otro archivo (`relationships.jsonl`) con ids de persona y de proyecto, según la sección 5.
 
 ## Verificación
 

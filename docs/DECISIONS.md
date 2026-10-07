@@ -8,6 +8,7 @@ Chose: `data/<company>/story.md` lists, per project, a situation and dated facts
 Rejected: one story file per project (every batch would need a selection of parts); facts with ids referenced from each `expected` file (ids to maintain and prompts to assemble by hand).
 Why: about 60 lines are cheap to paste, and a single file is the one place where consistency between documents is kept.
 Source: issue #5, commit 8adbaa5; the rule goes into `data/generation/base.md` in #6.
+Refined 2026-10-07: `story.md` has 43 lines today, not about 60.
 
 ## Acceptance questions as a versioned JSONL with fixed answer rules
 Date: 2026-10-07
@@ -35,6 +36,7 @@ Chose: `data/<company>/` holds `company.json` plus one JSONL file per entity typ
 Rejected: a single JSON file (noisy diffs, any new field touches the whole object); loading the catalog into a database now (the storage module does not exist yet, and the dataset must be readable and reviewable as text).
 Why: adding a person, a project or a whole new entity type or company is adding a line or a file.
 Source: issue #2, commit eae6c79; layout in `docs/PLAN.md`.
+Refined 2026-10-07: the layout is now described in `docs/DATASET.md`.
 
 ## LLM failures are raised as `LLMError`
 Date: 2026-10-05
