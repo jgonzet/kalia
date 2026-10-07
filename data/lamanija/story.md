@@ -1,6 +1,8 @@
 # La Manija Games — historia de fondo
 
 > Regla: los hechos de abajo son verdad en todos los documentos. No contradecirlos ni inventar fechas o compromisos que choquen con ellos. Un documento puede nombrar un hecho o un compromiso de otro documento, pero solo promete lo que su clave de respuestas (`expected`) le asigna.
+>
+> Mantenimiento: antes de agregar documentos al dataset (una tanda nueva o más documentos de esta empresa), agregar acá los hechos nuevos que esos documentos necesiten, con fecha, y recién después diseñar sus `expected`. Este archivo se pega entero en el prompt de cada tanda (ver `data/generation/`). Una empresa nueva tiene su propio `story.md` en su carpeta.
 
 ## Empresa
 Situación: estudio de 12 personas. Los lunes hay una reunión semanal de Producción. Lalo Landa (Producer) coordina el día a día de los cuatro proyectos y responde a Waylon Smithers.
