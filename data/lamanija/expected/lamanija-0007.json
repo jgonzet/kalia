@@ -1,0 +1,57 @@
+{
+  "document_id": "lamanija-0007",
+  "company": "lamanija",
+  "type": "email",
+  "date": "2026-09-22",
+  "participants": [
+    "Lalo Landa",
+    "Patty Bouvier",
+    "Waylon Smithers"
+  ],
+  "projects": [
+    "Motocrotos Adventures"
+  ],
+  "author": "Patty Bouvier",
+  "brief": "Patty le reporta a Lalo, con copia a Smithers, que compras dentro de Motocrotos no se acreditan. El mail incluye las respuestas de Lalo y Smithers aceptando.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0007-c1",
+        "who": "Patty Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "juntar los reclamos de usuarios con capturas y pasárselos",
+        "due": "2026-09-24",
+        "due_text": "el jueves",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "id": "lamanija-0007-c2",
+        "who": "Lalo Landa",
+        "to_whom": "Patty Bouvier",
+        "what": "confirmar con backend la fecha estimada del arreglo",
+        "due": "2026-09-23",
+        "due_text": "mañana",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "id": "lamanija-0007-c3",
+        "who": "Patty Bouvier",
+        "to_whom": "Waylon Smithers",
+        "what": "mandarle el borrador del comunicado a los usuarios afectados",
+        "due": "2026-09-23",
+        "due_text": "mañana",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "id": "lamanija-0007-c4",
+        "who": "Waylon Smithers",
+        "to_whom": "Patty Bouvier",
+        "what": "decidir si se compensa a los usuarios con monedas del juego",
+        "due": null,
+        "due_text": null,
+        "project": "Motocrotos Adventures"
+      }
+    ]
+  },
+  "text_sha256": null
+}

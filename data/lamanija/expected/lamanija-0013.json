@@ -1,0 +1,24 @@
+{
+  "document_id": "lamanija-0013",
+  "company": "lamanija",
+  "type": "email",
+  "date": "2026-09-30",
+  "participants": [
+    "Lalo Landa",
+    "Profesor Frink",
+    "Waylon Smithers",
+    "Seymour Skinner"
+  ],
+  "projects": [
+    "Motocrotos Adventures"
+  ],
+  "author": "Profesor Frink",
+  "brief": "Frink avisa que el hotfix de pagos de Motocrotos está desplegado. Solo informa: sin compromisos nuevos.",
+  "extractions": {
+    "commitments": []
+  },
+  "mentions": [
+    "lamanija-0008-c1"
+  ],
+  "text_sha256": null
+}

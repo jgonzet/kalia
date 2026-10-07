@@ -1,0 +1,42 @@
+{
+  "document_id": "lamanija-0019",
+  "company": "lamanija",
+  "type": "email",
+  "date": "2026-10-06",
+  "participants": [
+    "Lalo Landa",
+    "Seymour Skinner",
+    "Waylon Smithers"
+  ],
+  "projects": [
+    "Choripixels"
+  ],
+  "author": "Seymour Skinner",
+  "brief": "Skinner le responde a Lalo y a Smithers con la estimación del netcode de Choripixels y el siguiente paso. El mail incluye la respuesta de Lalo a Smithers.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0019-c1",
+        "who": "Seymour Skinner",
+        "to_whom": "Lalo Landa",
+        "what": "armar el diseño técnico del netcode con reconexión",
+        "due": "2026-10-28",
+        "due_text": "el 28 de octubre",
+        "project": "Choripixels"
+      },
+      {
+        "id": "lamanija-0019-c2",
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "mandarle un resumen del impacto de la estimación en el cronograma",
+        "due": "2026-10-20",
+        "due_text": "el 20 de octubre",
+        "project": "Choripixels"
+      }
+    ]
+  },
+  "mentions": [
+    "lamanija-0004-c1"
+  ],
+  "text_sha256": null
+}

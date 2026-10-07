@@ -1,0 +1,91 @@
+{
+  "document_id": "lamanija-0012",
+  "company": "lamanija",
+  "type": "meeting",
+  "date": "2026-09-29",
+  "participants": [
+    "Lalo Landa",
+    "Montgomery Burns",
+    "Waylon Smithers",
+    "Seymour Skinner",
+    "Marge Simpson"
+  ],
+  "projects": [
+    "Choripixels",
+    "Motocrotos Adventures",
+    "Jimboland",
+    "Turrokiller"
+  ],
+  "brief": "Planning de octubre con Burns: prioridades y responsables de los cuatro proyectos. Reunión larga.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0012-c1",
+        "who": "Montgomery Burns",
+        "to_whom": "Seymour Skinner",
+        "what": "decidir si se contrata un programador de red freelance para Choripixels",
+        "due": "2026-10-16",
+        "due_text": "para el viernes 16",
+        "project": "Choripixels"
+      },
+      {
+        "id": "lamanija-0012-c2",
+        "who": "Seymour Skinner",
+        "to_whom": "Montgomery Burns",
+        "what": "pasarle el costo de un programador de red freelance",
+        "due": "2026-10-14",
+        "due_text": "el 14 de octubre",
+        "project": "Choripixels"
+      },
+      {
+        "id": "lamanija-0012-c3",
+        "who": "Marge Simpson",
+        "to_whom": "Lalo Landa",
+        "what": "entregar el listado de assets que faltan para la demo de Turrokiller",
+        "due": "2026-10-05",
+        "due_text": "el lunes que viene",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0012-c4",
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "armar el cronograma de octubre con los cuatro proyectos",
+        "due": "2026-10-02",
+        "due_text": "el viernes",
+        "project": null
+      },
+      {
+        "id": "lamanija-0012-c5",
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "sumar un tester temporal para la demo de Turrokiller",
+        "due": "2026-10-15",
+        "due_text": "el jueves 15",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0012-c6",
+        "who": "Marge Simpson",
+        "to_whom": "Montgomery Burns",
+        "what": "revisar el estilo de arte de Jimboland antes de la revisión del prototipo",
+        "due": "2026-11-27",
+        "due_text": "dos semanas antes de la revisión del prototipo",
+        "project": "Jimboland"
+      },
+      {
+        "id": "lamanija-0012-c7",
+        "who": "Lalo Landa",
+        "to_whom": "Marge Simpson",
+        "what": "coordinar con Selma la agenda de animaciones del update de temporada",
+        "due": null,
+        "due_text": null,
+        "project": "Motocrotos Adventures"
+      }
+    ]
+  },
+  "mentions": [
+    "lamanija-0001-c4"
+  ],
+  "text_sha256": null
+}

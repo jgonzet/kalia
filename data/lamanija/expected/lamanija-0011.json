@@ -1,0 +1,28 @@
+{
+  "document_id": "lamanija-0011",
+  "company": "lamanija",
+  "type": "chat",
+  "date": "2026-09-28",
+  "participants": [
+    "Lalo Landa",
+    "Helen Lovejoy"
+  ],
+  "projects": [
+    "Jimboland"
+  ],
+  "brief": "Lalo y Helen hablan del concept art del parque de Jimboland.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0011-c1",
+        "who": "Helen Lovejoy",
+        "to_whom": "Lalo Landa",
+        "what": "mandarle tres conceptos del parque",
+        "due": "2026-09-30",
+        "due_text": "para fin de mes",
+        "project": "Jimboland"
+      }
+    ]
+  },
+  "text_sha256": null
+}

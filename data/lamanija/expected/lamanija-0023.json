@@ -1,0 +1,103 @@
+{
+  "document_id": "lamanija-0023",
+  "company": "lamanija",
+  "type": "meeting",
+  "date": "2026-10-09",
+  "participants": [
+    "Lalo Landa",
+    "Montgomery Burns",
+    "Waylon Smithers",
+    "Seymour Skinner",
+    "Milhouse Van Houten",
+    "Patty Bouvier",
+    "Selma Bouvier",
+    "Profesor Frink",
+    "Edna Krabappel"
+  ],
+  "projects": [
+    "Motocrotos Adventures",
+    "Turrokiller"
+  ],
+  "brief": "Reunión larga: lanzamiento del trabajo del update de Motocrotos y revisión de la demo de Turrokiller.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0023-c1",
+        "who": "Patty Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "publicar el teaser del update de temporada",
+        "due": "2026-11-06",
+        "due_text": "el 6 de noviembre",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "id": "lamanija-0023-c2",
+        "who": "Profesor Frink",
+        "to_whom": "Lalo Landa",
+        "what": "dejar los servidores listos para el pico del update",
+        "due": "2026-11-16",
+        "due_text": "el lunes 16 de noviembre",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "id": "lamanija-0023-c3",
+        "who": "Edna Krabappel",
+        "to_whom": "Lalo Landa",
+        "what": "pulir los controles de torres de la demo",
+        "due": "2026-10-23",
+        "due_text": "el viernes 23",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0023-c4",
+        "who": "Milhouse Van Houten",
+        "to_whom": "Waylon Smithers",
+        "what": "terminar el plan de regresión del update",
+        "due": "2026-10-16",
+        "due_text": "el viernes de la semana que viene",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "id": "lamanija-0023-c5",
+        "who": "Selma Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "entregar las animaciones de los jefes de la demo",
+        "due": "2026-10-26",
+        "due_text": "el lunes 26",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0023-c6",
+        "who": "Seymour Skinner",
+        "to_whom": "Montgomery Burns",
+        "what": "garantizar que la demo corra a 60 fps en la PC del festival",
+        "due": "2026-11-06",
+        "due_text": "una semana antes de la entrega",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0023-c7",
+        "who": "Lalo Landa",
+        "to_whom": "Montgomery Burns",
+        "what": "mandarle el estado de la demo",
+        "due": null,
+        "due_text": "todos los viernes",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0023-c8",
+        "who": "Montgomery Burns",
+        "to_whom": "Lalo Landa",
+        "what": "aprobar el presupuesto de la campaña de anuncios de la temporada",
+        "due": "2026-10-13",
+        "due_text": "el martes 13",
+        "project": "Motocrotos Adventures"
+      }
+    ]
+  },
+  "mentions": [
+    "lamanija-0018-c5",
+    "lamanija-0016-c1"
+  ],
+  "text_sha256": null
+}

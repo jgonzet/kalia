@@ -1,0 +1,39 @@
+{
+  "document_id": "lamanija-0016",
+  "company": "lamanija",
+  "type": "email",
+  "date": "2026-10-02",
+  "participants": [
+    "Lalo Landa",
+    "Marge Simpson",
+    "Selma Bouvier"
+  ],
+  "projects": [
+    "Motocrotos Adventures"
+  ],
+  "author": "Lalo Landa",
+  "brief": "Lalo le pide a Marge, con copia a Selma, las animaciones del update de temporada de Motocrotos. El mail incluye las respuestas de Marge y Selma aceptando.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0016-c1",
+        "who": "Selma Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "entregar la animación de la nueva moto del update",
+        "due": "2026-10-30",
+        "due_text": "el 30 de octubre",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "id": "lamanija-0016-c2",
+        "who": "Marge Simpson",
+        "to_whom": "Lalo Landa",
+        "what": "aprobar los bocetos de la moto",
+        "due": "2026-10-13",
+        "due_text": "el martes 13",
+        "project": "Motocrotos Adventures"
+      }
+    ]
+  },
+  "text_sha256": null
+}

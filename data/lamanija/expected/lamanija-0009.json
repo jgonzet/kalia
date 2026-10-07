@@ -1,0 +1,61 @@
+{
+  "document_id": "lamanija-0009",
+  "company": "lamanija",
+  "type": "meeting",
+  "date": "2026-09-24",
+  "participants": [
+    "Lalo Landa",
+    "Seymour Skinner",
+    "Profesor Frink",
+    "Edna Krabappel",
+    "Manjula Nahasapeemapetilon"
+  ],
+  "projects": [
+    "Choripixels"
+  ],
+  "brief": "Revisión técnica del netcode cooperativo de Choripixels: reconexiones y sincronización.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0009-c1",
+        "who": "Profesor Frink",
+        "to_whom": "Seymour Skinner",
+        "what": "armar la propuesta de reconexión con tiempo de gracia",
+        "due": "2026-10-15",
+        "due_text": "en tres semanas",
+        "project": "Choripixels"
+      },
+      {
+        "id": "lamanija-0009-c2",
+        "who": "Edna Krabappel",
+        "to_whom": "Profesor Frink",
+        "what": "exponer los eventos de movimiento para poder sincronizarlos",
+        "due": "2026-10-13",
+        "due_text": "el martes 13",
+        "project": "Choripixels"
+      },
+      {
+        "id": "lamanija-0009-c3",
+        "who": "Manjula Nahasapeemapetilon",
+        "to_whom": "Seymour Skinner",
+        "what": "armar una herramienta que simule pérdida de paquetes",
+        "due": "2026-10-20",
+        "due_text": "para el 20 de octubre",
+        "project": "Choripixels"
+      },
+      {
+        "id": "lamanija-0009-c4",
+        "who": "Lalo Landa",
+        "to_whom": "Seymour Skinner",
+        "what": "coordinar con Milhouse horas de QA para probar el netcode",
+        "due": null,
+        "due_text": null,
+        "project": "Choripixels"
+      }
+    ]
+  },
+  "mentions": [
+    "lamanija-0004-c2"
+  ],
+  "text_sha256": null
+}

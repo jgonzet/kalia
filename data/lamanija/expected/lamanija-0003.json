@@ -1,0 +1,40 @@
+{
+  "document_id": "lamanija-0003",
+  "company": "lamanija",
+  "type": "chat",
+  "date": "2026-09-16",
+  "participants": [
+    "Lalo Landa",
+    "Edna Krabappel"
+  ],
+  "projects": [
+    "Turrokiller"
+  ],
+  "brief": "Lalo y Edna coordinan la build de prueba de la demo de Turrokiller.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0003-c1",
+        "who": "Edna Krabappel",
+        "to_whom": "Lalo Landa",
+        "what": "armar una build de prueba con las cuatro torres",
+        "due": "2026-09-18",
+        "due_text": "el viernes",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0003-c2",
+        "who": "Lalo Landa",
+        "to_whom": "Edna Krabappel",
+        "what": "mandarle la lista de enemigos de la demo",
+        "due": "2026-09-16",
+        "due_text": "hoy",
+        "project": "Turrokiller"
+      }
+    ]
+  },
+  "not_commitments": [
+    "Edna dice que si el pathfinding no llega a tiempo avisa (condicional, no es un compromiso)."
+  ],
+  "text_sha256": null
+}

@@ -1,0 +1,29 @@
+{
+  "document_id": "lamanija-0010",
+  "company": "lamanija",
+  "type": "email",
+  "date": "2026-09-25",
+  "participants": [
+    "Lalo Landa",
+    "Waylon Smithers"
+  ],
+  "projects": [
+    "Choripixels",
+    "Motocrotos Adventures",
+    "Jimboland",
+    "Turrokiller"
+  ],
+  "author": "Lalo Landa",
+  "brief": "Lalo le manda a Smithers el reporte semanal de los cuatro proyectos. Solo informa: sin compromisos nuevos.",
+  "extractions": {
+    "commitments": []
+  },
+  "mentions": [
+    "lamanija-0002-c1",
+    "lamanija-0007-c3"
+  ],
+  "not_commitments": [
+    "Lalo dice que a ver si la semana que viene cierra lo de Jimboland (intención vaga, no es un compromiso)."
+  ],
+  "text_sha256": null
+}

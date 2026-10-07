@@ -1,0 +1,48 @@
+{
+  "document_id": "lamanija-0004",
+  "company": "lamanija",
+  "type": "email",
+  "date": "2026-09-17",
+  "participants": [
+    "Lalo Landa",
+    "Seymour Skinner",
+    "Profesor Frink"
+  ],
+  "projects": [
+    "Choripixels"
+  ],
+  "author": "Lalo Landa",
+  "brief": "Lalo le pide a Skinner y a Frink una estimación del netcode cooperativo de Choripixels. El mail incluye las respuestas de ellos aceptando.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0004-c1",
+        "who": "Seymour Skinner",
+        "to_whom": "Lalo Landa",
+        "what": "pasarle la estimación de esfuerzo del netcode cooperativo",
+        "due": "2026-10-06",
+        "due_text": "el 6 de octubre",
+        "project": "Choripixels"
+      },
+      {
+        "id": "lamanija-0004-c2",
+        "who": "Profesor Frink",
+        "to_whom": "Lalo Landa",
+        "what": "preparar un resumen de cómo está hoy la sincronización entre jugadores",
+        "due": "2026-09-24",
+        "due_text": "el jueves 24",
+        "project": "Choripixels"
+      },
+      {
+        "id": "lamanija-0004-c3",
+        "who": "Lalo Landa",
+        "to_whom": "Seymour Skinner",
+        "what": "organizar la prueba interna de la alpha con dos jugadores",
+        "due": "2026-09-18",
+        "due_text": "mañana",
+        "project": "Choripixels"
+      }
+    ]
+  },
+  "text_sha256": null
+}

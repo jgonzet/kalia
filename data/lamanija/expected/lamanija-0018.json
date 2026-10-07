@@ -1,0 +1,69 @@
+{
+  "document_id": "lamanija-0018",
+  "company": "lamanija",
+  "type": "meeting",
+  "date": "2026-10-06",
+  "participants": [
+    "Lalo Landa",
+    "Milhouse Van Houten",
+    "Edna Krabappel",
+    "Selma Bouvier"
+  ],
+  "projects": [
+    "Turrokiller"
+  ],
+  "brief": "Retro de QA de la primera build de la demo de Turrokiller.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0018-c1",
+        "who": "Milhouse Van Houten",
+        "to_whom": "Edna Krabappel",
+        "what": "pasarle los bugs críticos priorizados",
+        "due": "2026-10-07",
+        "due_text": "mañana",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0018-c2",
+        "who": "Edna Krabappel",
+        "to_whom": "Milhouse Van Houten",
+        "what": "arreglar los crashes de la build",
+        "due": "2026-10-16",
+        "due_text": "el viernes de la semana que viene",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0018-c3",
+        "who": "Selma Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "corregir las animaciones de enemigos que se cortan",
+        "due": "2026-10-13",
+        "due_text": "dentro de una semana",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0018-c4",
+        "who": "Lalo Landa",
+        "to_whom": "Milhouse Van Houten",
+        "what": "armar una sesión de playtest con gente externa",
+        "due": null,
+        "due_text": null,
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0018-c5",
+        "who": "Milhouse Van Houten",
+        "to_whom": "Lalo Landa",
+        "what": "mandarle el informe de QA de la demo",
+        "due": "2026-10-27",
+        "due_text": "el martes 27",
+        "project": "Turrokiller"
+      }
+    ]
+  },
+  "mentions": [
+    "lamanija-0005-c1"
+  ],
+  "text_sha256": null
+}

@@ -1,0 +1,41 @@
+{
+  "document_id": "lamanija-0025",
+  "company": "lamanija",
+  "type": "email",
+  "date": "2026-10-12",
+  "participants": [
+    "Lalo Landa",
+    "Waylon Smithers"
+  ],
+  "projects": [
+    "Turrokiller"
+  ],
+  "author": "Waylon Smithers",
+  "brief": "Smithers le pide a Lalo la lista de riesgos de la demo de Turrokiller. Documento reservado para Q5. El mail incluye la respuesta de Lalo aceptando.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0025-c1",
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "pasarle la lista de riesgos de la demo de Turrokiller",
+        "due": "2026-10-16",
+        "due_text": "el viernes",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0025-c2",
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "revisar la lista de riesgos y devolverle comentarios",
+        "due": "2026-10-19",
+        "due_text": "el lunes de la semana que viene",
+        "project": "Turrokiller"
+      }
+    ]
+  },
+  "mentions": [
+    "lamanija-0024-c1"
+  ],
+  "text_sha256": null
+}

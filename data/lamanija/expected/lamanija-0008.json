@@ -1,0 +1,43 @@
+{
+  "document_id": "lamanija-0008",
+  "company": "lamanija",
+  "type": "chat",
+  "date": "2026-09-23",
+  "participants": [
+    "Lalo Landa",
+    "Profesor Frink"
+  ],
+  "projects": [
+    "Motocrotos Adventures"
+  ],
+  "brief": "Lalo y Frink coordinan el arreglo del problema de pagos de Motocrotos.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0008-c1",
+        "who": "Profesor Frink",
+        "to_whom": "Lalo Landa",
+        "what": "desplegar el hotfix de pagos",
+        "due": "2026-09-30",
+        "due_text": "el miércoles de la semana que viene",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "id": "lamanija-0008-c2",
+        "who": "Lalo Landa",
+        "to_whom": "Profesor Frink",
+        "what": "pasarle las capturas de los usuarios afectados",
+        "due": "2026-09-25",
+        "due_text": "pasado mañana",
+        "project": "Motocrotos Adventures"
+      }
+    ]
+  },
+  "mentions": [
+    "lamanija-0007-c2"
+  ],
+  "not_commitments": [
+    "Frink dice que si le da el tiempo mete también el arreglo de las reseñas (hipótesis, no es un compromiso)."
+  ],
+  "text_sha256": null
+}

@@ -1,0 +1,37 @@
+{
+  "document_id": "lamanija-0024",
+  "company": "lamanija",
+  "type": "chat",
+  "date": "2026-10-09",
+  "participants": [
+    "Lalo Landa",
+    "Waylon Smithers"
+  ],
+  "projects": [
+    "Turrokiller"
+  ],
+  "brief": "Smithers le avisa a Lalo que Burns quiere un informe del estado de Turrokiller para el festival.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0024-c1",
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "pasarle el informe de estado de Turrokiller para el festival",
+        "due": "2026-10-14",
+        "due_text": "el miércoles que viene",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0024-c2",
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "avisarle a Burns que el informe sale el miércoles",
+        "due": "2026-10-09",
+        "due_text": "hoy",
+        "project": "Turrokiller"
+      }
+    ]
+  },
+  "text_sha256": null
+}

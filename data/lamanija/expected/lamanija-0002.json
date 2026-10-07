@@ -1,0 +1,41 @@
+{
+  "document_id": "lamanija-0002",
+  "company": "lamanija",
+  "type": "email",
+  "date": "2026-09-15",
+  "participants": [
+    "Lalo Landa",
+    "Waylon Smithers"
+  ],
+  "projects": [
+    "Turrokiller"
+  ],
+  "author": "Waylon Smithers",
+  "brief": "Smithers escribe a Lalo y cierran por mail el plan de hitos de la demo de Turrokiller: qué entrega cada uno y para cuándo.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0002-c1",
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "pasarle el plan de hitos de la demo de Turrokiller, con fechas de entrega por área",
+        "due": "2026-09-18",
+        "due_text": "el viernes",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0002-c2",
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "conseguir la aprobación de Burns para el plan de hitos",
+        "due": "2026-09-21",
+        "due_text": "el lunes",
+        "project": "Turrokiller"
+      }
+    ]
+  },
+  "mentions": [
+    "lamanija-0001-c4"
+  ],
+  "text_sha256": null
+}

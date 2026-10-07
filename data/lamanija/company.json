@@ -2,5 +2,7 @@
   "id": "lamanija",
   "name": "La Manija Games",
   "description": "Estudio independiente argentino de videojuegos con cuatro títulos en distintas etapas.",
-  "user_id": "lamanija-p05"
+  "user_id": "lamanija-p05",
+  "reference_date": "2026-10-12",
+  "held_out": ["lamanija-0025"]
 }

@@ -1,0 +1,37 @@
+{
+  "document_id": "lamanija-0014",
+  "company": "lamanija",
+  "type": "chat",
+  "date": "2026-10-01",
+  "participants": [
+    "Lalo Landa",
+    "Waylon Smithers"
+  ],
+  "projects": [
+    "Jimboland"
+  ],
+  "brief": "Smithers le pide a Lalo una estimación de presupuesto de Jimboland para la revisión del prototipo.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0014-c1",
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "pasarle la estimación de presupuesto de Jimboland",
+        "due": "2026-10-09",
+        "due_text": "el viernes de la semana que viene",
+        "project": "Jimboland"
+      },
+      {
+        "id": "lamanija-0014-c2",
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "pasarle el presupuesto de los prototipos anteriores",
+        "due": "2026-10-13",
+        "due_text": "el martes 13",
+        "project": "Jimboland"
+      }
+    ]
+  },
+  "text_sha256": null
+}

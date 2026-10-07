@@ -1,0 +1,58 @@
+{
+  "document_id": "lamanija-0001",
+  "company": "lamanija",
+  "type": "meeting",
+  "date": "2026-09-14",
+  "participants": [
+    "Lalo Landa",
+    "Waylon Smithers",
+    "Milhouse Van Houten",
+    "Patty Bouvier"
+  ],
+  "projects": [
+    "Turrokiller",
+    "Motocrotos Adventures"
+  ],
+  "brief": "Reunión semanal de Producción: prioridad de la demo de Turrokiller y estado de Motocrotos.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0001-c1",
+        "who": "Milhouse Van Houten",
+        "to_whom": "Lalo Landa",
+        "what": "pasarle la lista de bugs abiertos de Motocrotos",
+        "due": "2026-09-16",
+        "due_text": "el miércoles",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "id": "lamanija-0001-c2",
+        "who": "Patty Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "mandarle un resumen de las reseñas de la tienda de Motocrotos",
+        "due": "2026-09-18",
+        "due_text": "este viernes",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "id": "lamanija-0001-c3",
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "ver cómo reordenar los turnos de QA para llegar a la demo de Turrokiller",
+        "due": null,
+        "due_text": null,
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0001-c4",
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "hablar con Burns para confirmar el presupuesto para participar en el festival de juegos",
+        "due": null,
+        "due_text": null,
+        "project": "Turrokiller"
+      }
+    ]
+  },
+  "text_sha256": null
+}

@@ -1,0 +1,62 @@
+{
+  "document_id": "lamanija-0021",
+  "company": "lamanija",
+  "type": "meeting",
+  "date": "2026-10-08",
+  "participants": [
+    "Lalo Landa",
+    "Waylon Smithers"
+  ],
+  "projects": [
+    "Choripixels",
+    "Motocrotos Adventures",
+    "Jimboland",
+    "Turrokiller"
+  ],
+  "brief": "1 a 1 semanal de Lalo con Smithers: repaso de los cuatro proyectos.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0021-c1",
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "pasarle los requisitos técnicos del festival para la demo",
+        "due": "2026-10-20",
+        "due_text": "el martes 20",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0021-c2",
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "entregar el plan de contingencia de la demo de Turrokiller",
+        "due": "2026-10-22",
+        "due_text": "en dos semanas",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0021-c3",
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "revisar con Milhouse el calendario de QA y pasarle los cambios",
+        "due": null,
+        "due_text": null,
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0021-c4",
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "hablar con Marge para sumar un animador temporal a Turrokiller",
+        "due": null,
+        "due_text": null,
+        "project": "Turrokiller"
+      }
+    ]
+  },
+  "mentions": [
+    "lamanija-0014-c1",
+    "lamanija-0012-c5"
+  ],
+  "text_sha256": null
+}

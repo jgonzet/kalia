@@ -1,0 +1,28 @@
+{
+  "document_id": "lamanija-0017",
+  "company": "lamanija",
+  "type": "chat",
+  "date": "2026-10-05",
+  "participants": [
+    "Lalo Landa",
+    "Patty Bouvier"
+  ],
+  "projects": [
+    "Motocrotos Adventures"
+  ],
+  "brief": "Lalo y Patty preparan el anuncio de la temporada de Motocrotos.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0017-c1",
+        "who": "Patty Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "pasarle el calendario de posts del anuncio de la temporada",
+        "due": "2026-10-16",
+        "due_text": "el viernes de la semana que viene",
+        "project": "Motocrotos Adventures"
+      }
+    ]
+  },
+  "text_sha256": null
+}

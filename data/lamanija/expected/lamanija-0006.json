@@ -1,0 +1,61 @@
+{
+  "document_id": "lamanija-0006",
+  "company": "lamanija",
+  "type": "meeting",
+  "date": "2026-09-21",
+  "participants": [
+    "Lalo Landa",
+    "Marge Simpson",
+    "Selma Bouvier",
+    "Helen Lovejoy",
+    "Edna Krabappel"
+  ],
+  "projects": [
+    "Turrokiller"
+  ],
+  "brief": "Reunión de arte: enemigos de la demo de Turrokiller.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0006-c1",
+        "who": "Helen Lovejoy",
+        "to_whom": "Marge Simpson",
+        "what": "entregar el concept de los tres enemigos principales de la demo",
+        "due": "2026-10-02",
+        "due_text": "el viernes 2 de octubre",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0006-c2",
+        "who": "Selma Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "armar el ciclo de caminata del enemigo básico",
+        "due": "2026-10-19",
+        "due_text": "dentro de cuatro semanas",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0006-c3",
+        "who": "Edna Krabappel",
+        "to_whom": "Selma Bouvier",
+        "what": "pasarle los tamaños de colisión de los enemigos",
+        "due": "2026-09-23",
+        "due_text": "pasado mañana",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0006-c4",
+        "who": "Lalo Landa",
+        "to_whom": "Marge Simpson",
+        "what": "confirmarle cuándo se congelan los enemigos de la demo",
+        "due": null,
+        "due_text": "apenas Smithers apruebe el plan de hitos",
+        "project": "Turrokiller"
+      }
+    ]
+  },
+  "mentions": [
+    "lamanija-0002-c2"
+  ],
+  "text_sha256": null
+}

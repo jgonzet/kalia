@@ -1,0 +1,49 @@
+{
+  "document_id": "lamanija-0022",
+  "company": "lamanija",
+  "type": "email",
+  "date": "2026-10-08",
+  "participants": [
+    "Lalo Landa",
+    "Helen Lovejoy",
+    "Marge Simpson"
+  ],
+  "projects": [
+    "Turrokiller",
+    "Choripixels"
+  ],
+  "author": "Lalo Landa",
+  "brief": "Lalo le pide a Helen, con copia a Marge, concept de enemigos de Turrokiller y de Choripixels. El mail incluye las respuestas de Helen y Marge aceptando.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0022-c1",
+        "who": "Helen Lovejoy",
+        "to_whom": "Lalo Landa",
+        "what": "entregar la segunda tanda de concept de enemigos de la demo",
+        "due": "2026-10-22",
+        "due_text": "el jueves 22",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0022-c2",
+        "who": "Helen Lovejoy",
+        "to_whom": "Lalo Landa",
+        "what": "mandar bocetos de enemigos de Choripixels",
+        "due": "2026-11-05",
+        "due_text": "el 5 de noviembre",
+        "project": "Choripixels"
+      },
+      {
+        "id": "lamanija-0022-c3",
+        "who": "Marge Simpson",
+        "to_whom": "Helen Lovejoy",
+        "what": "darle feedback sobre los conceptos",
+        "due": null,
+        "due_text": "a los dos días de recibirlos",
+        "project": "Turrokiller"
+      }
+    ]
+  },
+  "text_sha256": null
+}

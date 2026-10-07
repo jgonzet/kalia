@@ -1,0 +1,45 @@
+{
+  "document_id": "lamanija-0020",
+  "company": "lamanija",
+  "type": "chat",
+  "date": "2026-10-07",
+  "participants": [
+    "Lalo Landa",
+    "Manjula Nahasapeemapetilon",
+    "Profesor Frink"
+  ],
+  "projects": [],
+  "brief": "Chat de Lalo, Manjula y Frink sobre el pipeline de builds, una herramienta interna que no pertenece a un proyecto.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0020-c1",
+        "who": "Manjula Nahasapeemapetilon",
+        "to_whom": "Profesor Frink",
+        "what": "agregar un paso de empaquetado automático al pipeline de builds",
+        "due": "2026-10-21",
+        "due_text": "dentro de dos semanas",
+        "project": null
+      },
+      {
+        "id": "lamanija-0020-c2",
+        "who": "Profesor Frink",
+        "to_whom": "Manjula Nahasapeemapetilon",
+        "what": "darle acceso al servidor de builds",
+        "due": null,
+        "due_text": "apenas lo configure",
+        "project": null
+      },
+      {
+        "id": "lamanija-0020-c3",
+        "who": "Lalo Landa",
+        "to_whom": "Manjula Nahasapeemapetilon",
+        "what": "armar la lista de qué builds necesita QA cada semana",
+        "due": "2026-10-12",
+        "due_text": "el lunes 12",
+        "project": null
+      }
+    ]
+  },
+  "text_sha256": null
+}

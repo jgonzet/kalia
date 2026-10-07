@@ -1,0 +1,46 @@
+{
+  "document_id": "lamanija-0005",
+  "company": "lamanija",
+  "type": "chat",
+  "date": "2026-09-18",
+  "participants": [
+    "Lalo Landa",
+    "Milhouse Van Houten"
+  ],
+  "projects": [
+    "Turrokiller"
+  ],
+  "brief": "Lalo y Milhouse arman el plan de QA de la demo de Turrokiller.",
+  "extractions": {
+    "commitments": [
+      {
+        "id": "lamanija-0005-c1",
+        "who": "Milhouse Van Houten",
+        "to_whom": "Lalo Landa",
+        "what": "armar el plan de pruebas de la demo de Turrokiller",
+        "due": "2026-09-25",
+        "due_text": "el viernes de la semana que viene",
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0005-c2",
+        "who": "Lalo Landa",
+        "to_whom": "Milhouse Van Houten",
+        "what": "pasarle la build de Edna apenas esté disponible",
+        "due": null,
+        "due_text": null,
+        "project": "Turrokiller"
+      },
+      {
+        "id": "lamanija-0005-c3",
+        "who": "Milhouse Van Houten",
+        "to_whom": "Lalo Landa",
+        "what": "mandarle una primera lista de bugs de la build de prueba",
+        "due": "2026-09-21",
+        "due_text": "el lunes",
+        "project": "Turrokiller"
+      }
+    ]
+  },
+  "text_sha256": null
+}
