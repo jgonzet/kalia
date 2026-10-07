@@ -5,7 +5,7 @@
 
 ## Synthetic dataset (`data/<company>/`)
 
-Formats and the reasons behind them are in `docs/PLAN.md` section 12 and `docs/DECISIONS.md`; do not restate them elsewhere.
+The format of every dataset file is defined in `docs/DATASET.md` and the reasons for the choices in `docs/DECISIONS.md`; do not restate either elsewhere.
 
 - Work in this order: `story.md`, then the `expected` files, then the generator prompts, then the documents. Never write a document before its `expected` file exists.
 - Before adding documents, extend `story.md` as its header says. Do not contradict a fact already in it; if a fact must change, ask first.

@@ -14,12 +14,14 @@ Date: 2026-10-07
 Chose: `data/<company>/questions.jsonl`, one line per concrete question with a `version` (`v1`; published questions are never edited, new ones get `v2`), the expected answer as commitment ids, and fixed rules: "this week" is the reference date plus 6 days, without overdue or undated commitments; every commitment counts as open; "my boss" is the user's boss in the catalog.
 Rejected: a hand-written table from question to documents (cannot be checked against the data and drifts); one file per version (adding questions stops being adding a line).
 Source: issue #5, commit 66925d0; format in `docs/PLAN.md` section 12.
+Refined 2026-10-07: the format now lives in `docs/DATASET.md`.
 
 ## Expected files carry commitment ids, raw deadline text and negative cases
 Date: 2026-10-07
 Chose: each commitment in `expected/<document id>.json` has an id (`<document id>-cN`) and both `due` (absolute) and `due_text` (the phrase as written); `mentions` lists commitments of other documents that the text names without promising again; `not_commitments` lists phrases the text must contain that are not commitments.
 Rejected: no ids (questions could not cite their answers); only `due` (a failed extraction could not be traced to date arithmetic); leaving out mentions and conditionals (duplicates and false positives would go unmeasured).
 Source: issue #5, commit 8adbaa5; format in `docs/PLAN.md` section 12.
+Refined 2026-10-07: the format now lives in `docs/DATASET.md`.
 
 ## The dataset defines the reference date
 Date: 2026-10-07
