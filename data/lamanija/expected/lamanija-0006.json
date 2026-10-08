@@ -29,7 +29,7 @@
         "id": "lamanija-0006-c2",
         "who": "Selma Bouvier",
         "to_whom": "Lalo Landa",
-        "what": "armar el ciclo de caminata del enemigo básico",
+        "what": "rehacer el ciclo de caminata del enemigo básico con el diseño nuevo",
         "due": "2026-10-19",
         "due_text": "dentro de cuatro semanas",
         "project": "Turrokiller"
@@ -49,7 +49,7 @@
         "to_whom": "Marge Simpson",
         "what": "confirmarle cuándo se congelan los enemigos de la demo",
         "due": null,
-        "due_text": "apenas Smithers apruebe el plan de hitos",
+        "due_text": "apenas se apruebe el plan de hitos",
         "project": "Turrokiller"
       }
     ]
