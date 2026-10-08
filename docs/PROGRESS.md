@@ -5,7 +5,7 @@
 1. #6 — Write the generator prompts and the dataset check script
 2. #7 — Generate and review the 25 synthetic documents
 
-Synced at: a8ed117
+Synced at: 979e478
 
 This file is filled in with each /close-feature.
 
