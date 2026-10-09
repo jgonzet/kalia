@@ -14,3 +14,4 @@ The format of every dataset file is defined in `docs/DATASET.md` and the reasons
 - `questions.jsonl`: never edit a published question. New or changed questions get a new `version`.
 - The reference date lives only in `company.json`; do not repeat it in other dataset files.
 - Editing the text of an accepted document invalidates its `text_sha256`; refresh it. Changing the commitments of an `expected` file after its document was accepted means the text may no longer contain them: re-check the text and the questions that cite those commitments.
+- `scripts/check_dataset.py` checks the documents against their `expected` files. Run it every time you add or edit documents or `expected` files; how and what it checks is in `docs/DATASET.md` ("Checking the dataset").

@@ -2,10 +2,10 @@
 
 ## Next
 
-1. #6 — Write the generator prompts and the dataset check script
-2. #7 — Generate and review the 25 synthetic documents
+1. #7 — Generate and review the 25 synthetic documents
+2. #8 — Evaluate extraction and chat answers against the expected files
 
-Synced at: 979e478
+Synced at: bcf024f
 
 This file is filled in with each /close-feature.
 
@@ -100,3 +100,33 @@ This file is filled in with each /close-feature.
 **Issues:** closed #5. Opened #8.
 
 — Resolved 2026-10-07: the formats named in Logic step 5 and Location now live in `docs/DATASET.md` instead of `docs/PLAN.md` section 12; the rules for extending the dataset are in the "Synthetic dataset" section of `CLAUDE.md`.
+
+## 2026-10-09 — Generator prompts and dataset check script
+
+**Purpose:** have, before any document exists, the instructions the generator follows and a check that keeps each document tied to its `expected` file, so the 25 documents (#7) can be written and validated in one pass.
+
+**Input:** the files of `data/lamanija/` from the previous entries; the documents, once they exist.
+
+**Output:** `data/generation/` (`base.md`, `types/{email,meeting,chat}.md`, `fields/commitments.md`), `scripts/check_dataset.py`, and in `docs/DATASET.md` the header syntax of the documents and the sections "Generating documents" and "Checking the dataset". No documents yet, no app code.
+
+**Logic:**
+1. The documents are written by Claude Code inside the repo (not by an external chatbot, which `docs/PLAN.md` sections 1, 2 and 8 still describe as the original design; section 13 replaces it). It reads `base.md`, the file of the document's type, `fields/`, the catalog, `story.md` and the `expected` files, and writes `documents/<id>.md`. The steps are in `docs/DATASET.md`.
+2. `base.md` holds the rules for every document and points to `types/` and `fields/`; a new source type or a new extracted field is a new file in those folders. The rules for commitments, `mentions` and `not_commitments` live in `fields/commitments.md` only.
+3. `check_dataset.py` (standard library only) compares each document with its `expected` file and the catalog: matching ids, type, date and participants, names in the catalog, commitment ids and mentions, and the text hash. What it checks is listed in `docs/DATASET.md`.
+4. `--stamp` writes the text hash into the `expected` file and is the only case where the script changes files. `--allow-pending` lets `expected` files without a document pass while the batches are being written.
+5. Decision recorded: "The synthetic documents are committed to the repo". The header syntax is a refinement of "Documents: free-text body plus a metadata header".
+
+**Important assumptions:**
+- The hash is the SHA-256 of the text after the header, stripped at both ends; the header is compared field by field instead.
+- A `due_text` missing from its text is a warning, not an error, because wording may differ in case or spacing.
+- An `expected` file without a document is an error unless `--allow-pending` is given.
+- `data/generation/` is written in Spanish, like `story.md` and the documents it produces.
+- No rules to vary the structure of the documents: the 25 texts may look alike. Known limitation of the dataset.
+- The same model designed the `expected` files and writes the texts, so the texts may be easier to extract than real ones.
+- The script is not in CI and nobody runs it automatically; `CLAUDE.md` tells whoever works on the dataset to run it.
+
+**Location:** `data/generation/`, `scripts/check_dataset.py`, `docs/DATASET.md`, `docs/PLAN.md` section 13.
+
+**Tests:** `uv run scripts/check_dataset.py --allow-pending` gives `ok` on the 25 `expected` files. The checks on documents (header, hash, `due_text`) have not run because no document exists yet; the first batch of #7 is their first real test. No unit tests.
+
+**Issues:** closed #6. Opened #9.

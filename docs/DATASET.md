@@ -12,9 +12,9 @@ Format of the files under `data/<company>/`. The reasons for each choice are in 
 | `story.md` | background facts of the company and its projects (see below) |
 | `expected/<document id>.json` | the answer key of one document (see below) |
 | `questions.jsonl` | the acceptance questions with their expected answers (see below) |
-| `documents/<document id>.md` | the generated texts: a metadata header plus free text. Not created yet |
+| `documents/<document id>.md` | the generated texts: a metadata header plus free text (see below) |
 
-Prompts for the external generator live in `data/generation/`, shared by all companies. Not created yet.
+The generator's instructions live in `data/generation/`, shared by all companies (see "Generating documents").
 
 Document ids are `<company>-NNNN`, unique across companies.
 
@@ -40,6 +40,22 @@ A commitment: `id` (`<document id>-cN`), `who`, `to_whom`, `what`, `due` (`YYYY-
 
 A commitment exists only if the text shows the person accepting it; in an email the reply is inside the same document. Each commitment is promised in one document only.
 
+## `documents/<document id>.md`
+
+A header between two `---` lines, one `key: value` per line, then the free text:
+
+```
+---
+id: lamanija-0004
+type: email
+date: 2026-09-17
+participants: Lalo Landa, Seymour Skinner, Profesor Frink
+---
+<free text>
+```
+
+`participants` are names from `people.jsonl` separated by `, `. `text_sha256` in the `expected` file is the SHA-256 (UTF-8) of the text after the closing `---`, stripped of leading and trailing whitespace; the header is not hashed because the check compares it field by field.
+
 ## `questions.jsonl`
 
 One question per line: `id`, `version`, `acceptance` (`Q1` to `Q5`, the questions of `docs/SPEC.md`), `question`, `expected` and `after_held_out`.
@@ -55,3 +71,26 @@ Rules the answers are computed with:
 - Every commitment counts as open (V0 has no status).
 - "Involves X" includes the commitments that do not involve the user.
 - "My boss" is the user's boss in the catalog, not other levels above.
+
+## Generating documents
+
+Claude Code writes the documents inside the repo, reading the files below from disk.
+
+| File | Content |
+|---|---|
+| `data/generation/base.md` | rules for every document: respect `story.md`, informal Spanish, how commitments, `mentions` and `not_commitments` appear in the text, length, file format |
+| `data/generation/types/<type>.md` | how each source type looks (`email`, `meeting`, `chat`); a new type is a new file |
+| `data/generation/fields/<field>.md` | what the text must contain for each extracted field; a new field to extract is a new file |
+
+To write a batch of documents:
+1. Read `base.md`, the `types/` file of each document's type, `fields/`, the company's catalog, `story.md` whole and the `expected` files of the batch. For each id in `mentions`, also read that commitment in its `expected` file and, if already written, the text of its document.
+2. Write `documents/<document id>.md` for each, following its `expected` file (`brief`, `author`, commitments, `mentions`, `not_commitments`).
+3. Run `uv run scripts/check_dataset.py --allow-pending`, then read every new text: that it contains exactly its commitments, with the deadlines worded as `due_text`, is not fully checked by the script (it only warns when a `due_text` is missing from the text). Whoever generates the batch does this review and reports it per document (anything odd, and which texts are worth a look); the owner can open any text.
+4. Accept the texts with `--stamp`, which fills in `text_sha256`.
+
+## Checking the dataset
+
+`uv run scripts/check_dataset.py [company ...]` (standard library only). Flags: `--stamp` fills in `text_sha256` of every present document; `--allow-pending` does not fail on `expected` files without a document yet. It checks (a `due_text` missing from its text is only a warning):
+- Every document has an `expected` file and the other way round; the header `id` equals the file name; `type`, `date` and `participants` match the `expected` file; `participants` and `projects` are names from the catalog.
+- `text_sha256` matches the text.
+- Commitment ids are unique and of the form `<document id>-cN` (numbers need not be contiguous); `who` and `to_whom` are participants of the document; `project` is one of the document's projects or `null`; every `mentions` id is a commitment of an earlier document.

@@ -2,6 +2,13 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## The synthetic documents are committed to the repo
+Date: 2026-10-09
+Chose: `data/<company>/documents/` is versioned like the rest of the dataset, so anyone who clones the repo can test the app with the same input.
+Rejected: keeping the documents out of git (the `text_sha256` in each `expected` file would point to texts nobody else has, and `check_dataset.py` would have nothing to check outside this machine).
+Why: the data is synthetic. This does not cover real or confidential data, which is not decided yet.
+Source: issue #6.
+
 ## One story file per company, pasted whole into every generation batch
 Date: 2026-10-07
 Chose: `data/<company>/story.md` lists, per project, a situation and dated facts that no document may contradict. Every batch prompt includes it whole, and new documents add their facts to it before their `expected` files are designed.
@@ -82,6 +89,7 @@ Date: 2026-10-05
 Chose: each document is plain informal text with a small header (id, type, date, participants); the loader only joins header and body, and the LLM extracts commitments only.
 Rejected: raw text with the LLM also extracting date and participants (outside V0 scope, error-prone name matching); fully structured documents (unrealistic).
 Source: initial approved plan; issue #3 covers sources without headers.
+Refined 2026-10-09: the header syntax (a `---` block with `key: value` lines) is defined in `docs/DATASET.md`.
 
 ## CI from the first code
 Date: 2026-10-05

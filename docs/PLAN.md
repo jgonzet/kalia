@@ -120,6 +120,25 @@ Reabre y amplía el formato de la sección 6 (que sigue valiendo para todo lo de
 
 **Fuera de #5, sin issue (el usuario lo retoma más adelante):** vínculos 1 a 1 de cada persona con Lalo por proyecto (a veces es el jefe del proyecto, a veces al revés). La SPEC de V0 deriva la relación solo de la jerarquía del catálogo, así que esto cambia la SPEC. El catálogo ya lo admite sin rehacer nada: sería otro archivo (`relationships.jsonl`) con ids de persona y de proyecto, según la sección 5.
 
+## 13. Generador: Claude Code en vez de un chatbot externo [RESOLVED]
+
+Agregado 2026-10-09. Reemplaza lo que las secciones 1, 2 y 8 dicen del "chatbot externo (Gemini/ChatGPT)" y de armar el prompt copiando y pegando.
+
+**Qué cambia:** los documentos los escribe Claude Code dentro de este repo. Lee `story.md`, el catálogo, los `expected` y `data/generation/*` directo del disco, escribe `documents/<id>.md` y corre `scripts/check_dataset.py --stamp` en el momento. No hay prompt que pegar en ningún lado. `data/generation/` se mantiene igual: son los archivos que Claude lee antes de cada tanda (base, tipo, campo), y siguen siendo la forma de agregar un tipo o un campo nuevo.
+
+**Por qué:** menos pasos manuales, validación inmediata de cada documento y trazabilidad en git. El plan semanal de tokens se corta el viernes 2026-10-09 a las 17:00, así que #6 y #7 se hacen en esta sesión.
+
+**Alcance de hoy:**
+1. `docs/DATASET.md`: definir el formato del encabezado (no estaba definido).
+2. `data/generation/`: `base.md`, `types/{email,meeting,chat}.md`, `fields/commitments.md`.
+3. `scripts/check_dataset.py` (solo librería estándar) con `--stamp`.
+4. Generar los 25 documentos en 5 tandas de 5, leer a mano todos los textos de cada tanda. El cómo (inline o con subagentes) se le pregunta al usuario antes de empezar.
+5. `/close-feature` al final, si alcanza el tiempo. Si no, queda dicho en `## Next`.
+
+**Limitación conocida (no se corrige en V0):** sin reglas de variedad, los 25 textos pueden parecerse en estructura.
+
+**Riesgo conocido:** el mismo modelo que diseñó los `expected` escribe los textos, así que puede ser más cooperativo que un chatbot ajeno (compromisos más fáciles de extraer que en datos reales). Se anota como limitación del dataset; no se mitiga hoy.
+
 ## Verificación
 
 - Cada pregunta de aceptación de la SPEC tiene al menos una pregunta concreta en `questions.jsonl`, con sus compromisos esperados.
