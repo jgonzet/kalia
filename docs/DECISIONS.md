@@ -2,6 +2,12 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## Saving a document's commitments replaces everything stored for that document
+Date: 2026-10-09
+Chose: `CommitmentStore.save_document_commitments(document_id, commitments)` deletes the owner's rows for that document and inserts the given list; an empty list clears the document. Re-extracting a document is therefore always safe.
+Rejected: upsert by commitment id (a re-extraction that yields fewer commitments would leave stale rows, since ids are `<doc id>-cN`); append-only (duplicates on every re-run).
+Source: issue #11, commit 943698d.
+
 ## The manual Claude Code backend works on self-contained request files, outside the repo
 Date: 2026-10-09
 Chose: `scripts/manual_extraction.py export` writes `requests/batch-NN.md` with one full prompt per document (instructions, contract, catalog, text); the owner has an external Claude session, opened in an empty folder, answer `{"<document id>": [...]}`; `import` validates that file. `requests/` and `responses/` are git-ignored.

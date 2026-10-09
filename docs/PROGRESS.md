@@ -2,12 +2,11 @@
 
 ## Next
 
-1. #11 — Add a commitments table and SQLite implementation of CommitmentStore
-2. #14 — Run extraction when a document is ingested and store the commitments
-3. #8 — Evaluate extraction and chat answers against the expected files
-4. #13 — Add unit tests and selected integration tests for the first full iteration
+1. #14 — Run extraction when a document is ingested and store the commitments
+2. #8 — Evaluate extraction and chat answers against the expected files
+3. #13 — Add unit tests and selected integration tests for the first full iteration
 
-Synced at: 3495401
+Synced at: 943698d
 
 This file is filled in with each /close-feature.
 
@@ -220,3 +219,28 @@ Decisions recorded: "Extraction is three pieces: build the prompt, call the mode
 **Tests:** manual: export on the 24 stored documents, an import with one valid and one invalid item, and the three real batches imported with 0 problems. No unit tests.
 
 **Issues:** closed #12. Opened #14.
+
+## 2026-10-09 — Commitments table in SQLite
+
+**Purpose:** give extracted commitments somewhere to be stored, so extraction (#14, #8) and retrieval can persist them.
+
+**Input:** a document id and the list of `Commitment` extracted from it.
+
+**Output:** rows in a new `commitments` table of the same SQLite file as documents and catalog; `list_commitments()` returns them as `Commitment`. Nothing calls these methods yet: `scripts/manual_extraction.py import` still only validates.
+
+**Logic:**
+1. `SqliteStore` creates the `commitments` table (and an index on owner + document) on open, like the other tables; every row carries `owner_id`.
+2. `save_document_commitments(document_id, commitments)` deletes that owner's rows for the document and inserts the new list, in one transaction.
+3. `list_commitments()` returns all of the owner's commitments ordered by id; dates are stored as ISO text, `due` and `project` may be null.
+4. `scripts/smoke_test.py` gained `check_commitments`: re-saving does not duplicate, `due` round-trips, saving an empty list clears the document.
+
+**Important assumptions:**
+- Replace-per-document semantics: see "Saving a document's commitments replaces everything stored for that document" in `docs/DECISIONS.md`.
+- The `Store` protocol does not include `CommitmentStore`; whoever first needs both (#14) decides.
+- No foreign key to `documents`: commitments can be saved for a document id that is not stored.
+
+**Location:** `app/storage/sqlite.py`, `scripts/smoke_test.py`.
+
+**Tests:** smoke check only; no unit tests yet (#13).
+
+**Issues:** closed #11.
