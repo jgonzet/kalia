@@ -20,15 +20,17 @@ class Document:
 
 @dataclass(frozen=True)
 class Person:
+    id: str
     name: str
     role: str
     area: str
     level: int
-    reports_to: str | None
+    reports_to: str | None  # id of the manager
 
 
 @dataclass(frozen=True)
 class Project:
+    id: str
     name: str
     description: str
     status: str

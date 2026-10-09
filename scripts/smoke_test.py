@@ -7,6 +7,7 @@ import os
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -16,9 +17,13 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))  # scripts/ is sys.path[0], so make `app` importable
 
 from app.config import Settings  # noqa: E402
+from app.ingestion.dataset import DatasetSource  # noqa: E402
 from app.llm import build_llm  # noqa: E402
+from app.storage.sqlite import SqliteStore  # noqa: E402
 
 STARTUP_TIMEOUT_SECONDS = 20.0
+DATASET = ROOT / "data" / "lamanija"
+OWNER_ID = "smoke"
 
 
 def free_port() -> int:
@@ -48,10 +53,49 @@ def check_fake_llm() -> None:
     assert answer, "fake LLM returned an empty answer"
 
 
+def run_loader(db_path: str) -> None:
+    """Run the dataset loader script against the temporary database."""
+    env = {**os.environ, "DB_PATH": db_path, "OWNER_ID": OWNER_ID}
+    subprocess.run([sys.executable, "scripts/load_dataset.py", "lamanija"], env=env, cwd=ROOT, check=True)
+
+
+def check_ingestion(base_url: str, db_path: str) -> None:
+    """Check the initial load, its idempotence and the later ingestion of the held-out document."""
+    source = DatasetSource(DATASET)
+    expected_initial = len(list(source.documents()))
+    held_out = source.company["held_out"]
+    store = SqliteStore(db_path, OWNER_ID)
+
+    run_loader(db_path)
+    assert len(store.list_documents()) == expected_initial, "initial load stored the wrong number of documents"
+    catalog = store.load_catalog()
+    assert catalog is not None and catalog.user, "catalog was not stored"
+    assert not any(store.get_document(doc_id) for doc_id in held_out), "held-out document was loaded"
+
+    run_loader(db_path)
+    assert len(store.list_documents()) == expected_initial, "reloading duplicated documents"
+
+    for _ in range(2):  # the second post checks idempotence of the endpoint
+        for doc_id in held_out:
+            doc = source.document(doc_id)
+            body = {
+                "id": doc.id,
+                "type": doc.type,
+                "date": doc.date.isoformat(),
+                "participants": list(doc.participants),
+                "text": doc.text,
+            }
+            response = httpx.post(f"{base_url}/documents", json=body, timeout=5.0)
+            assert response.status_code == 200, f"POST /documents returned {response.status_code}"
+        assert len(store.list_documents()) == expected_initial + len(held_out), "held-out ingestion failed"
+
+
 def main() -> int:
     port = free_port()
     base_url = f"http://127.0.0.1:{port}"
-    env = {**os.environ, "LLM_BACKEND": "fake"}
+    tmp_dir = tempfile.TemporaryDirectory()
+    db_path = str(Path(tmp_dir.name) / "smoke.db")
+    env = {**os.environ, "LLM_BACKEND": "fake", "DB_PATH": db_path, "OWNER_ID": OWNER_ID}
     process = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "app.main:create_app", "--factory", "--port", str(port)],
         env=env,
@@ -62,7 +106,8 @@ def main() -> int:
         assert response.status_code == 200, f"/health returned {response.status_code}"
         assert response.json() == {"status": "ok", "llm_backend": "fake"}, response.json()
         check_fake_llm()
-    except (AssertionError, RuntimeError) as exc:
+        check_ingestion(base_url, db_path)
+    except (AssertionError, RuntimeError, subprocess.CalledProcessError) as exc:
         print(f"SMOKE TEST FAILED: {exc}")
         return 1
     finally:
@@ -71,6 +116,7 @@ def main() -> int:
             process.wait(timeout=10)
         except subprocess.TimeoutExpired:
             process.kill()
+        tmp_dir.cleanup()
     print("smoke test passed")
     return 0
 

@@ -6,11 +6,14 @@ services:
     env_file:
       - path: .env
         required: false
+    environment:
+      # Storage settings live here, not in the Dockerfile, so changing the database touches only this file.
+      DB_PATH: /var/lib/kalia/kalia.db
     extra_hosts:
       # Lets the container reach Ollama running on the host as host.docker.internal.
       - "host.docker.internal:host-gateway"
     volumes:
-      - kalia-db:/db
+      - kalia-db:/var/lib/kalia
 
 volumes:
   kalia-db:

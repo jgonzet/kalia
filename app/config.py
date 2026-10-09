@@ -18,6 +18,7 @@ class Settings:
     llm_api_key: str = "ollama"
     reference_date: date | None = None
     db_path: str = "kalia.db"
+    owner_id: str = "local"
 
     # property: use it like a field, `settings.today`, without parentheses.
     @property
@@ -41,4 +42,5 @@ class Settings:
             llm_api_key=os.environ.get("LLM_API_KEY") or defaults.llm_api_key,
             reference_date=date.fromisoformat(reference_date) if reference_date else None,
             db_path=os.environ.get("DB_PATH") or defaults.db_path,
+            owner_id=os.environ.get("OWNER_ID") or defaults.owner_id,
         )
