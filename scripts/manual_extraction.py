@@ -4,9 +4,10 @@
 2. `uv run scripts/manual_extraction.py export` writes `requests/batch-NN.md` (git-ignored).
 3. Open a session in an empty folder outside the repo, paste one request file and let it answer.
 4. Save the answer as `responses/batch-NN.json`.
-5. `uv run scripts/manual_extraction.py import responses/batch-NN.json` validates it and reports problems.
+5. `uv run scripts/manual_extraction.py import responses/batch-NN.json` validates it, reports problems and stores the valid commitments
+   (re-importing replaces each document's commitments).
 
-Uses DB_PATH and OWNER_ID from the environment. Storing the commitments waits for issue #11.
+Uses DB_PATH and OWNER_ID from the environment.
 """
 
 import argparse
@@ -27,7 +28,7 @@ def main(argv: list[str]) -> int:
     export = sub.add_parser("export", help="write the request files")
     export.add_argument("--batch-size", type=int, default=8)
     export.add_argument("--out", type=Path, default=ROOT / "requests")
-    imp = sub.add_parser("import", help="validate an answer file")
+    imp = sub.add_parser("import", help="validate an answer file and store its commitments")
     imp.add_argument("response", type=Path)
     args = parser.parse_args(argv)
 
@@ -51,7 +52,9 @@ def main(argv: list[str]) -> int:
         print(f"  - {problem}")
     if report.not_processed:
         print(f"  not in the answer: {', '.join(report.not_processed)}")
-    print("not stored: saving imported answers is issue #14")
+    for doc_id in report.processed:
+        store.save_document_commitments(doc_id, [c for c in report.commitments if c.document_id == doc_id])
+    print(f"stored: {len(report.commitments)} commitments for {len(report.processed)} documents")
     return 1 if report.problems else 0
 
 

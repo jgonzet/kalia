@@ -39,5 +39,5 @@ class CatalogStore(Protocol):
         ...
 
 
-class Store(DocumentStore, CatalogStore, Protocol):
-    """Everything the ingestion side needs from storage."""
+class Store(CommitmentStore, DocumentStore, CatalogStore, Protocol):
+    """Everything the app needs from storage."""

@@ -13,6 +13,7 @@ from datetime import date
 from pathlib import Path
 
 import httpx
+from fastapi.testclient import TestClient
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))  # scripts/ is sys.path[0], so make `app` importable
@@ -20,7 +21,9 @@ sys.path.insert(0, str(ROOT))  # scripts/ is sys.path[0], so make `app` importab
 from app.config import Settings  # noqa: E402
 from app.ingestion.dataset import DatasetSource  # noqa: E402
 from app.llm import build_llm  # noqa: E402
-from app.models import Commitment  # noqa: E402
+from app.llm import LLMError  # noqa: E402
+from app.main import create_app  # noqa: E402
+from app.models import Catalog, Commitment, Document  # noqa: E402
 from app.storage.sqlite import SqliteStore  # noqa: E402
 
 STARTUP_TIMEOUT_SECONDS = 20.0
@@ -110,6 +113,33 @@ def check_commitments(db_path: str) -> None:
     assert [c.id for c in store.list_commitments()] == ["doc-b-c1"], "re-saving did not replace the commitments"
 
 
+class StubExtractor:
+    """Returns one commitment per document, or fails like an unreachable LLM."""
+
+    def __init__(self, fail: bool = False) -> None:
+        self.fail = fail
+
+    def extract(self, document: Document, catalog: Catalog) -> list[Commitment]:
+        if self.fail:
+            raise LLMError("stub failure")
+        return [Commitment(f"{document.id}-c1", OWNER_ID, "A", "B", "do it", None, None, document.id, document.date)]
+
+
+def check_extraction_on_ingest(db_path: str) -> None:
+    """Check that POST /documents extracts and stores, and that an LLM failure keeps the document."""
+    store = SqliteStore(db_path, OWNER_ID)
+    body = {"id": "doc-x", "type": "email", "date": "2026-01-01", "participants": ["A"], "text": "hi"}
+
+    ok = TestClient(create_app(store=store, extractor=StubExtractor())).post("/documents", json=body)
+    assert ok.json()["extracted"] is True, "extraction did not run on ingestion"
+    assert [c.id for c in store.list_commitments() if c.document_id == "doc-x"] == ["doc-x-c1"]
+
+    failed = TestClient(create_app(store=store, extractor=StubExtractor(fail=True))).post("/documents", json=body)
+    assert failed.status_code == 200 and failed.json() == {"id": "doc-x", "stored": True, "extracted": False}
+    assert store.get_document("doc-x") is not None, "document lost when extraction failed"
+    assert any(c.document_id == "doc-x" for c in store.list_commitments()), "failed extraction wiped commitments"
+
+
 def main() -> int:
     port = free_port()
     base_url = f"http://127.0.0.1:{port}"
@@ -128,6 +158,7 @@ def main() -> int:
         check_fake_llm()
         check_ingestion(base_url, db_path)
         check_commitments(db_path)
+        check_extraction_on_ingest(db_path)
     except (AssertionError, RuntimeError, subprocess.CalledProcessError) as exc:
         print(f"SMOKE TEST FAILED: {exc}")
         return 1
