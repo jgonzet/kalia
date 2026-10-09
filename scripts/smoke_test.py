@@ -100,7 +100,7 @@ def check_commitments(db_path: str) -> None:
     store = SqliteStore(db_path, OWNER_ID)
 
     def commitment(number: int, document_id: str, due: date | None = None) -> Commitment:
-        return Commitment(f"{document_id}-c{number}", OWNER_ID, "A", "B", "do it", due, None, document_id, date(2026, 1, 1))
+        return Commitment(f"{document_id}-c{number}", OWNER_ID, "p-a", "p-b", "do it", due, None, document_id, date(2026, 1, 1))
 
     first = [commitment(1, "doc-a", date(2026, 2, 2)), commitment(2, "doc-a")]
     store.save_document_commitments("doc-a", first)
@@ -122,7 +122,7 @@ class StubExtractor:
     def extract(self, document: Document, catalog: Catalog) -> list[Commitment]:
         if self.fail:
             raise LLMError("stub failure")
-        return [Commitment(f"{document.id}-c1", OWNER_ID, "A", "B", "do it", None, None, document.id, document.date)]
+        return [Commitment(f"{document.id}-c1", OWNER_ID, "p-a", "p-b", "do it", None, None, document.id, document.date)]
 
 
 def check_extraction_on_ingest(db_path: str) -> None:

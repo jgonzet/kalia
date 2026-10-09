@@ -41,8 +41,8 @@ def parse_items(items: object, document: Document, catalog: Catalog, owner_id: s
     """Validate a decoded answer; invalid items are reported and left out, valid ones become Commitments."""
     if not isinstance(items, list):
         return ParseResult([], [f"{document.id}: expected a JSON list, got {type(items).__name__}"])
-    people = {p.name for p in catalog.people}
-    projects = {p.name for p in catalog.projects}
+    people = {p.name: p.id for p in catalog.people}
+    projects = {p.name: p.id for p in catalog.projects}
     commitments: list[Commitment] = []
     problems: list[str] = []
     for index, item in enumerate(items, start=1):
@@ -65,11 +65,11 @@ def parse_items(items: object, document: Document, catalog: Catalog, owner_id: s
             Commitment(
                 id=f"{document.id}-c{len(commitments) + 1}",
                 owner_id=owner_id,
-                who=item["who"],
-                to_whom=item["to_whom"],
+                who_id=people[item["who"]],
+                to_whom_id=people[item["to_whom"]],
                 what=item["what"],
                 due=date.fromisoformat(item["due"]) if item["due"] else None,
-                project=item["project"],
+                project_id=projects[item["project"]] if item["project"] else None,
                 document_id=document.id,
                 document_date=document.date,
             )
@@ -77,7 +77,7 @@ def parse_items(items: object, document: Document, catalog: Catalog, owner_id: s
     return ParseResult(commitments, problems)
 
 
-def _check_item(item: dict[str, object], people: set[str], projects: set[str]) -> str | None:
+def _check_item(item: dict[str, object], people: dict[str, str], projects: dict[str, str]) -> str | None:
     """Return why an item breaks the contract, or None if it is valid."""
     for key in ("who", "to_whom"):
         if item[key] not in people:

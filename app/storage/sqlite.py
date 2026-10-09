@@ -35,11 +35,11 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS commitments (
     id TEXT PRIMARY KEY,
     owner_id TEXT NOT NULL,
-    who TEXT NOT NULL,
-    to_whom TEXT NOT NULL,
+    who_id TEXT NOT NULL,
+    to_whom_id TEXT NOT NULL,
     what TEXT NOT NULL,
     due TEXT,
-    project TEXT,
+    project_id TEXT,
     document_id TEXT NOT NULL,
     document_date TEXT NOT NULL
 );
@@ -71,17 +71,17 @@ class SqliteStore:
                 "DELETE FROM commitments WHERE owner_id = ? AND document_id = ?", (self._owner_id, document_id)
             )
             conn.executemany(
-                "INSERT INTO commitments (id, owner_id, who, to_whom, what, due, project, document_id, document_date)"
+                "INSERT INTO commitments (id, owner_id, who_id, to_whom_id, what, due, project_id, document_id, document_date)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [
                     (
                         c.id,
                         self._owner_id,
-                        c.who,
-                        c.to_whom,
+                        c.who_id,
+                        c.to_whom_id,
                         c.what,
                         c.due.isoformat() if c.due else None,
-                        c.project,
+                        c.project_id,
                         document_id,
                         c.document_date.isoformat(),
                     )
@@ -193,11 +193,11 @@ def _commitment_from_row(row: sqlite3.Row) -> Commitment:
     return Commitment(
         id=row["id"],
         owner_id=row["owner_id"],
-        who=row["who"],
-        to_whom=row["to_whom"],
+        who_id=row["who_id"],
+        to_whom_id=row["to_whom_id"],
         what=row["what"],
         due=date.fromisoformat(row["due"]) if row["due"] else None,
-        project=row["project"],
+        project_id=row["project_id"],
         document_id=row["document_id"],
         document_date=date.fromisoformat(row["document_date"]),
     )

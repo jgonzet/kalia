@@ -50,15 +50,15 @@ class Catalog:
 class Commitment:
     """Someone committed to someone else to do something, optionally by a date.
 
-    `who`, `to_whom` and `project` are catalog names. All commitments are open: V0 has no status.
+    `who_id`, `to_whom_id` and `project_id` are catalog ids. All commitments are open: V0 has no status.
     """
 
     id: str
     owner_id: str
-    who: str
-    to_whom: str
+    who_id: str
+    to_whom_id: str
     what: str
     due: date | None
-    project: str | None
+    project_id: str | None
     document_id: str
     document_date: date
