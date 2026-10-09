@@ -40,8 +40,19 @@ Environment variables are listed in `.env.example`, which is the only source.
 
 `uv run scripts/load_dataset.py lamanija` stores the catalog and every document except the held-out one in the SQLite file (`DB_PATH`). A further document is added with `POST /documents`.
 
+## Extract commitments with an external Claude session
+
+There is no paid API setup yet, so the commitments of the stored documents can be extracted by a Claude session opened outside the repo:
+
+1. `uv run scripts/manual_extraction.py export` writes `requests/batch-NN.md` (git-ignored).
+2. Copy a batch to an empty folder outside the repo, open Claude there and ask it to read the file and save its JSON answer.
+3. Save the answer as `responses/batch-NN.json` and run `uv run scripts/manual_extraction.py import responses/batch-NN.json`.
+
+`import` validates the answer and reports problems; it does not store the commitments yet.
+
 ## Known limitations
 
+- Extracted commitments are not stored yet: the manual import only validates them.
 - The dataset in `data/` is not part of the Docker image, so the loader runs on the host, not inside the container.
 - Single user, no authentication.
 - Content is synthetic and in Spanish.

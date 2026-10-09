@@ -2,6 +2,25 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## The manual Claude Code backend works on self-contained request files, outside the repo
+Date: 2026-10-09
+Chose: `scripts/manual_extraction.py export` writes `requests/batch-NN.md` with one full prompt per document (instructions, contract, catalog, text); the owner has an external Claude session, opened in an empty folder, answer `{"<document id>": [...]}`; `import` validates that file. `requests/` and `responses/` are git-ignored.
+Rejected: a session inside the repo with a short request (it could read the `expected` files); one file with all 24 prompts (too long to hand over at once).
+Why: an LLM only sees what travels in the prompt, so a self-contained request is the same input a paid API would get.
+Source: issue #12, commit 3495401.
+
+## The response contract is a list of five fields; ids are assigned by the app
+Date: 2026-10-09
+Chose: for one document the model answers a JSON list of `{who, to_whom, what, due, project}`; names must be in the catalog. The app assigns the commitment ids. Items that break the contract are reported and left out, never dropped silently.
+Rejected: also asking for `due_text` (diagnosis only, the app does not use it) and for ids (they could collide or copy the `expected` ones); failing the whole document on one bad item.
+Source: issue #12, commit 3495401; the prompt is `app/prompts/extract_commitments.md`.
+
+## Extraction is three pieces: build the prompt, call the model, parse the answer
+Date: 2026-10-09
+Chose: `build_prompt` and `parse_response` are shared functions; `LLMExtractor` chains them around `LLMClient.complete`. The manual backend uses only the first and the last, with the owner as the middle step.
+Rejected: a fake `LLMClient` that writes the request and raises "answer pending" (an exception standing for something that is not a failure, which the extractor would have to understand).
+Source: issue #12, commit 3495401.
+
 ## Storage settings live in `compose.yaml`, not in the Dockerfile
 Date: 2026-10-09
 Chose: `DB_PATH` and the volume mount are set in `compose.yaml`; the Dockerfile only creates a writable `/var/lib/kalia`. Changing the database engine touches compose, not the image.

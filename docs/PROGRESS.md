@@ -2,12 +2,12 @@
 
 ## Next
 
-1. #12 — Add a Claude Code extraction backend through a request file
-2. #11 — Add a commitments table and SQLite implementation of CommitmentStore
+1. #11 — Add a commitments table and SQLite implementation of CommitmentStore
+2. #14 — Run extraction when a document is ingested and store the commitments
 3. #8 — Evaluate extraction and chat answers against the expected files
 4. #13 — Add unit tests and selected integration tests for the first full iteration
 
-Synced at: 8c43f03
+Synced at: 3495401
 
 This file is filled in with each /close-feature.
 
@@ -190,3 +190,33 @@ Decisions recorded: "One ingestion path for every source; the dataset is an adap
 **Tests:** `uv run scripts/smoke_test.py` loads 24 documents, reloads without duplicating, posts `lamanija-0025` twice and expects 25. The Docker image builds and the database file is writable inside the container. No unit tests.
 
 **Issues:** closed #10. Opened #11, #12, #13.
+
+## 2026-10-09 — Extraction pipeline and manual Claude Code backend
+
+**Purpose:** have an extractor whose model is interchangeable, and a way to run it with Claude Code from an external session, since there is no paid API and local models are not part of the final solution.
+
+**Input:** a stored `Document` and the `Catalog`; for the manual flow, the stored documents (after `scripts/load_dataset.py`) and an answer file.
+
+**Output:** `build_prompt`, `parse_response`/`parse_items` and `LLMExtractor` in `app/extraction/`; the prompt `app/prompts/extract_commitments.md`; `scripts/manual_extraction.py` with `export` (writes `requests/batch-NN.md`) and `import` (validates an answer file and prints a report). The commitments are not stored yet.
+
+**Logic:**
+1. `build_prompt` fills the prompt file with the catalog (names, roles, projects), the document and its date. The file holds the response contract.
+2. `LLMExtractor` sends it with `LLMClient.complete` and passes the answer to `parse_response`; invalid items are logged and left out.
+3. `export` builds one prompt per stored document, in batches of 8 by default; the owner gives a batch to an external session opened outside the repo and saves its answer as `responses/batch-NN.json`.
+4. `import` checks every item against the contract and builds `Commitment` objects with ids `<document id>-cN`; it reports problems, documents missing from the answer and ids that are not stored documents.
+Decisions recorded: "Extraction is three pieces: build the prompt, call the model, parse the answer", "The response contract is a list of five fields; ids are assigned by the app" and "The manual Claude Code backend works on self-contained request files, outside the repo".
+
+**Important assumptions:**
+- The reference date is not in the prompt: relative deadlines are resolved against the document date.
+- `who` and `to_whom` are checked against the catalog, not against the document's participants.
+- An extra key in an item is ignored and reported; a missing key leaves the item out.
+- The default batch size is 8 and is a parameter of `export`.
+- `import` validates but does not store: `CommitmentStore` has no SQLite implementation until #11.
+- The three real batches were run once (72 commitments valid, 0 problems). That only says the answers follow the contract, not that they are the right commitments; that is #8. If the prompt or the contract changes, the batches have to be run again.
+- `LLMExtractor` has no caller in the app yet.
+
+**Location:** `app/extraction/` (`prompt.py`, `parse.py`, `llm_extractor.py`, `manual.py`), `app/prompts/extract_commitments.md`, `scripts/manual_extraction.py`. Commit `3495401`.
+
+**Tests:** manual: export on the 24 stored documents, an import with one valid and one invalid item, and the three real batches imported with 0 problems. No unit tests.
+
+**Issues:** closed #12. Opened #14.

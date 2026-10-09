@@ -16,3 +16,7 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+
+# Manual extraction requests and answers (generated, not versioned)
+/requests/
+/responses/
