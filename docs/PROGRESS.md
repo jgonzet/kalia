@@ -2,42 +2,14 @@
 
 ## Next
 
-1. #14 — Run extraction when a document is ingested and store the commitments
-2. #8 — Evaluate extraction and chat answers against the expected files
-3. #13 — Add unit tests and selected integration tests for the first full iteration
+1. #8 — Evaluate extraction and chat answers against the expected files
+2. #13 — Add unit tests and selected integration tests for the first full iteration
 
-Synced at: 943698d
+Synced at: 80b86a7
 
 This file is filled in with each /close-feature.
 
-## 2026-10-05 — Project skeleton, fake LLM, smoke test and CI
-
-**Purpose:** give the project a place to live and a check that runs from the first line of code: the app starts in Docker, the LLM is replaceable, and CI never depends on Ollama or API keys.
-
-**Input:** environment variables (names in `.env.example`, defaults in `app/config.py`): `LLM_BACKEND` (`real`/`fake`), `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, `REFERENCE_DATE`, `DB_PATH`.
-
-**Output:** a FastAPI app with `GET /health` (`{"status": "ok", "llm_backend": ...}`); two LLM clients behind one interface; a smoke test; a Docker image and compose file; a CI workflow. No extraction, storage, retrieval or chat yet.
-
-**Logic:**
-1. `Settings.from_env()` reads the environment; unset or empty variables fall back to defaults. `REFERENCE_DATE` sets "today"; unset means the system date.
-2. `build_llm(settings)` returns `FakeLLM` (fixed text, ignores the prompt) or `OpenAICompatibleLLM` (OpenAI-compatible endpoint, Ollama by default; failures and empty answers raise `LLMError`).
-3. `create_app()` builds the app with the chosen LLM. Run with `uvicorn app.main:create_app --factory`.
-4. `scripts/smoke_test.py` starts the service as a separate process with `LLM_BACKEND=fake`, checks `/health`, checks the fake LLM answers through `build_llm`, and shuts the service down.
-5. The ingestion, extraction, storage and answering modules only define typed `Protocol` interfaces. `app/models.py` defines `Document`, `Catalog`, `Person`, `Project` and `Commitment`.
-
-**Important assumptions:**
-- The app runs in a container; Ollama runs on the host and is reached as `host.docker.internal` (set in the Dockerfile). Ollama must listen on an address the container can reach.
-- The SQLite path points to a Docker volume (`kalia-db`); no SQLite code exists yet.
-- The smoke test does not exercise the LLM through the app, because nothing in the app uses the LLM yet.
-- The CI workflow has not run on GitHub yet; its action versions were taken from the latest releases and are unverified.
-
-**Location:** `app/`, `scripts/smoke_test.py`, `scripts/check_llm.py`, `Dockerfile`, `compose.yaml`, `.github/workflows/ci.yml`, `.env.example`, `pyproject.toml`.
-
-**Tests:** `uv run scripts/smoke_test.py` passes locally. `docker build` and `docker compose up` work, and `scripts/check_llm.py` got an answer from `qwen2.5:14b` inside the container. No unit tests.
-
-— Resolved 2026-10-05: unit tests for `Settings.from_env` added (`tests/test_config.py`) and run in CI.
-
-— Resolved 2026-10-05: CI ran green on main after pinning setup-uv to v10.2.0. Closed #1.
+Entries before 2026-10-07 are in [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md); this file keeps the most recent ones.
 
 ## 2026-10-07 — Synthetic catalog for La Manija Games
 
@@ -244,3 +216,31 @@ Decisions recorded: "Extraction is three pieces: build the prompt, call the mode
 **Tests:** smoke check only; no unit tests yet (#13).
 
 **Issues:** closed #11.
+
+## 2026-10-09 — Extraction on ingestion and commitments stored by catalog id
+
+**Purpose:** connect extraction to storage, so commitments reach the `commitments` table both for new documents and for the answers already obtained with Claude.
+
+**Input:** `POST /documents` (same body as before); `responses/batch-NN.json` files through `scripts/manual_extraction.py import`.
+
+**Output:** `POST /documents` now answers `{"id", "stored", "extracted"}`. Commitments are stored with catalog ids (`who_id`, `to_whom_id`, `project_id`). Importing the three real batches gives 72 commitments.
+
+**Logic:**
+1. `POST /documents` stores the document (`ingest_document`), then `extract_and_store` loads the catalog, calls the extractor and saves the result with `save_document_commitments`.
+2. If the LLM call fails or there is no catalog, it logs and returns False: the document stays, stored commitments are untouched, the response says `extracted: false`.
+3. `create_app` gets an `extractor`; by default only the real backend builds one. See "Extraction runs after the document is stored; if it fails, the document stays" and "Only the real backend extracts on ingestion; `create_app` takes an optional extractor" in `docs/DECISIONS.md`.
+4. `parse` validates the model's names against the catalog and translates them to ids. See "Commitments store catalog ids, not names".
+5. `manual_extraction.py import` validates an answer file and saves each processed document's valid commitments; re-importing replaces them.
+
+**Important assumptions:**
+- The manual import saves directly and does not go through `extract_and_store`: the answer already exists.
+- `Store` now includes `CommitmentStore`.
+- If the catalog repeated a name, it would resolve to the last id; names are unique in the dataset.
+- An import with problems still stores the valid commitments of each document and replaces what it had; the problems are printed.
+- The initial load (`load_dataset.py`) does not extract: the real dataset's commitments come from `import`.
+
+**Location:** `app/extraction/run.py`, `app/extraction/parse.py`, `app/main.py`, `app/storage/`, `scripts/manual_extraction.py`, `scripts/smoke_test.py`.
+
+**Tests:** smoke checks with a stub extractor (stores, and keeps the document when it fails); a real import of the three batches into a temporary database (72 commitments, same count after re-importing). Correctness of the extracted commitments is not checked (#8). No unit tests yet (#13).
+
+**Issues:** closed #14.

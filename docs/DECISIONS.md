@@ -2,6 +2,25 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## Commitments store catalog ids, not names
+Date: 2026-10-09
+Chose: `Commitment` holds `who_id`, `to_whom_id` and `project_id`. The model still answers with catalog names; `parse` checks them and translates each to its id.
+Rejected: storing names (renaming someone in the catalog would break every stored link); storing id and name (two sources of truth).
+Why: decided before any real commitment was stored, so no data had to be migrated.
+Source: issue #14, commit 80b86a7.
+
+## Extraction runs after the document is stored; if it fails, the document stays
+Date: 2026-10-09
+Chose: `ingest_document` only stores; `extract_and_store` is a separate step that `POST /documents` runs afterwards. A failed LLM call or a missing catalog is logged, nothing is changed, and the response says `extracted: false`.
+Rejected: one all-or-nothing step (an LLM outage would lose the document).
+Source: issue #14, commit 3131d62.
+
+## Only the real backend extracts on ingestion; `create_app` takes an optional extractor
+Date: 2026-10-09
+Chose: `create_app(..., extractor=None)`: without one, `LLM_BACKEND=real` builds an `LLMExtractor` and `fake` extracts nothing (`extracted: false`). Tests pass a stub extractor.
+Rejected: extracting with the fake LLM (it returns fixed text, so the table would fill with noise or empty lists).
+Source: issue #14, commit 3131d62.
+
 ## Saving a document's commitments replaces everything stored for that document
 Date: 2026-10-09
 Chose: `CommitmentStore.save_document_commitments(document_id, commitments)` deletes the owner's rows for that document and inserts the given list; an empty list clears the document. Re-extracting a document is therefore always safe.

@@ -48,11 +48,11 @@ There is no paid API setup yet, so the commitments of the stored documents can b
 2. Copy a batch to an empty folder outside the repo, open Claude there and ask it to read the file and save its JSON answer.
 3. Save the answer as `responses/batch-NN.json` and run `uv run scripts/manual_extraction.py import responses/batch-NN.json`.
 
-`import` validates the answer and reports problems; it does not store the commitments yet.
+`import` validates the answer, reports problems and stores the valid commitments (importing again replaces them).
 
 ## Known limitations
 
-- Extracted commitments are not stored yet: the manual import only validates them.
+- `POST /documents` extracts commitments only with the real LLM backend (Ollama by default). With the fake one, or if the call fails, the document is stored and the response says `extracted: false`.
 - The dataset in `data/` is not part of the Docker image, so the loader runs on the host, not inside the container.
 - Single user, no authentication.
 - Content is synthetic and in Spanish.
