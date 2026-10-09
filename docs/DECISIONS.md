@@ -2,6 +2,24 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## The generator prompt is a versioned file; new versions go above the old ones
+Date: 2026-10-09
+Chose: `data/generation/session_prompt.md` holds the prompt given to the generating session, with its version in the header. A new version is added above the previous ones, which stay in the file.
+Rejected: one file per version (comparing needs two files open); editing the prompt in place (the previous version is lost, which happened once with v0).
+Source: issue #7, commit b45145c.
+
+## Review checks the answer key against the text, not the text against a clean ideal
+Date: 2026-10-09
+Chose: reviewing a generated document means checking that its `expected` file is true of the text (each commitment present with its `due_text`, nothing else promised, no contradiction with `story.md`). Ambiguous phrases the generator leaves in ("lo miro", "va a estar") stay as material for the evaluation in #8.
+Rejected: rewriting texts until they are free of ambiguity (it tunes the test to the extractor; real documents are never that clean).
+Source: issue #7, commit b45145c.
+
+## One Claude Code session generates the documents, another reviews and accepts them
+Date: 2026-10-09
+Chose: the generating session writes the texts, runs `check_dataset.py --allow-pending` and reports; it does not stamp or commit. The reviewing session reads every text against its `expected` file and runs `--stamp`.
+Rejected: generating and reviewing in one session (nobody checks the writer's work); one subagent per batch (each starts cold and re-reads all the context, with less consistency between batches).
+Source: issue #7, commit b45145c; replaces the external chatbot of `docs/PLAN.md` section 13.
+
 ## The synthetic documents are committed to the repo
 Date: 2026-10-09
 Chose: `data/<company>/documents/` is versioned like the rest of the dataset, so anyone who clones the repo can test the app with the same input.

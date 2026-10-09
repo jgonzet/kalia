@@ -2,10 +2,10 @@
 
 ## Next
 
-1. #7 — Generate and review the 25 synthetic documents
+1. #10 — Load the synthetic dataset into the app
 2. #8 — Evaluate extraction and chat answers against the expected files
 
-Synced at: bcf024f
+Synced at: b45145c
 
 This file is filled in with each /close-feature.
 
@@ -130,3 +130,31 @@ This file is filled in with each /close-feature.
 **Tests:** `uv run scripts/check_dataset.py --allow-pending` gives `ok` on the 25 `expected` files. The checks on documents (header, hash, `due_text`) have not run because no document exists yet; the first batch of #7 is their first real test. No unit tests.
 
 **Issues:** closed #6. Opened #9.
+
+## 2026-10-09 — The 25 synthetic documents of La Manija Games
+
+**Purpose:** have the input for testing extraction, storage, retrieval and chat: 25 texts whose commitments are known in advance and checked.
+
+**Input:** the files of `data/lamanija/` (`story.md`, catalog, `expected/`), `data/generation/` and `data/generation/session_prompt.md` (prompt v0, given to the generating session with the ids of the batch).
+
+**Output:** `data/lamanija/documents/lamanija-0001.md` to `lamanija-0025.md` (9 emails, 8 meetings, 8 chats; `lamanija-0025` is the held-out one) and the `text_sha256` filled in all 25 `expected` files. `check_dataset.py` gives `ok` without `--allow-pending`. No app code.
+
+**Logic:**
+1. A generating Claude Code session wrote each batch following "Generating documents" in `docs/DATASET.md`, ran `check_dataset.py --allow-pending` and reported anything odd per document. It did not stamp or commit. Decision recorded: "One Claude Code session generates the documents, another reviews and accepts them".
+2. This session read all 25 texts against their `expected` files: commitments present with the `due_text` wording and not as a list, `mentions` named without a new promise, `not_commitments` present, weekdays and relative deadlines matching the calendar, nothing contradicting `story.md` or earlier texts. Decision recorded: "Review checks the answer key against the text, not the text against a clean ideal".
+3. After each batch passed, `--stamp` filled in the hashes. No text needed changes after review.
+4. The prompt is kept as a versioned file. Decision recorded: "The generator prompt is a versioned file; new versions go above the old ones".
+
+**Important assumptions:**
+- Batches were 5 (0001–0005), 11 (0006–0016) and 9 (0017–0025), not five of five.
+- Prompt v0 was edited once, before the last batch, to add "re-read the existing documents before writing"; batches 1 and 2 ran without that step, so "v0" is not the same text in all three.
+- Facts that appear in the texts but not in `story.md`, and that no document contradicts: the festival confirms participation after receiving the status report, its PC is unknown, Choripixels has no enemies yet, a temporary animator may join Turrokiller.
+- The two long meetings (0012, 0023) have about 700 and 630 words, below the "up to about 1200" of `docs/SPEC.md`.
+- Phrases an extractor could read as extra commitments were left in on purpose (e.g. "Tranqui, va a estar" in 0021, "eso lo anoto" in 0023).
+- Known limitations carried over from the previous entry: texts may look alike in structure, and may be easier to extract than real ones (same model designed the `expected` files and wrote the texts). In this batch the commitments often repeat the `what` of the `expected` file almost word for word.
+
+**Location:** `data/lamanija/documents/`, `data/lamanija/expected/`, `data/generation/session_prompt.md`. Commit `b45145c`.
+
+**Tests:** `uv run scripts/check_dataset.py` gives `ok` on the 25 documents. Every text was read by hand. The semantic check (does an extractor find these commitments) is #8.
+
+**Issues:** closed #7. Opened #10.
