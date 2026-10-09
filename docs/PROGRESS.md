@@ -2,10 +2,12 @@
 
 ## Next
 
-1. #10 — Load the synthetic dataset into the app
-2. #8 — Evaluate extraction and chat answers against the expected files
+1. #12 — Add a Claude Code extraction backend through a request file
+2. #11 — Add a commitments table and SQLite implementation of CommitmentStore
+3. #8 — Evaluate extraction and chat answers against the expected files
+4. #13 — Add unit tests and selected integration tests for the first full iteration
 
-Synced at: b45145c
+Synced at: 8c43f03
 
 This file is filled in with each /close-feature.
 
@@ -158,3 +160,33 @@ This file is filled in with each /close-feature.
 **Tests:** `uv run scripts/check_dataset.py` gives `ok` on the 25 documents. Every text was read by hand. The semantic check (does an extractor find these commitments) is #8.
 
 **Issues:** closed #7. Opened #10.
+
+## 2026-10-09 — Dataset loaded into SQLite
+
+**Purpose:** get the 25 documents and the catalog into the app's storage, through the same path a real incoming document will use, so extraction (#8) has something to read.
+
+**Input:** `data/lamanija/` (`company.json`, `people.jsonl`, `projects.jsonl`, `documents/*.md`); `DB_PATH` and the new `OWNER_ID` (default `local`) from the environment; a document body for `POST /documents`.
+
+**Output:** a SQLite file with the tables `documents`, `people`, `projects` and `catalog_meta`; `uv run scripts/load_dataset.py lamanija` loads the catalog and 24 documents; `POST /documents` ingests one more. No commitments table and no extraction yet.
+
+**Logic:**
+1. `DatasetSource` reads the company directory, parses each document header and text into a `Document`, and skips the ids in `held_out`.
+2. `load_dataset` saves the catalog and sends every document through `ingest_document`, the single entry point to storage.
+3. `SqliteStore` saves by id with replace, so loading twice or posting the same document twice leaves one row.
+4. `POST /documents` takes a normalized document and calls the same `ingest_document`; it is how `lamanija-0025` is added after the initial load.
+Decisions recorded: "One ingestion path for every source; the dataset is an adapter" and "Storage settings live in `compose.yaml`, not in the Dockerfile".
+
+**Important assumptions:**
+- `Person` and `Project` now carry the catalog `id` (the dataset links people by id).
+- `OWNER_ID` comes from the environment, not from the dataset's `user_id`.
+- The schema is created when the store is opened; there are no migrations.
+- `participants` is stored as JSON in one column.
+- `save_catalog` deletes and rewrites the whole catalog of the owner, so a second company loaded with the same `OWNER_ID` would replace the first.
+- `POST /documents` has no authentication (V0 is single-user and local).
+- `data/` is excluded from the Docker image (`.dockerignore`), so the loader does not find the dataset inside the container until #9.
+
+**Location:** `app/storage/` (`__init__.py`, `sqlite.py`), `app/ingestion/` (`__init__.py`, `dataset.py`), `app/main.py`, `app/models.py`, `app/config.py`, `scripts/load_dataset.py`, `scripts/smoke_test.py`, `Dockerfile`, `compose.yaml`. Commit `8c43f03`.
+
+**Tests:** `uv run scripts/smoke_test.py` loads 24 documents, reloads without duplicating, posts `lamanija-0025` twice and expects 25. The Docker image builds and the database file is writable inside the container. No unit tests.
+
+**Issues:** closed #10. Opened #11, #12, #13.

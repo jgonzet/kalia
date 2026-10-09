@@ -2,6 +2,18 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## Storage settings live in `compose.yaml`, not in the Dockerfile
+Date: 2026-10-09
+Chose: `DB_PATH` and the volume mount are set in `compose.yaml`; the Dockerfile only creates a writable `/var/lib/kalia`. Changing the database engine touches compose, not the image.
+Rejected: keeping `DB_PATH=/db/kalia.db` in the Dockerfile (the image would carry a SQLite-specific path and change with every storage swap).
+Source: issue #10, commit 8c43f03.
+
+## One ingestion path for every source; the dataset is an adapter
+Date: 2026-10-09
+Chose: `ingest_document` in `app/ingestion` is the only way a document enters storage; `POST /documents` calls it, and the dataset loader (`DatasetSource`, `DocumentSource` Protocol) feeds it. Held-out documents are ingested afterwards through the endpoint.
+Rejected: a standalone loader script that writes to the database (a real incoming mail would need a second path, and the script logic would have to be refactored into the app later).
+Source: issue #10, commit 8c43f03.
+
 ## The generator prompt is a versioned file; new versions go above the old ones
 Date: 2026-10-09
 Chose: `data/generation/session_prompt.md` holds the prompt given to the generating session, with its version in the header. A new version is added above the previous ones, which stay in the file.

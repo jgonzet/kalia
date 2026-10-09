@@ -36,8 +36,13 @@ The app listens on <http://localhost:8000> (`/health` answers when it is up). Th
 
 Environment variables are listed in `.env.example`, which is the only source.
 
+## Load the synthetic dataset
+
+`uv run scripts/load_dataset.py lamanija` stores the catalog and every document except the held-out one in the SQLite file (`DB_PATH`). A further document is added with `POST /documents`.
+
 ## Known limitations
 
+- The dataset in `data/` is not part of the Docker image, so the loader runs on the host, not inside the container.
 - Single user, no authentication.
 - Content is synthetic and in Spanish.
 - Commitments have no status: all extracted commitments are treated as open.
