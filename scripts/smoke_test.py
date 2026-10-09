@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from datetime import date
 from pathlib import Path
 
 import httpx
@@ -19,6 +20,7 @@ sys.path.insert(0, str(ROOT))  # scripts/ is sys.path[0], so make `app` importab
 from app.config import Settings  # noqa: E402
 from app.ingestion.dataset import DatasetSource  # noqa: E402
 from app.llm import build_llm  # noqa: E402
+from app.models import Commitment  # noqa: E402
 from app.storage.sqlite import SqliteStore  # noqa: E402
 
 STARTUP_TIMEOUT_SECONDS = 20.0
@@ -90,6 +92,24 @@ def check_ingestion(base_url: str, db_path: str) -> None:
         assert len(store.list_documents()) == expected_initial + len(held_out), "held-out ingestion failed"
 
 
+def check_commitments(db_path: str) -> None:
+    """Check that saving a document's commitments is idempotent and replaces the previous ones."""
+    store = SqliteStore(db_path, OWNER_ID)
+
+    def commitment(number: int, document_id: str, due: date | None = None) -> Commitment:
+        return Commitment(f"{document_id}-c{number}", OWNER_ID, "A", "B", "do it", due, None, document_id, date(2026, 1, 1))
+
+    first = [commitment(1, "doc-a", date(2026, 2, 2)), commitment(2, "doc-a")]
+    store.save_document_commitments("doc-a", first)
+    store.save_document_commitments("doc-b", [commitment(1, "doc-b")])
+    store.save_document_commitments("doc-a", first)
+    stored = store.list_commitments()
+    assert len(stored) == 3, "re-saving a document duplicated its commitments"
+    assert stored[0].due == date(2026, 2, 2) and stored[1].due is None, "due date did not round-trip"
+    store.save_document_commitments("doc-a", [])
+    assert [c.id for c in store.list_commitments()] == ["doc-b-c1"], "re-saving did not replace the commitments"
+
+
 def main() -> int:
     port = free_port()
     base_url = f"http://127.0.0.1:{port}"
@@ -107,6 +127,7 @@ def main() -> int:
         assert response.json() == {"status": "ok", "llm_backend": "fake"}, response.json()
         check_fake_llm()
         check_ingestion(base_url, db_path)
+        check_commitments(db_path)
     except (AssertionError, RuntimeError, subprocess.CalledProcessError) as exc:
         print(f"SMOKE TEST FAILED: {exc}")
         return 1

@@ -1,10 +1,10 @@
-"""SQLite implementation of the document and catalog stores."""
+"""SQLite implementation of the commitment, document and catalog stores."""
 
 import json
 import sqlite3
 from datetime import date
 
-from app.models import Catalog, Document, DocumentType, Person, Project
+from app.models import Catalog, Commitment, Document, DocumentType, Person, Project
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS documents (
@@ -32,6 +32,18 @@ CREATE TABLE IF NOT EXISTS projects (
     status TEXT NOT NULL,
     deadline TEXT
 );
+CREATE TABLE IF NOT EXISTS commitments (
+    id TEXT PRIMARY KEY,
+    owner_id TEXT NOT NULL,
+    who TEXT NOT NULL,
+    to_whom TEXT NOT NULL,
+    what TEXT NOT NULL,
+    due TEXT,
+    project TEXT,
+    document_id TEXT NOT NULL,
+    document_date TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS commitments_document ON commitments (owner_id, document_id);
 CREATE TABLE IF NOT EXISTS catalog_meta (
     owner_id TEXT PRIMARY KEY,
     user_name TEXT NOT NULL
@@ -40,7 +52,7 @@ CREATE TABLE IF NOT EXISTS catalog_meta (
 
 
 class SqliteStore:
-    """Stores documents and the catalog in a SQLite file; every row carries the owner id."""
+    """Stores commitments, documents and the catalog in a SQLite file; every row carries the owner id."""
 
     def __init__(self, db_path: str, owner_id: str) -> None:
         self._db_path = db_path
@@ -52,6 +64,37 @@ class SqliteStore:
         conn = sqlite3.connect(self._db_path)
         conn.row_factory = sqlite3.Row
         return conn
+
+    def save_document_commitments(self, document_id: str, commitments: list[Commitment]) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "DELETE FROM commitments WHERE owner_id = ? AND document_id = ?", (self._owner_id, document_id)
+            )
+            conn.executemany(
+                "INSERT INTO commitments (id, owner_id, who, to_whom, what, due, project, document_id, document_date)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    (
+                        c.id,
+                        self._owner_id,
+                        c.who,
+                        c.to_whom,
+                        c.what,
+                        c.due.isoformat() if c.due else None,
+                        c.project,
+                        document_id,
+                        c.document_date.isoformat(),
+                    )
+                    for c in commitments
+                ],
+            )
+
+    def list_commitments(self) -> list[Commitment]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM commitments WHERE owner_id = ? ORDER BY id", (self._owner_id,)
+            ).fetchall()
+        return [_commitment_from_row(row) for row in rows]
 
     def save_document(self, document: Document) -> None:
         with self._connect() as conn:
@@ -143,4 +186,18 @@ def _document_from_row(row: sqlite3.Row) -> Document:
         date=date.fromisoformat(row["date"]),
         participants=tuple(json.loads(row["participants"])),
         text=row["text"],
+    )
+
+
+def _commitment_from_row(row: sqlite3.Row) -> Commitment:
+    return Commitment(
+        id=row["id"],
+        owner_id=row["owner_id"],
+        who=row["who"],
+        to_whom=row["to_whom"],
+        what=row["what"],
+        due=date.fromisoformat(row["due"]) if row["due"] else None,
+        project=row["project"],
+        document_id=row["document_id"],
+        document_date=date.fromisoformat(row["document_date"]),
     )

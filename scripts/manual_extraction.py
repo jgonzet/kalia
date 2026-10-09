@@ -51,7 +51,7 @@ def main(argv: list[str]) -> int:
         print(f"  - {problem}")
     if report.not_processed:
         print(f"  not in the answer: {', '.join(report.not_processed)}")
-    print("not stored: CommitmentStore has no SQLite implementation yet (issue #11)")
+    print("not stored: saving imported answers is issue #14")
     return 1 if report.problems else 0
 
 
