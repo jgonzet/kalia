@@ -2,10 +2,12 @@
 
 ## Next
 
-1. #8 — Evaluate extraction and chat answers against the expected files
-2. #13 — Add unit tests and selected integration tests for the first full iteration
+1. #17 — Retrieve the commitments relevant to a question
+2. #18 — Answer questions in a chat using the retrieved commitments
+3. #16 — Evaluate the chat answers against the acceptance questions
+4. #13 — Add unit tests and selected integration tests for the first full iteration
 
-Synced at: 80b86a7
+Synced at: d4d4a47
 
 This file is filled in with each /close-feature.
 
@@ -150,4 +152,4 @@ Decisions recorded: "Extraction is three pieces: build the prompt, call the mode
 
 **Tests:** run by hand on the real database and on a temporary one (`--doc`, `--out`, unknown document, `status` in each state); smoke test still passes. No unit tests (#13).
 
-**Issues:** #8 stays open: the chat half (answers against `questions.jsonl`) is pending and the chat does not exist yet.
+**Issues:** closed #8 (extraction half; its chat half moved to #16). Opened #15, #16, #17, #18.
