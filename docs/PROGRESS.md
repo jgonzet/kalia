@@ -152,4 +152,5 @@ Decisions recorded: "Extraction is three pieces: build the prompt, call the mode
 
 **Tests:** run by hand on the real database and on a temporary one (`--doc`, `--out`, unknown document, `status` in each state); smoke test still passes. No unit tests (#13).
 
-**Issues:** closed #8 (extraction half; its chat half moved to #16). Opened #15, #16, #17, #18.
+**Issues:** closed #8 (its chat half moved to #16).
+Opened #15 (extract a whole dataset with the real backend), #16 (evaluate chat answers), #17 (retrieval), #18 (chat).
