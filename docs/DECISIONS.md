@@ -2,6 +2,12 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## The extraction evaluation is a standalone script, not part of the app
+Date: 2026-10-09
+Chose: `scripts/evaluate_extraction.py` holds the logic and reads the database and `data/<company>/expected/`. It pairs commitments inside each document by people and due date (then people only), and sums counts, not percentages, for the totals.
+Rejected: a module in `app/` with a thin script (the answer key exists only for synthetic datasets, so the app has no use for it); an endpoint or a step of the pipeline (real documents have nothing to compare with); pairing by commitment id (the extraction numbers commitments in the order the model lists them).
+Source: issue #8 (extraction half).
+
 ## Commitments store catalog ids, not names
 Date: 2026-10-09
 Chose: `Commitment` holds `who_id`, `to_whom_id` and `project_id`. The model still answers with catalog names; `parse` checks them and translates each to its id.

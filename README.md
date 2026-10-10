@@ -51,6 +51,19 @@ There is no paid API setup yet, so the commitments of the stored documents can b
 
 `import` validates the answers, reports problems and stores the valid commitments (importing again replaces them). `uv run scripts/manual_extraction.py status` says where the process stands and which command comes next.
 
+## Evaluate the extraction
+
+`scripts/evaluate_extraction.py` compares the commitments stored in a database with the answer key of a synthetic dataset (`data/<company>/expected/`). It is a development tool, not part of the app: documents of real users have no answer key. To measure a model or a prompt:
+
+1. Use a database of its own, so runs do not overwrite each other: `mkdir -p runs` and `export DB_PATH=runs/<name>.db` (`runs/` is git-ignored).
+2. Load the dataset: `uv run scripts/load_dataset.py lamanija`.
+3. Fill in the commitments, with the manual steps above or through `POST /documents` with the real backend. There is no command yet that extracts the whole dataset with the real backend.
+4. Evaluate: `uv run scripts/evaluate_extraction.py lamanija --out runs/<name>.json`.
+
+The output has a table per document (worst first), the detail of each document with errors (missing, extra, wrong due date or project) and totals. The totals add up the counts of all the documents. `--doc <id>` shows one document in full. To compare two runs, compare their JSON files (`totals`, and `documents` for where they differ); there is no comparison command.
+
+Within a document, an extracted commitment is paired with an expected one when they have the same people and due date, or the same people and another due date (counted as a wrong due date). Extracted commitments that are left over are "extra", expected ones that are left over are "missing". A "valid" extraction is not a "correct" one: validation (`import`) only checks the format. The evaluation does not detect `not_commitments` by itself: it counts the extra commitments of documents that have them and prints the phrases next to them to be read.
+
 ## Known limitations
 
 - `POST /documents` extracts commitments only with the real LLM backend (Ollama by default). With the fake one, or if the call fails, the document is stored and the response says `extracted: false`.

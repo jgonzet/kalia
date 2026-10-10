@@ -20,3 +20,6 @@ __pycache__/
 # Manual extraction requests and answers (generated, not versioned)
 /requests/
 /responses/
+
+# Databases and results of evaluation runs
+/runs/
