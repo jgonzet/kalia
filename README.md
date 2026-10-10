@@ -44,11 +44,12 @@ Environment variables are listed in `.env.example`, which is the only source.
 
 There is no paid API setup yet, so the commitments of the stored documents can be extracted by a Claude session opened outside the repo:
 
-1. `uv run scripts/manual_extraction.py export` writes `requests/batch-NN.md` (git-ignored).
-2. Copy a batch to an empty folder outside the repo, open Claude there and ask it to read the file and save its JSON answer.
-3. Save the answer as `responses/batch-NN.json` and run `uv run scripts/manual_extraction.py import responses/batch-NN.json`.
+1. Load the dataset (see above).
+2. `uv run scripts/manual_extraction.py export` writes `requests/batch-NN.md` (git-ignored).
+3. Copy a batch to an empty folder outside the repo, open Claude there and ask it to read the file and save its JSON answer.
+4. Save the answer as `responses/batch-NN.json` and run `uv run scripts/manual_extraction.py import responses/batch-*.json`.
 
-`import` validates the answer, reports problems and stores the valid commitments (importing again replaces them).
+`import` validates the answers, reports problems and stores the valid commitments (importing again replaces them). `uv run scripts/manual_extraction.py status` says where the process stands and which command comes next.
 
 ## Known limitations
 
