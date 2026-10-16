@@ -2,6 +2,13 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## The retrieval is measured on a database built from the `expected` files, not on the extracted commitments
+Date: 2026-10-15
+Chose: `scripts/evaluate_retrieval.py` loads the commitments of the `expected` files into a temporary database (with and without the held-out document) and runs the retriever on it, so the ids of the questions match and an extraction error cannot count against the retrieval.
+Rejected: measuring on the commitments stored from a real extraction (their ids are numbered by the model and do not match the questions, and a missed commitment would be blamed on the retrieval); comparing by content on the real database (that is the end-to-end measurement, issue #21).
+Why: the point of the bank is to attribute a failure to one stage.
+Source: issue #17, commit 830de17.
+
 ## The rule-based retrieval narrows only when it understands the phrase; otherwise it widens
 Date: 2026-10-15
 Chose: a rule filters only for the phrases it handles ("esta semana", "la semana que viene", "mi jefe", "el jefe de X", a person); a phrase it does not handle ("la semana pasada", "el jefe de QA") applies no filter. A person named with no word about the user means all of their commitments, not only those shared with the user.
