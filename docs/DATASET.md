@@ -148,7 +148,7 @@ Questions are expected to keep coming: yours, those of an independent session, a
 3. **Extra commitments** are not a failure: the chat discards them. They are measured, per category and in total, and followed over time in the run log.
 4. A known gap shows in every run ("still missing N") and the run says when it passes ("now passes: remove its known_gap").
 
-The line that must hold on every change is `uv run scripts/evaluate_retrieval.py <company> --strict`: no question loses commitments unless it declares a known gap.
+The line that must hold on every change is `uv run scripts/evaluate_retrieval.py <company> --strict`: no question loses commitments unless it declares a known gap. The CI runs it, and `scripts/check_dataset.py`, on every push: if one of them fails after a deliberate change of the dataset, update the bank (a new `version` of the affected questions) or declare the gap.
 
 ### Adding questions
 

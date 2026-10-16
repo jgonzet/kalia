@@ -2,6 +2,13 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## The CI runs the dataset check and the strict retrieval evaluation
+Date: 2026-10-15
+Chose: after the unit tests, `.github/workflows/ci.yml` runs `scripts/check_dataset.py` and `scripts/evaluate_retrieval.py lamanija --strict --no-log`, so a push fails if the dataset and its retrieval bank disagree or if a question loses commitments without declaring a `known_gap`.
+Rejected: leaving both checks to be run by hand before pushing (a regression of the retrieval or an edit of the `expected` files could reach main unnoticed).
+Why: the cost is a few seconds per push; the price is that a deliberate change of the dataset must also update the bank or declare the gap.
+Source: issue #17, commit 154d70a.
+
 ## The retrieval is measured on a database built from the `expected` files, not on the extracted commitments
 Date: 2026-10-15
 Chose: `scripts/evaluate_retrieval.py` loads the commitments of the `expected` files into a temporary database (with and without the held-out document) and runs the retriever on it, so the ids of the questions match and an extraction error cannot count against the retrieval.
