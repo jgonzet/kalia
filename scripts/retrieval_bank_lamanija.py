@@ -61,6 +61,8 @@ def specs(ctx: Context) -> list[Spec]:
         Spec("direction-user-received", "direction", "¿Qué me prometió Smithers?", who(smithers) & to_whom(user)),
         Spec("direction-promiser-any", "direction", "¿Qué prometió Frink?", who(frink)),
         Spec("direction-promiser-any-dated", "direction", "¿Qué compromisos con fecha prometió Frink?", who(frink) & dated()),
+        Spec("direction-promiser-any-my-demo", "direction", "¿Qué prometió Frink para mi demo?", who(frink)),
+        Spec("direction-promiser-any-request", "direction", "¿Me podés decir qué prometió Frink?", who(frink)),
         Spec("direction-recipient-any", "direction", "¿Qué le prometieron a Burns?", to_whom(burns)),
         Spec("direction-involves", "direction", "¿Qué compromisos abiertos involucran a Skinner?", who(skinner) | to_whom(skinner)),
         Spec("direction-involves-first-person", "direction", "¿Qué compromisos tengo abiertos que involucren a Skinner?", who(skinner) | to_whom(skinner)),
