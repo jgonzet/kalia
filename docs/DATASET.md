@@ -93,7 +93,7 @@ Each question is a condition over one commitment, written in `scripts/retrieval_
 | "la semana pasada" | from seven days before the reference date to the day before it |
 | "este mes" | from the reference date to the last day of its month; like the week, overdue ones are left out |
 | "vencidos" | `due` before the reference date |
-| "sin fecha" | `due` is `null` |
+| "sin fecha" / "con fecha" | `due` is `null` / is not `null` |
 | "el viernes" (a weekday) | the first date after the reference date with that weekday |
 | "el 20 de octubre", "entre el 14 y el 16" | that date, in the year of the reference date; a range includes both ends |
 | "con X" | the commitments between the user and X, in either direction |
@@ -119,10 +119,10 @@ An empty answer is valid: it tests that the retrieval does not invent matches.
 
 | Category | Angle | Questions |
 |---|---|---|
-| `person` | how a person is named: surname, first name, full name, lowercase, a typo, by role, inside a chatty sentence, two people at once, a name that fits two people, a person who does not exist | 10 |
-| `direction` | who promised and who received: user to X, X to user, X to anyone, anyone to X, any commitment with X, "involve" together with a first-person word, X and Y without the user, one direction between others, "mine", "owed to me" | 10 |
+| `person` | how a person is named: surname, first name, full name, lowercase, a typo, by role, inside a chatty sentence, two people at once, a name that fits two people, a person who does not exist, a part of a name that is an ordinary word ("van") | 11 |
+| `direction` | who promised and who received: user to X, X to user, X to anyone, anyone to X, any commitment with X, "involve" together with a first-person word, "con" that is not followed by a person, X and Y without the user, one direction between others, "mine", "owed to me" | 11 |
 | `hierarchy` | people reached through the org chart: the boss in both directions, a synonym, the boss's boss, the boss of someone else, peers, a user with no reports | 7 |
-| `date` | today, tomorrow, next week, last week, this month, overdue, undated, a weekday, an exact date, a range, a day with nothing due | 11 |
+| `date` | today, tomorrow, next week, last week, this month, overdue, undated, a weekday, an exact date, a range, a day with nothing due, "viene" that is not next week | 12 |
 | `project` | a project by full name, by part of its name, none, one that does not exist | 4 |
 | `combination` | two or three filters at once: person and week, person and project, person and project and week, direction and date, boss and week, overdue and person, undated and person, project and month | 9 |
 | `group` | a set of people named by area | 2 |
@@ -133,6 +133,7 @@ An empty answer is valid: it tests that the retrieval does not invent matches.
 
 - **The author is the same.** The answers come from a program that does not read the retriever, but one person chose the questions. The bank shows that a retriever handles these angles, not that no other exists.
 - **The bank is no longer a fair exam for the rules.** The retriever was adjusted after seeing where the bank caught it, so these questions are now a development set. To measure it fairly, add questions written without looking at the rules (see "Adding questions").
+- **Names that are ordinary words.** The catalog has no name like "Rosa" or "Pilar" that is also a common word, so the bank cannot tell whether the retriever confuses them; only the particles of a name ("van") are covered.
 - **One company.** A retriever tuned to the names of `lamanija` would pass. A second dataset would fix it.
 - **No weekend deadlines in the dataset.** Making the week five days instead of six changes no answer. `tests/test_retrieval.py` covers it at code level.
 - **Out of scope for V0:** negations ("sin contar a Smithers"), counts and comparisons ("¿quién tiene más?"; the chat answers them from the same set of commitments), status ("¿cuáles ya cumplí?"; V0 has no status), and the user naming themselves ("compromisos de Lalo"; it can mean either direction).
