@@ -4,7 +4,13 @@ A development tool, not part of the app: real documents have no answer key. See 
 
     uv run scripts/evaluate_extraction.py lamanija                  table per document (worst first), detail, totals
     uv run scripts/evaluate_extraction.py lamanija --doc <id>       full detail of one document
-    uv run scripts/evaluate_extraction.py lamanija --out run.json   also save the result, to compare two runs
+    uv run scripts/evaluate_extraction.py lamanija --out run.json   also save the result as JSON
+    uv run scripts/evaluate_extraction.py lamanija --model <name>   say which model made the commitments; the run is logged
+    uv run scripts/evaluate_extraction.py lamanija --no-log         do not add the run to runs/metrics.jsonl
+
+Every full evaluation (not `--doc`) is appended to the run log (scripts/run_log.py) with the dataset, the database file,
+the model named with `--model` (the stored commitments do not say which model made them) and a hash of the prompt file as
+it is now, which is not the prompt that made them if the file changed since. List the runs with `uv run scripts/run_log.py --stage extraction`.
 
 Uses DB_PATH and OWNER_ID from the environment. Only documents that are stored and annotated are evaluated.
 Matching, per document: first the pairs with the same people and due date, then, among what is left, the
@@ -13,6 +19,7 @@ similar `what`. What stays unpaired is MISSING (expected only) or EXTRA (extract
 """
 
 import argparse
+import hashlib
 import json
 import sys
 from dataclasses import asdict, dataclass, field
@@ -23,6 +30,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))  # make `app` importable
 
+import run_log  # noqa: E402  (scripts/ is already on sys.path when this file is run or imported by another script)
 from app.config import Settings  # noqa: E402
 from app.models import Catalog, Commitment  # noqa: E402
 from app.storage.sqlite import SqliteStore  # noqa: E402
@@ -199,11 +207,51 @@ def to_json(results: list[DocumentResult]) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2, default=str)
 
 
+PROMPT_FILE = ROOT / "app" / "prompts" / "extract_commitments.md"
+
+
+def log_run(results: list[DocumentResult], company: str, model: str, db_path: str, path: Path = run_log.DEFAULT_LOG) -> run_log.RunRecord:
+    """Add a full evaluation to the run log: what was tried, the totals and the counts of each document."""
+    t = totals(results)
+    prompt_hash = hashlib.sha256(PROMPT_FILE.read_bytes()).hexdigest()[:12] if PROMPT_FILE.exists() else "none"
+    return run_log.append_run(
+        stage="extraction",
+        params={"dataset": company, "model": model, "prompt_sha256": prompt_hash, "database": Path(db_path).name},
+        metrics={
+            "documents": t.documents,
+            "expected": t.expected,
+            "extracted": t.extracted,
+            "matched": t.matched,
+            "missing": t.expected - t.matched,
+            "extra": t.extracted - t.matched,
+            "recall": t.matched / t.expected if t.expected else 1.0,
+            "precision": t.matched / t.extracted if t.extracted else 1.0,
+            "due_ok": t.due_ok,
+            "project_ok": t.project_ok,
+            "extra_in_documents_with_not_commitments": t.extra_in_documents_with_not_commitments,
+        },
+        details={
+            r.document_id: {
+                "expected": r.expected,
+                "extracted": r.extracted,
+                "matched": len(r.matches),
+                "missing": len(r.missing),
+                "extra": len(r.extra),
+                "field_errors": sum(not m.ok for m in r.matches),
+            }
+            for r in results
+        },
+        path=path,
+    )
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("company")
     parser.add_argument("--doc", help="show the full detail of one document")
     parser.add_argument("--out", type=Path, help="save the result as JSON")
+    parser.add_argument("--model", default="unspecified", help="name of the model that made the stored commitments, for the run log")
+    parser.add_argument("--no-log", action="store_true", help="do not add the run to runs/metrics.jsonl")
     args = parser.parse_args(argv)
 
     company_dir = ROOT / "data" / args.company
@@ -247,6 +295,9 @@ def main(argv: list[str]) -> int:
     if args.out:
         args.out.write_text(to_json(results), encoding="utf-8")
         print(f"saved to {args.out}")
+    if not args.no_log:
+        record = log_run(results, args.company, args.model, settings.db_path)
+        print(f"logged in {run_log.DEFAULT_LOG.relative_to(ROOT)} (commit {record['git']['commit']}{'*' if record['git']['dirty'] else ''})")
     return 0
 
 
