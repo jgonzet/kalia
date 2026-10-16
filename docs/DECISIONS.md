@@ -2,6 +2,40 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## The rule-based retrieval narrows only when it understands the phrase; otherwise it widens
+Date: 2026-10-15
+Chose: a rule filters only for the phrases it handles ("esta semana", "la semana que viene", "mi jefe", "el jefe de X", a person); a phrase it does not handle ("la semana pasada", "el jefe de QA") applies no filter. A person named with no word about the user means all of their commitments, not only those shared with the user.
+Rejected: reading "semana" or "jefe" as this week or my boss whatever surrounds them (the bank measured 35 commitments lost that way); one rule per phrase until every phrase is covered (it does not scale; an LLM reading the question can replace the rules later, see issue #22).
+Why: the LLM that answers can discard extra commitments but cannot recover the ones the retrieval dropped.
+Source: issue #17.
+
+## The retrieval has its own bank of questions, apart from the acceptance questions and from the chat bank
+Date: 2026-10-15
+Chose: `data/<company>/retrieval_bank.jsonl`, with questions grouped by category (the angle they probe) and measured by `scripts/evaluate_retrieval.py`. `questions.jsonl` stays as the V0 acceptance questions; the chat gets its own bank and script (issue #16), fed with controlled input so the LLM is measured apart from the retrieval.
+Rejected: a `v2` of `questions.jsonl` (it mixes the "done" criterion with a stress test; the combined question of #20 is one question of the bank); one bank for retrieval and chat (a wrong answer could not be traced to a stage, and the chat needs inputs the retrieval would not produce).
+Source: issues #17, #16 and #20.
+Refined 2026-10-15: a question may declare a `known_gap` (an accepted loss, with its issue); it is a status and not part of the question, so it can change without a new version. `--strict` fails only on losses without one.
+
+## The answers of the retrieval bank are computed from conditions, not written by hand or by the retriever
+Date: 2026-10-15
+Chose: each question is a condition over one commitment (`scripts/retrieval_bank_<company>.py`); `scripts/retrieval_bank.py` applies it to the `expected` files without importing `app/`, stores the condition's text as `rule`, and `check_dataset.py` fails if a published answer changes.
+Rejected: answers copied from the retriever's output (circular: the test would approve whatever the code does); answers written by hand (73 commitments and 56 questions invite mistakes that cannot be re-checked when the dataset grows).
+Why: the answers stay checkable (the rule is in the file) and a changed dataset cannot silently change a published question.
+Source: issue #17.
+
+## Evaluation metrics are logged to a JSONL file, not to MLflow yet
+Date: 2026-10-15
+Chose: each evaluation run appends one line to `runs/metrics.jsonl` (git-ignored) with the commit, flat `params` (retriever or model, prompt hash, dataset, questions version) and flat `metrics`, through `scripts/run_log.py`. The shape is the one MLflow logs, so the history can be moved there.
+Rejected: MLflow now (a large dependency and a server for a history of one or two runs; replacing the file is issue #19); comparing runs by hand from separate JSON files (what `evaluate_extraction.py` did).
+Source: issue #17.
+
+## Retrieval is one replaceable function; the first version is rules over the question text
+Date: 2026-10-15
+Chose: `Retriever.retrieve(question) -> list[Commitment]` in `app/answering` is the only thing the chat will know. `RuleRetriever` finds a person, "jefe"/"jefa" (an alias of the person the user reports to) and "semana", and returns every commitment when it finds none. "Involucr..." in the question means all the commitments of a person, otherwise only those shared with the user.
+Rejected: giving the LLM tools to query the database (small local models handle them badly, it is slower and the retrieved set cannot be checked; agents are out of V0); an LLM that reads the question to pick filters (one more call that can fail; it can replace the rules later without touching the chat).
+Why: the rules cover the acceptance questions and are checked without an LLM; a surname shared by two people picks no one.
+Source: issue #17.
+
 ## The extraction evaluation is a standalone script, not part of the app
 Date: 2026-10-09
 Chose: `scripts/evaluate_extraction.py` holds the logic and reads the database and `data/<company>/expected/`. It pairs commitments inside each document by people and due date (then people only), and sums counts, not percentages, for the totals.

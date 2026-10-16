@@ -30,6 +30,7 @@ The app listens on <http://localhost:8000> (`/health` answers when it is up). Th
 ## Checks
 
 - Smoke test (fake LLM, needs no Ollama, also what CI runs): `uv run scripts/smoke_test.py`
+- Unit tests: `uv run pytest`
 - Manual check against the real LLM: `docker compose run --rm app python scripts/check_llm.py`
 
 ## Configuration
@@ -64,6 +65,25 @@ The output has a table per document (worst first), the detail of each document w
 
 Within a document, an extracted commitment is paired with an expected one when they have the same people and due date, or the same people and another due date (counted as a wrong due date). Extracted commitments that are left over are "extra", expected ones that are left over are "missing". A "valid" extraction is not a "correct" one: validation (`import`) only checks the format. The evaluation does not detect `not_commitments` by itself: it counts the extra commitments of documents that have them and prints the phrases next to them to be read.
 
+## Evaluate the retrieval
+
+`scripts/evaluate_retrieval.py` measures how well the retrieval picks the commitments a question needs. Like the extraction evaluation, it is a development tool, not part of the app. Run it with `uv run scripts/evaluate_retrieval.py lamanija`; `--suite bank` or `--suite acceptance` measures only one of the two sets of questions:
+- the **retrieval bank** (`data/<company>/retrieval_bank.jsonl`): many questions grouped by the angle they probe (how a person is named, direction, the org chart, dates, projects, combinations, groups, topics, open questions). It is described in `docs/DATASET.md` ("Retrieval bank"), with how to add questions.
+- the **acceptance questions** (`questions.jsonl`): the five questions of the V0 definition of done.
+
+It works on a temporary database built from the `expected` files, so an extraction error cannot count against the retrieval. It prints counts only, per category and in total: expected, retrieved, missing and extra (recall and precision over summed counts), and then the questions that differ. A question that changes once the held-out document is ingested is measured before and after. "Missing" is what the LLM can no longer recover; "extra" is what it has to discard. The unit tests in `tests/test_retrieval.py` cover the rules themselves, with small made-up data. `uv run scripts/retrieval_bank.py lamanija --check` verifies that the bank still agrees with the `expected` files (`scripts/check_dataset.py` does it too).
+
+### Check that the bank notices a broken rule
+
+A bank is only useful if it fails when the retriever breaks. `uv run scripts/check_bank_sensitivity.py lamanija` breaks one behaviour of `RuleRetriever` at a time, in memory and never on disk (ignoring names, the word "jefe", the word "semana", the dates, "involucr", more than one person; a week one day longer or shorter; no accent folding; the words that tell the question is about the user; "jefe de X"; the words for another week; a retriever that returns everything or nothing), measures both sets of questions again and counts how many results changed. A mutation that changes none is `NOT DETECTED`: nothing in the bank would notice if that behaviour broke by accident.
+
+- Run it after adding questions to the bank and after adding or changing a rule of the retriever.
+- Exit code 1 means a behaviour is not covered and is not listed as a known blind spot. The fix is a new bank question for it (`docs/DATASET.md`, "Adding questions"), not an edit of the script.
+- One blind spot is known and listed in the script with its reason: the dataset has no weekend deadlines, so a week one day shorter changes no answer. The script reports it if it starts being detected, so its note can be removed.
+- When a rule is added to `app/answering/retrieval.py`, add to `MUTATIONS` the mutation that breaks it. The script patches names of that module, so a refactor that renames them makes it fail with an `AttributeError` until it is updated. It only applies to `RuleRetriever`; a retriever that works differently needs mutations of its own.
+
+Each run is appended to `runs/metrics.jsonl` (git-ignored) with the commit (`*` if the tree had uncommitted changes), the retriever, the dataset, the suite and the questions version. `uv run scripts/run_log.py` lists the runs, so a change can be compared with the ones before it. Use `--no-log` to measure without logging. `--strict` makes the exit code 1 if a question loses commitments without declaring a `known_gap`; it is the line that must hold on every change, and `docs/DATASET.md` ("When a question fails") says what to do with a question that does not pass.
+
 ## Known limitations
 
 - `POST /documents` extracts commitments only with the real LLM backend (Ollama by default). With the fake one, or if the call fails, the document is stored and the response says `extracted: false`.
@@ -72,6 +92,7 @@ Within a document, an extracted commitment is paired with an expected one when t
 - Content is synthetic and in Spanish.
 - Commitments have no status: all extracted commitments are treated as open.
 - Each commitment points to a single source document. The same commitment mentioned in later documents is stored again as a new one, so near-duplicates can appear.
+- Retrieval works with rules over the question text: a person (full name, first name or a surname no one else shares), "jefe"/"jefa" (the user's boss, or the boss of someone, "el jefe de Edna"), "esta semana" and "la semana que viene". A rule narrows only when it understands the phrase; anything else leaves the result wider, so the LLM that answers can discard what is not needed. A question with none of the rules gets every commitment, and so does one that names a week other than this one or the next. A person named without a word about the user ("con", "tengo", "mi", "me", "yo", "prometí", "debo") brings all of their commitments, not only those shared with the user. A surname shared by two people (such as "Bouvier") picks no one, silently. The user is found in the catalog by name. Today it does not understand days ("hoy", "mañana", "el viernes", exact dates), months, overdue or undated commitments, projects, areas, roles, topics or typos: it returns every commitment and the chat has to discard the rest. The retrieval bank measures all of this (`docs/DATASET.md`).
 - Every document must come with its type, date and participants as metadata. Sources that do not carry them (meetings, group chats) are not supported yet.
 
 ## Documentation

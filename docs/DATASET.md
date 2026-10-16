@@ -12,6 +12,7 @@ Format of the files under `data/<company>/`. The reasons for each choice are in 
 | `story.md` | background facts of the company and its projects (see below) |
 | `expected/<document id>.json` | the answer key of one document (see below) |
 | `questions.jsonl` | the acceptance questions with their expected answers (see below) |
+| `retrieval_bank.jsonl` | the bank of questions that measures the retrieval alone (see "Retrieval bank") |
 | `documents/<document id>.md` | the generated texts: a metadata header plus free text (see below) |
 
 The generator's instructions live in `data/generation/`, shared by all companies (see "Generating documents").
@@ -72,6 +73,92 @@ Rules the answers are computed with:
 - "Involves X" includes the commitments that do not involve the user.
 - "My boss" is the user's boss in the catalog, not other levels above.
 
+## Retrieval bank
+
+`retrieval_bank.jsonl` measures one thing: whether the retrieval brings the commitments a question needs. It is separate from `questions.jsonl` on purpose: those are the acceptance questions of V0 (the "done" criterion, answered end to end by the chat), while the bank has many questions written to probe the retrieval from different angles. The bank of the chat, which measures what the LLM does with commitments already retrieved, is a different file with its own script, designed in issue #16.
+
+Same format as `questions.jsonl`, plus two fields: `category` (the angle, below) and `rule` (the condition that defines the answer, in words). `expected` and `after_held_out` mean the same. A published question is never edited or removed; a changed one gets a new `version` and the latest version of each `id` is the one measured. The one optional field is `known_gap`: the retrieval is known to lose commitments for this question and it is accepted for now, with the reason and the issue. It is a status, not part of the question, so adding or removing it does not need a new version.
+
+### How the answers are computed
+
+Each question is a condition over one commitment, written in `scripts/retrieval_bank_<company>.py`; the answer is every commitment of the `expected` files that meets it (`scripts/retrieval_bank.py`). That program does not import `app/`, so the answers do not come from the code under test. Perfect extraction is assumed: the answers are about the retrieval, not about how well the commitments were extracted (`scripts/evaluate_extraction.py` measures that).
+
+### What each term means
+
+| Term in a question | Answer |
+|---|---|
+| "hoy", "mañana" | `due` is the reference date, or the day after |
+| "esta semana" | from the reference date to six days later (the rule above) |
+| "la semana que viene" | from seven to thirteen days after the reference date |
+| "la semana pasada" | from seven days before the reference date to the day before it |
+| "este mes" | from the reference date to the last day of its month; like the week, overdue ones are left out |
+| "vencidos" | `due` before the reference date |
+| "sin fecha" | `due` is `null` |
+| "el viernes" (a weekday) | the first date after the reference date with that weekday |
+| "el 20 de octubre", "entre el 14 y el 16" | that date, in the year of the reference date; a range includes both ends |
+| "con X" | the commitments between the user and X, in either direction |
+| "le prometí a X" / "me prometió X" | `who` is the user and `to_whom` is X / the other way round |
+| "prometió X" / "le prometieron a X" | `who` is X / `to_whom` is X, with anyone |
+| "involucran a X" | X is `who` or `to_whom`, user or not (rule above) |
+| "entre X y Y" | X and Y are the two parties, in either direction, the user not required |
+| "¿qué tengo que hacer yo?" / "¿qué me deben?" | `who` is the user / `to_whom` is the user |
+| "mi jefe", "mi superior" | the user's manager in the catalog |
+| "el jefe de mi jefe", "el jefe de X" | the person is the manager of the user's manager, of X; the rest of the question reads as for any person ("con ..." between them and the user, "prometió ..." as promiser) |
+| "mis pares" | people at the user's level with the same manager, as "con X" for each |
+| "la gente que me reporta" | people whose manager is the user, as "con X" for each; the user has none, so the answer is empty |
+| "la gente de Arte" / "el área de Programación" | "con X" for each person of the area / `who` is anyone of the area |
+| a name fitting two people ("Bouvier") | the answer for both: nothing the user may have meant is left out |
+| a person or project not in the catalog | empty answer |
+| "ningún proyecto" | `project` is `null` |
+| a topic ("presupuesto", "bugs") | `what` contains one of the words listed in the question's `rule`; a stand-in, since topics are a matter of judgement |
+| a question that narrows nothing ("¿Cómo viene todo?") | every commitment |
+
+An empty answer is valid: it tests that the retrieval does not invent matches.
+
+### Categories and what each covers
+
+| Category | Angle | Questions |
+|---|---|---|
+| `person` | how a person is named: surname, first name, full name, lowercase, a typo, by role, inside a chatty sentence, two people at once, a name that fits two people, a person who does not exist | 10 |
+| `direction` | who promised and who received: user to X, X to user, X to anyone, anyone to X, any commitment with X, "involve" together with a first-person word, X and Y without the user, one direction between others, "mine", "owed to me" | 10 |
+| `hierarchy` | people reached through the org chart: the boss in both directions, a synonym, the boss's boss, the boss of someone else, peers, a user with no reports | 7 |
+| `date` | today, tomorrow, next week, last week, this month, overdue, undated, a weekday, an exact date, a range, a day with nothing due | 11 |
+| `project` | a project by full name, by part of its name, none, one that does not exist | 4 |
+| `combination` | two or three filters at once: person and week, person and project, person and project and week, direction and date, boss and week, overdue and person, undated and person, project and month | 9 |
+| `group` | a set of people named by area | 2 |
+| `topic` | what a commitment is about, alone and with a person | 3 |
+| `open` | questions that narrow nothing | 2 |
+
+### What the bank does not cover
+
+- **The author is the same.** The answers come from a program that does not read the retriever, but one person chose the questions. The bank shows that a retriever handles these angles, not that no other exists.
+- **The bank is no longer a fair exam for the rules.** The retriever was adjusted after seeing where the bank caught it, so these questions are now a development set. To measure it fairly, add questions written without looking at the rules (see "Adding questions").
+- **One company.** A retriever tuned to the names of `lamanija` would pass. A second dataset would fix it.
+- **No weekend deadlines in the dataset.** Making the week five days instead of six changes no answer. `tests/test_retrieval.py` covers it at code level.
+- **Out of scope for V0:** negations ("sin contar a Smithers"), counts and comparisons ("¿quién tiene más?"; the chat answers them from the same set of commitments), status ("¿cuáles ya cumplí?"; V0 has no status), and the user naming themselves ("compromisos de Lalo"; it can mean either direction).
+- **Sensitivity.** `scripts/check_bank_sensitivity.py` breaks the rule-based retriever one rule at a time and checks that some question notices; today every rule is noticed except the blind spot above (README, "Check that the bank notices a broken rule"). `scripts/retrieval_bank.py` also prints, after each run, the people, projects and commitments that no question reaches.
+
+### When a question fails
+
+Questions are expected to keep coming: yours, those of an independent session, and, once the chat is used, the ones that went wrong in real use. All follow the same path, and none is deleted for failing:
+
+1. **Check the answer first.** If the `rule` is not what the question means, the question was wrong: publish a new `version`; the retriever is not at fault.
+2. **Commitments missing** (the LLM cannot recover them). Either fix the rule in `app/answering/retrieval.py`, following the principle that a rule narrows only when it understands the phrase (`docs/DECISIONS.md`), with a unit test in `tests/test_retrieval.py` and, if it is a new rule, its mutation in `scripts/check_bank_sensitivity.py`; or, if rules cannot or should not cover it now, declare `known_gap="why; issue #N"` in its `Spec`. A known gap must point to an issue.
+3. **Extra commitments** are not a failure: the chat discards them. They are measured, per category and in total, and followed over time in the run log.
+4. A known gap shows in every run ("still missing N") and the run says when it passes ("now passes: remove its known_gap").
+
+The line that must hold on every change is `uv run scripts/evaluate_retrieval.py <company> --strict`: no question loses commitments unless it declares a known gap.
+
+### Adding questions
+
+1. Find the angle in the table above. If it is new, add a row to the table here.
+2. Append a `Spec` in `scripts/retrieval_bank_<company>.py`, written as a user would type it and not to match what the retriever understands today. A new term needs its meaning in the table above first.
+3. Run `uv run scripts/retrieval_bank.py <company>`. It adds the new questions and recomputes the others; if a published answer changed (the `expected` files were edited, or the spec was), it stops and asks for a new `version` of that question (`Spec(..., version="v2")`).
+4. Check that the question discriminates: its answer must be smaller than the answer without the filter it tests, or it proves nothing.
+5. For a new company, write its `scripts/retrieval_bank_<company>.py` with a `specs(ctx)` function.
+
+Then measure with `uv run scripts/evaluate_retrieval.py <company> --suite bank` and decide what to do with a failure as in "When a question fails" (README, "Evaluate the retrieval"). A new rule of the retriever also needs its mutation in `scripts/check_bank_sensitivity.py`.
+
 ## Generating documents
 
 Claude Code writes the documents inside the repo, reading the files below from disk.
@@ -93,4 +180,5 @@ To write a batch of documents:
 `uv run scripts/check_dataset.py [company ...]` (standard library only). Flags: `--stamp` fills in `text_sha256` of every present document; `--allow-pending` does not fail on `expected` files without a document yet. It checks (a `due_text` missing from its text is only a warning):
 - Every document has an `expected` file and the other way round; the header `id` equals the file name; `type`, `date` and `participants` match the `expected` file; `participants` and `projects` are names from the catalog.
 - `text_sha256` matches the text.
+- If `retrieval_bank.jsonl` exists, it is recomputed from its spec and the `expected` files: it fails when the answer of a published question has changed (see "Retrieval bank").
 - Commitment ids are unique and of the form `<document id>-cN` (numbers need not be contiguous); `who` and `to_whom` are participants of the document; `project` is one of the document's projects or `null`; every `mentions` id is a commitment of an earlier document.
