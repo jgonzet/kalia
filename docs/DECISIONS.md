@@ -22,7 +22,7 @@ Chose: a rule filters only for the phrases it handles ("esta semana", "la semana
 Rejected: reading "semana" or "jefe" as this week or my boss whatever surrounds them (the bank measured 35 commitments lost that way); one rule per phrase until every phrase is covered (it does not scale; an LLM reading the question can replace the rules later, see issue #22).
 Why: the LLM that answers can discard extra commitments but cannot recover the ones the retrieval dropped.
 Source: issue #17.
-Refined 2026-10-15: only "esta semana", "en la semana", "durante la semana", "semana actual" and "la semana que viene" (and its variants) filter by date; any other mention of a week applies none. Parts of a name that are also ordinary words ("van") count only inside the full name, and "con" speaks of the user only right before a person.
+Refined 2026-10-15: only "esta semana", "en la semana", "durante la semana", "semana actual" and "la semana que viene" (and its variants) filter by date; any other mention of a week applies none. Parts of a name that are also ordinary words ("van") count only inside the full name, "con" speaks of the user only right before a person, and "me" only with a verb of promising or owing ("me prometió"); "mi", "mis" and "yo" do not.
 
 ## The retrieval has its own bank of questions, apart from the acceptance questions and from the chat bank
 Date: 2026-10-15

@@ -120,7 +120,7 @@ An empty answer is valid: it tests that the retrieval does not invent matches.
 | Category | Angle | Questions |
 |---|---|---|
 | `person` | how a person is named: surname, first name, full name, lowercase, a typo, by role, inside a chatty sentence, two people at once, a name that fits two people, a person who does not exist, a part of a name that is an ordinary word ("van") | 11 |
-| `direction` | who promised and who received: user to X, X to user, X to anyone, anyone to X, any commitment with X, "involve" together with a first-person word, "con" that is not followed by a person, X and Y without the user, one direction between others, "mine", "owed to me" | 11 |
+| `direction` | who promised and who received: user to X, X to user, X to anyone, anyone to X, any commitment with X, "involve" together with a first-person word, "con" that is not followed by a person, "mi" and "me" that say nothing about who promised to whom ("para mi demo", "¿me podés decir…?"), X and Y without the user, one direction between others, "mine", "owed to me" | 13 |
 | `hierarchy` | people reached through the org chart: the boss in both directions, a synonym, the boss's boss, the boss of someone else, peers, a user with no reports | 7 |
 | `date` | today, tomorrow, next week, last week, this month, overdue, undated, a weekday, an exact date, a range, a day with nothing due, "viene" that is not next week | 12 |
 | `project` | a project by full name, by part of its name, none, one that does not exist | 4 |
