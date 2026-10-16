@@ -31,6 +31,7 @@ The app listens on <http://localhost:8000> (`/health` answers when it is up). Th
 
 - Smoke test (fake LLM, needs no Ollama, also what CI runs): `uv run scripts/smoke_test.py`
 - Unit tests: `uv run pytest`
+- Dataset and retrieval checks (the CI runs both): `uv run scripts/check_dataset.py` and `uv run scripts/evaluate_retrieval.py lamanija --strict --no-log`
 - Manual check against the real LLM: `docker compose run --rm app python scripts/check_llm.py`
 
 ## Configuration
