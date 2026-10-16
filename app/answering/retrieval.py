@@ -16,10 +16,14 @@ from app.storage import Store
 WEEK_DAYS_AFTER_TODAY = 6
 BOSS_WORDS = ("jefe", "jefa")
 INVOLVES_WORDS = ("involucr",)
-WEEK_WORDS = ("semana",)
-NEXT_WEEK_WORDS = ("viene", "proxima", "siguiente", "entrante")
-OTHER_WEEK_WORDS = ("pasada", "anterior", "ultima")  # weeks the rules do not compute: no date filter is applied
-FIRST_PERSON_WORDS = ("con", "conmigo", "tengo", "tenemos", "mi", "mis", "me", "yo", "prometi", "debo")
+# The only phrases about a week that filter; any other mention ("la semana pasada", "la semana del 19",
+# "dentro de una semana") leaves the dates unfiltered.
+THIS_WEEK = r"\besta semana\b|\bsemana actual\b|\b(?:en|durante) la semana\b"
+NEXT_WEEK = r"\bsemana (?:que viene|proxima|siguiente|entrante)\b|\b(?:proxima|siguiente) semana\b"
+# Parts of a name that are also ordinary words ("van" in "Van Houten"): they only count inside the full name.
+NAME_PARTICLES = ("de", "del", "la", "las", "los", "el", "y", "van", "von", "da", "di", "le", "dos")
+# Words that tell the question speaks of the user. "con" alone is not one: it counts only before a person ("con Frink").
+FIRST_PERSON_WORDS = ("conmigo", "tengo", "tenemos", "mi", "mis", "me", "yo", "prometi", "debo")
 MANAGER_OF = r"\bjef[ea]s? de\b"
 
 
@@ -80,7 +84,7 @@ def find_filters(question: str, catalog: Catalog, today: date) -> QuestionFilter
         if boss_id and boss_id not in person_ids:
             person_ids.append(boss_id)
     due_from, due_to = _week_range(text, today)
-    mentions_user = any(_has_word(text, word) for word in FIRST_PERSON_WORDS)
+    mentions_user = _has_first_person_word(text) or _is_with_a_person(text, catalog)
     return QuestionFilters(
         person_ids=tuple(person_ids),
         involves_anyone=any(word in text for word in INVOLVES_WORDS) or not mentions_user,
@@ -90,14 +94,12 @@ def find_filters(question: str, catalog: Catalog, today: date) -> QuestionFilter
 
 
 def _week_range(text: str, today: date) -> tuple[date | None, date | None]:
-    """Dates of "this week" or "next week" if the question names a week; other weeks get no date filter."""
-    if not any(_has_word(text, word) for word in WEEK_WORDS):
-        return None, None
-    if any(_has_word(text, word) for word in NEXT_WEEK_WORDS):
+    """Dates of "this week" or "next week" if the question says so in a phrase we know; otherwise no dates."""
+    if re.search(NEXT_WEEK, text):
         return today + timedelta(days=WEEK_DAYS_AFTER_TODAY + 1), today + timedelta(days=2 * WEEK_DAYS_AFTER_TODAY + 1)
-    if any(_has_word(text, word) for word in OTHER_WEEK_WORDS):
-        return None, None
-    return today, today + timedelta(days=WEEK_DAYS_AFTER_TODAY)
+    if re.search(THIS_WEEK, text):
+        return today, today + timedelta(days=WEEK_DAYS_AFTER_TODAY)
+    return None, None
 
 
 def _resolve_managers(text: str, catalog: Catalog) -> tuple[str, list[str], bool]:
@@ -129,13 +131,28 @@ def _resolve_managers(text: str, catalog: Catalog) -> tuple[str, list[str], bool
 
 def _name_references(catalog: Catalog) -> dict[str, Person]:
     """Every full name, and every name part that belongs to one person only, mapped to that person."""
-    owners: dict[str, list[Person]] = {}
-    for person in catalog.people:
+    return {_normalize(p.name): p for p in catalog.people} | _unique_name_parts(list(catalog.people))
+
+
+def _unique_name_parts(people: list[Person]) -> dict[str, Person]:
+    """Name parts that belong to one person only, without the particles that are also ordinary words."""
+    owners: dict[str, dict[str, Person]] = {}
+    for person in people:
         for part in _normalize(person.name).split():
-            owners.setdefault(part, []).append(person)
-    references = {_normalize(p.name): p for p in catalog.people}
-    references |= {part: people[0] for part, people in owners.items() if len(people) == 1}
-    return references
+            if part not in NAME_PARTICLES:
+                owners.setdefault(part, {})[person.id] = person
+    return {part: next(iter(by_id.values())) for part, by_id in owners.items() if len(by_id) == 1}
+
+
+def _has_first_person_word(text: str) -> bool:
+    return any(_has_word(text, word) for word in FIRST_PERSON_WORDS)
+
+
+def _is_with_a_person(text: str, catalog: Catalog) -> bool:
+    """True if "con" is followed by a person or by "jefe" ("con Frink", "con el profesor", "con mi jefe")."""
+    names = sorted(_name_references(catalog), key=len, reverse=True) + list(BOSS_WORDS)
+    pattern = rf"\bcon (?:(?:el|la|los|las|mi|mis) )?(?:{'|'.join(re.escape(name) for name in names)})\b"
+    return re.search(pattern, text) is not None
 
 
 def _matches(commitment: Commitment, filters: QuestionFilters, user_id: str | None) -> bool:
@@ -157,16 +174,11 @@ def _people_named(text: str, catalog: Catalog) -> list[Person]:
     """People whose full name, or a name part that no other person shares, appears in the text. The user is skipped."""
     user = _user_person(catalog)
     others = [p for p in catalog.people if p != user]
-    parts_owners: dict[str, list[Person]] = {}
-    for person in others:
-        for part in _normalize(person.name).split():
-            parts_owners.setdefault(part, []).append(person)
+    unique_parts = _unique_name_parts(others)
     found: list[Person] = []
     for person in others:
-        full_name = _normalize(person.name)
-        parts = full_name.split()
-        by_part = any(_has_word(text, p) and len(parts_owners[p]) == 1 for p in parts)
-        if (_has_word(text, full_name) or by_part) and person not in found:
+        by_part = any(_has_word(text, part) for part, owner in unique_parts.items() if owner == person)
+        if (_has_word(text, _normalize(person.name)) or by_part) and person not in found:
             found.append(person)
     return found
 

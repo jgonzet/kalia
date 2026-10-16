@@ -201,3 +201,70 @@ def test_a_boss_of_somebody_unknown_is_not_read_as_my_boss(commitments: list[Com
 def test_the_baseline_retriever_returns_everything(commitments: list[Commitment]) -> None:
     retriever = AllCommitmentsRetriever(FakeStore(commitments), TODAY)  # type: ignore[arg-type]
     assert [c.id for c in retriever.retrieve("¿Qué compromisos tengo con Smithers?")] == [c.id for c in commitments]
+
+
+# --- found by the audit: phrases and names the rules must not misread ---
+
+MILHOUSE = Person("p06", "Milhouse Van Houten", "QA Lead", "Produccion", 3, "p02")
+
+
+def retrieve_with_milhouse(question: str) -> list[str]:
+    catalog = Catalog(user=USER.name, people=(*CATALOG.people, MILHOUSE), projects=())
+    items = [commitment("m", MILHOUSE, USER, TODAY), commitment("s", SMITHERS, USER, TODAY + timedelta(days=30))]
+    return retrieve(question, items, catalog)
+
+
+def test_a_name_part_that_is_an_ordinary_word_picks_no_one() -> None:
+    assert retrieve_with_milhouse("¿Qué compromisos van a vencer?") == ["m", "s"]  # "van" is a verb here, not Van Houten
+    assert retrieve_with_milhouse("¿Qué compromisos van a vencer esta semana?") == ["m"]  # only the week narrows it
+
+
+def test_the_rest_of_the_name_still_picks_the_person() -> None:
+    assert retrieve_with_milhouse("compromisos con Milhouse") == ["m"]
+    assert retrieve_with_milhouse("compromisos con Houten") == ["m"]
+    assert retrieve_with_milhouse("compromisos con Milhouse Van Houten") == ["m"]
+
+
+@pytest.mark.parametrize(
+    "question",
+    ["¿Qué viene esta semana?", "¿Qué vence en la semana?", "¿Qué vence durante la semana?", "¿Qué vence en la semana actual?"],
+)
+def test_phrases_about_this_week(question: str) -> None:
+    items = [commitment("in", USER, SMITHERS, TODAY), commitment("out", USER, SMITHERS, TODAY + timedelta(days=9))]
+    assert retrieve(question, items) == ["in"]
+
+
+@pytest.mark.parametrize(
+    "question",
+    ["¿Qué vence la semana del 19?", "¿Qué vence dentro de una semana?", "¿Qué vencía hace una semana?", "¿Qué vence la semana?", "¿Qué hay para las próximas semanas?"],
+)
+def test_other_phrases_with_week_do_not_filter_by_date(question: str) -> None:
+    items = [commitment("in", USER, SMITHERS, TODAY), commitment("out", USER, SMITHERS, TODAY + timedelta(days=9))]
+    assert retrieve(question, items) == ["in", "out"]
+
+
+def test_this_week_that_is_coming_means_next_week() -> None:
+    items = [commitment("this", USER, SMITHERS, TODAY), commitment("next", USER, SMITHERS, TODAY + timedelta(days=9))]
+    assert retrieve("¿Qué vence esta semana que viene?", items) == ["next"]
+
+
+@pytest.mark.parametrize("question", ["", "   ", "((((", "jefe de [", "jefe de .* \\", "¿?¡!", "😀 jefe de 😀", "x" * 100_000])
+def test_strange_text_never_breaks_the_retriever(question: str, commitments: list[Commitment]) -> None:
+    assert retrieve(question, commitments) == [c.id for c in commitments]
+
+
+def test_a_catalog_where_the_user_is_missing_does_not_break_anything(commitments: list[Commitment]) -> None:
+    stranger = Catalog(user="Nobody Here", people=(SMITHERS, BURNS), projects=())
+    assert retrieve("¿Qué compromisos tengo con mi jefe?", commitments, stranger) == [c.id for c in commitments]
+    retrieve("¿Qué prometió el jefe de Smithers?", commitments, stranger)  # must not raise
+
+
+def test_con_followed_by_something_that_is_not_a_person_does_not_mean_the_user(commitments: list[Commitment]) -> None:
+    assert retrieve("¿Qué prometió Frink con el presupuesto?", commitments) == ["c", "d"]  # Frink with anyone
+    assert retrieve("¿Qué compromisos con fecha tiene Frink?", commitments) == ["c", "d"]
+
+
+def test_con_followed_by_a_person_keeps_meaning_the_user(commitments: list[Commitment]) -> None:
+    assert retrieve("compromisos con Frink", commitments) == ["c"]
+    assert retrieve("compromisos con el profesor Frink", commitments) == ["c"]
+    assert retrieve("compromisos con mi jefe", commitments) == ["a", "b"]
