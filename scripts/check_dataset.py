@@ -13,6 +13,8 @@ import re
 import sys
 from pathlib import Path
 
+from retrieval_bank import check_company_bank
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 COMMITMENT_ID = re.compile(r"^(?P<doc>.+)-c(?P<n>\d+)$")
 HEADER_KEYS = ("id", "type", "date", "participants")
@@ -138,6 +140,7 @@ def check_company(company_dir: Path, stamp: bool, allow_pending: bool) -> tuple[
             errors.append(f"{doc_id}: text_sha256 is null (run with --stamp once the text is accepted)")
         elif expected["text_sha256"] != digest:
             errors.append(f"{doc_id}: text changed since text_sha256 was stamped")
+    errors += [f"retrieval bank: {problem}" for problem in check_company_bank(company_dir)]
     return errors, warnings
 
 
