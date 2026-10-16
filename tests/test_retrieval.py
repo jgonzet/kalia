@@ -268,3 +268,16 @@ def test_con_followed_by_a_person_keeps_meaning_the_user(commitments: list[Commi
     assert retrieve("compromisos con Frink", commitments) == ["c"]
     assert retrieve("compromisos con el profesor Frink", commitments) == ["c"]
     assert retrieve("compromisos con mi jefe", commitments) == ["a", "b"]
+
+
+def test_my_and_a_request_with_me_do_not_mean_the_commitments_shared_with_the_user(commitments: list[Commitment]) -> None:
+    assert retrieve("¿Qué prometió Frink para mi demo?", commitments) == ["c", "d"]
+    assert retrieve("¿Qué prometió Frink en mis reuniones?", commitments) == ["c", "d"]
+    assert retrieve("¿Me podés decir qué prometió Frink?", commitments) == ["c", "d"]
+    assert retrieve("Decime qué prometió Frink, yo no me acuerdo", commitments) == ["c", "d"]
+
+
+def test_me_with_a_verb_of_promising_or_owing_does_mean_the_user(commitments: list[Commitment]) -> None:
+    assert retrieve("¿Qué me prometió Frink?", commitments) == ["c"]
+    assert retrieve("¿Qué me debe Frink?", commitments) == ["c"]
+    assert retrieve("¿Qué le prometí a Frink?", commitments) == ["c"]

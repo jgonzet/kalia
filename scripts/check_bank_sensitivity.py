@@ -101,6 +101,8 @@ MUTATIONS = [
         blind_spot="no commitment of the dataset is due on a weekend, so the sixth day changes no answer (tests/test_retrieval.py covers it)",
     ),
     Mutation("no first-person words", "'¿Qué le prometí a X?' brings the commitments without the user too", {"_has_first_person_word": lambda text: False}),
+    Mutation("ignores 'me prometió'", "'¿Qué me prometió X?' brings the commitments without the user too", {"TO_THE_USER": NEVER}),
+    Mutation("any 'me' counts", "'¿me podés decir...?' is read as being about the user", {"TO_THE_USER": r"\bme\b"}),
     Mutation("'con' is not enough", "'con X' brings the commitments without the user too", {"_is_with_a_person": lambda text, catalog: False}),
     Mutation("any 'con' counts", "'con el presupuesto' is read as being with the user", {"_is_with_a_person": lambda text, catalog: " con " in text}),
     Mutation("ignores 'involucr'", "'involucran a X' no longer brings the commitments without the user", {"INVOLVES_WORDS": ()}),

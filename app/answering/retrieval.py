@@ -22,8 +22,14 @@ THIS_WEEK = r"\besta semana\b|\bsemana actual\b|\b(?:en|durante) la semana\b"
 NEXT_WEEK = r"\bsemana (?:que viene|proxima|siguiente|entrante)\b|\b(?:proxima|siguiente) semana\b"
 # Parts of a name that are also ordinary words ("van" in "Van Houten"): they only count inside the full name.
 NAME_PARTICLES = ("de", "del", "la", "las", "los", "el", "y", "van", "von", "da", "di", "le", "dos")
-# Words that tell the question speaks of the user. "con" alone is not one: it counts only before a person ("con Frink").
-FIRST_PERSON_WORDS = ("conmigo", "tengo", "tenemos", "mi", "mis", "me", "yo", "prometi", "debo")
+# What tells the question speaks of the user. "con" counts only before a person ("con Frink"); "me" only with a verb of
+# promising or owing in the third person ("me prometió", "me deben"), not in a request ("¿me podés decir...?");
+# "mi", "mis" and "yo" do not count: "para mi demo" says nothing about who promised what to whom.
+FIRST_PERSON_WORDS = ("conmigo", "tengo", "tenemos", "prometi", "debo")
+TO_THE_USER = (
+    r"\bme (?:prometio|prometieron|promete|prometen|debe|deben|debia|debian|entrego|entregaron|mando|mandaron"
+    r"|paso|pasaron|dio|dieron|pidio|pidieron|envio|enviaron)\b"
+)
 MANAGER_OF = r"\bjef[ea]s? de\b"
 
 
@@ -145,7 +151,7 @@ def _unique_name_parts(people: list[Person]) -> dict[str, Person]:
 
 
 def _has_first_person_word(text: str) -> bool:
-    return any(_has_word(text, word) for word in FIRST_PERSON_WORDS)
+    return any(_has_word(text, word) for word in FIRST_PERSON_WORDS) or re.search(TO_THE_USER, text) is not None
 
 
 def _is_with_a_person(text: str, catalog: Catalog) -> bool:
