@@ -1,4 +1,4 @@
-"""Check that the documents and the expected files of a synthetic dataset agree.
+"""Check that the documents and the expected files of a synthetic dataset agree, and that its retrieval bank still matches them.
 
 Usage: uv run scripts/check_dataset.py [company ...] [--stamp] [--allow-pending]
 

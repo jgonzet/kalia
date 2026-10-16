@@ -26,7 +26,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Callable
+from typing import Callable, NotRequired, TypedDict, cast
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))  # make `app` importable
@@ -38,10 +38,24 @@ from app.ingestion.dataset import DatasetSource  # noqa: E402
 from app.models import Catalog, Commitment  # noqa: E402
 from app.storage.sqlite import SqliteStore  # noqa: E402
 from evaluate_extraction import load_answer_keys  # noqa: E402
+from retrieval_bank import AfterHeldOut  # noqa: E402
 
 OWNER_ID = "evaluation"
 SUITE_FILES = {"acceptance": "questions.jsonl", "bank": "retrieval_bank.jsonl"}
 RETRIEVERS = {"rules": RuleRetriever, "all": AllCommitmentsRetriever}
+
+
+class QuestionRecord(TypedDict):
+    """One line of `questions.jsonl` or `retrieval_bank.jsonl`: the first has `acceptance`, the second `category`."""
+
+    id: str
+    version: str
+    question: str
+    expected: list[str]
+    after_held_out: AfterHeldOut | None
+    acceptance: NotRequired[str]
+    category: NotRequired[str]
+    known_gap: NotRequired[str]
 
 
 @dataclass(frozen=True)
@@ -101,12 +115,12 @@ def add_up(results: list[QuestionResult]) -> Counts:
     )
 
 
-def load_latest_questions(path: Path) -> list[dict]:
+def load_latest_questions(path: Path) -> list[QuestionRecord]:
     """Read a questions file, keeping for each question id its highest version."""
-    latest: dict[str, dict] = {}
+    latest: dict[str, QuestionRecord] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.strip():
-            question = json.loads(line)
+            question = cast(QuestionRecord, json.loads(line))
             if question["id"] not in latest or question["version"] > latest[question["id"]]["version"]:
                 latest[question["id"]] = question
     return list(latest.values())
@@ -133,15 +147,16 @@ def measure(name: str, category: str, retriever: Retriever, question: str, expec
     return QuestionResult(name, category, len(expected), len(retrieved), len(retrieved & set(expected)), known_gap)
 
 
-def measure_suite(questions: list[dict], retrievers: dict[str, Retriever]) -> list[QuestionResult]:
+def measure_suite(questions: list[QuestionRecord], retrievers: dict[str, Retriever]) -> list[QuestionResult]:
     """Measure every question on the initial database and, when it has `after_held_out`, on the one with the held-out document."""
     results = []
     for q in questions:
-        category = q.get("category") or q["acceptance"]
+        category = q.get("category") or q.get("acceptance") or "uncategorised"
         gap = q.get("known_gap")
         results.append(measure(q["id"], category, retrievers["initial"], q["question"], q["expected"], gap))
-        if q["after_held_out"]:
-            results.append(measure(f"{q['id']}@after", category, retrievers["after"], q["question"], q["after_held_out"]["expected"], gap))
+        held_out = q.get("after_held_out")
+        if held_out:
+            results.append(measure(f"{q['id']}@after", category, retrievers["after"], q["question"], held_out["expected"], gap))
     return results
 
 
@@ -180,7 +195,7 @@ def print_suite(name: str, results: list[QuestionResult]) -> None:
     print()
 
 
-def log_suite(suite: str, results: list[QuestionResult], questions: list[dict], company: str, retriever_name: str, reference_date: date) -> None:
+def log_suite(suite: str, results: list[QuestionResult], questions: list[QuestionRecord], company: str, retriever_name: str, reference_date: date) -> None:
     total = add_up(results)
     metrics: dict[str, float] = {
         "questions": total.questions,
@@ -221,7 +236,7 @@ def evaluate(
     company_dir: Path,
     suites: list[str],
     build_retriever: Callable[[SqliteStore, date], Retriever] = RuleRetriever,
-) -> dict[str, tuple[list[dict], list[QuestionResult]]]:
+) -> dict[str, tuple[list[QuestionRecord], list[QuestionResult]]]:
     """Measure the chosen suites with the retriever `build_retriever` makes; return, per suite, its questions and results."""
     source = DatasetSource(company_dir)
     catalog = source.catalog()

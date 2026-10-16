@@ -1,6 +1,7 @@
 """Tests of the measurement of the retrieval (scripts/evaluate_retrieval.py), with made-up results and a fake retriever."""
 
 from datetime import date
+from pathlib import Path
 
 import evaluate_retrieval as ev
 from app.models import Commitment
@@ -39,7 +40,25 @@ def test_a_known_gap_is_not_an_unexpected_loss() -> None:
     assert [r.name for r in lost] == ["bug"]
 
 
-def test_latest_version_of_each_question_is_the_one_measured(tmp_path) -> None:  # type: ignore[no-untyped-def]
+def test_latest_version_of_each_question_is_the_one_measured(tmp_path: Path) -> None:
     path = tmp_path / "questions.jsonl"
     path.write_text('{"id": "q1", "version": "v1", "x": 1}\n{"id": "q2", "version": "v1"}\n{"id": "q1", "version": "v2", "x": 2}\n', encoding="utf-8")
     assert {q["id"]: q["version"] for q in ev.load_latest_questions(path)} == {"q1": "v2", "q2": "v1"}
+
+
+def test_a_question_without_after_held_out_or_category_is_still_measured() -> None:
+    questions = [{"id": "q", "version": "v1", "question": "?", "expected": ["a"]}]  # fields a hand-written file might lack
+    results = ev.measure_suite(questions, {"initial": FixedRetriever(["a"]), "after": FixedRetriever([])})  # type: ignore[arg-type]
+    assert [(r.name, r.category, r.missing) for r in results] == [("q", "uncategorised", 0)]
+
+
+def test_a_question_with_a_held_out_document_is_measured_twice() -> None:
+    questions = [{"id": "q", "version": "v1", "category": "c", "question": "?", "expected": ["a"], "after_held_out": {"document": "d", "expected": ["a", "b"]}}]
+    results = ev.measure_suite(questions, {"initial": FixedRetriever(["a"]), "after": FixedRetriever(["a"])})  # type: ignore[arg-type]
+    assert [(r.name, r.missing) for r in results] == [("q", 0), ("q@after", 1)]
+
+
+def test_the_known_gap_travels_from_the_question_to_its_results() -> None:
+    questions = [{"id": "q", "version": "v1", "category": "c", "question": "?", "expected": ["a"], "after_held_out": None, "known_gap": "needs the LLM; issue #22"}]
+    results = ev.measure_suite(questions, {"initial": FixedRetriever([]), "after": FixedRetriever([])})  # type: ignore[arg-type]
+    assert results[0].known_gap == "needs the LLM; issue #22" and ev.unexpected_missing(results) == []

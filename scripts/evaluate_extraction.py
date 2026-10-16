@@ -295,7 +295,9 @@ def main(argv: list[str]) -> int:
     if args.out:
         args.out.write_text(to_json(results), encoding="utf-8")
         print(f"saved to {args.out}")
-    if not args.no_log:
+    if not results:
+        print("no stored document is annotated: nothing was evaluated and nothing was logged")
+    elif not args.no_log:
         record = log_run(results, args.company, args.model, settings.db_path)
         print(f"logged in {run_log.DEFAULT_LOG.relative_to(ROOT)} (commit {record['git']['commit']}{'*' if record['git']['dirty'] else ''})")
     return 0

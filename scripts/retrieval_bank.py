@@ -22,11 +22,29 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Callable, Iterable, NotRequired, TypedDict, cast
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 BANK_FILE = "retrieval_bank.jsonl"
 FIRST_VERSION = "v1"
+
+
+class AfterHeldOut(TypedDict):
+    document: str
+    expected: list[str]
+
+
+class BankRecord(TypedDict):
+    """One line of `retrieval_bank.jsonl`."""
+
+    id: str
+    version: str
+    category: str
+    question: str
+    rule: str
+    expected: list[str]
+    after_held_out: AfterHeldOut | None
+    known_gap: NotRequired[str]
 
 
 @dataclass(frozen=True)
@@ -162,6 +180,10 @@ def due_between(first: date, last: date) -> Cond:
     return Cond(f"due from {first} to {last}, both included", lambda r: r.due is not None and first <= r.due <= last)
 
 
+def dated() -> Cond:
+    return Cond("has a due date", lambda r: r.due is not None)
+
+
 def overdue(today: date) -> Cond:
     return Cond(f"due before {today} (overdue)", lambda r: r.due is not None and r.due < today)
 
@@ -193,6 +215,11 @@ def everything() -> Cond:
 
 
 # --- reading the dataset ---
+
+
+def read_bank(path: Path) -> list[BankRecord]:
+    """Read the published bank file; an absent file means no questions yet."""
+    return cast(list[BankRecord], read_jsonl(path)) if path.exists() else []
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -239,7 +266,7 @@ def load_specs(company: str, ctx: Context) -> list[Spec]:
 # --- building and checking ---
 
 
-def compute_records(company_dir: Path, specs: list[Spec], ctx: Context) -> list[dict]:
+def compute_records(company_dir: Path, specs: list[Spec], ctx: Context) -> list[BankRecord]:
     """Compute the file record of every spec: its correct answer before and after the held-out document."""
     company = json.loads((company_dir / "company.json").read_text(encoding="utf-8"))
     held_out = company.get("held_out", [])
@@ -250,11 +277,11 @@ def compute_records(company_dir: Path, specs: list[Spec], ctx: Context) -> list[
     ids = [(s.id, s.version) for s in specs]
     if len(set(ids)) != len(ids):
         raise ValueError("two specs share an id and a version")
-    records = []
+    records: list[BankRecord] = []
     for spec in specs:
         before = sorted(r.id for r in initial if spec.cond.test(r))
         after = sorted(r.id for r in rows if spec.cond.test(r))
-        record = {
+        record: BankRecord = {
             "id": spec.id,
             "version": spec.version,
             "category": spec.category,
@@ -269,14 +296,17 @@ def compute_records(company_dir: Path, specs: list[Spec], ctx: Context) -> list[
     return records
 
 
-def compare(computed: list[dict], published: list[dict]) -> list[str]:
-    """List the differences between the computed records and the published file; `known_gap` is a status and is not compared."""
+def _without_status(record: BankRecord) -> dict[str, object]:
+    """The record without its `known_gap`, which is a status and not part of the question."""
+    return {key: value for key, value in record.items() if key != "known_gap"}
+
+
+def compare(computed: list[BankRecord], published: list[BankRecord]) -> list[str]:
+    """List the differences between the computed records and the published file; `known_gap` is not compared."""
     problems = []
-    computed = [{k: v for k, v in r.items() if k != "known_gap"} for r in computed]
-    published = [{k: v for k, v in r.items() if k != "known_gap"} for r in published]
-    by_key = {(r["id"], r["version"]): r for r in computed}
-    for old in published:
-        key = (old["id"], old["version"])
+    by_key = {(r["id"], r["version"]): _without_status(r) for r in computed}
+    for old in map(_without_status, published):
+        key = (str(old["id"]), str(old["version"]))
         if key not in by_key:
             problems.append(f"{key[0]} {key[1]}: published but missing from the spec (a published question is never removed)")
         elif by_key[key] != old:
@@ -285,22 +315,28 @@ def compare(computed: list[dict], published: list[dict]) -> list[str]:
     return problems
 
 
+def build_bank(company_dir: Path) -> list[BankRecord]:
+    """Compute the bank of a company from its spec and its `expected` files."""
+    ctx = load_context(company_dir)
+    return compute_records(company_dir, load_specs(company_dir.name, ctx), ctx)
+
+
 def check_company_bank(company_dir: Path) -> list[str]:
     """Return the problems of the company's bank file (none if it is consistent); used by check_dataset.py."""
     path = company_dir / BANK_FILE
     if not path.exists():
         return []
-    ctx = load_context(company_dir)
     try:
-        specs = load_specs(company_dir.name, ctx)
+        return compare(build_bank(company_dir), read_bank(path))
     except ModuleNotFoundError:
         return [f"{BANK_FILE} exists but scripts/retrieval_bank_{company_dir.name}.py does not"]
-    return compare(compute_records(company_dir, specs, ctx), read_jsonl(path))
+    except (KeyError, ValueError, OSError) as error:
+        return [f"{BANK_FILE} cannot be computed: {type(error).__name__}: {error}"]
 
 
-def print_summary(records: list[dict], company_dir: Path, ctx: Context) -> None:
+def print_summary(records: list[BankRecord], company_dir: Path, ctx: Context) -> None:
     """Print the size of the bank per category and what its questions leave uncovered."""
-    by_category: dict[str, list[dict]] = defaultdict(list)
+    by_category: dict[str, list[BankRecord]] = defaultdict(list)
     for r in records:
         by_category[r["category"]].append(r)
     print(f"{'category':<14}{'questions':>10}{'empty':>7}{'smallest':>9}{'median':>7}{'largest':>8}{'held-out changes':>18}")
@@ -329,10 +365,20 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     company_dir = DATA_DIR / args.company
-    ctx = load_context(company_dir)
-    computed = compute_records(company_dir, load_specs(args.company, ctx), ctx)
+    if not (company_dir / "company.json").exists():
+        print(f"no dataset at {company_dir}")
+        return 1
+    try:
+        ctx = load_context(company_dir)
+        computed = compute_records(company_dir, load_specs(args.company, ctx), ctx)
+    except ModuleNotFoundError:
+        print(f"scripts/retrieval_bank_{args.company}.py does not exist: write it with a specs(ctx) function first")
+        return 1
+    except (KeyError, ValueError, OSError) as error:
+        print(f"cannot build the bank: {type(error).__name__}: {error}")
+        return 1
     path = company_dir / BANK_FILE
-    published = read_jsonl(path) if path.exists() else []
+    published = read_bank(path)
 
     problems = compare(computed, published)
     for problem in problems:

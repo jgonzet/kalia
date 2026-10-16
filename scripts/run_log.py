@@ -36,9 +36,15 @@ class RunRecord(TypedDict):
 
 
 def git_state() -> GitState:
-    """Return the short HEAD commit and whether the working tree had uncommitted changes."""
-    commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
-    status = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    """Return the short HEAD commit and whether the working tree had uncommitted changes.
+
+    Outside a git repository, or without git, it returns the commit "unknown" and dirty: the run still gets logged.
+    """
+    try:
+        commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+        status = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    except (subprocess.CalledProcessError, OSError):
+        return GitState(commit="unknown", dirty=True)
     return GitState(commit=commit, dirty=bool(status.strip()))
 
 
@@ -65,10 +71,18 @@ def append_run(
 
 
 def read_runs(path: Path = DEFAULT_LOG) -> list[RunRecord]:
-    """Return the logged runs, oldest first; an absent file means no runs."""
+    """Return the logged runs, oldest first; an absent file means no runs and a line that is not JSON is skipped with a warning."""
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    runs: list[RunRecord] = []
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            runs.append(json.loads(line))
+        except json.JSONDecodeError:
+            print(f"warning: {path}:{number} is not valid JSON, skipped", file=sys.stderr)
+    return runs
 
 
 def _format_number(value: float) -> str:

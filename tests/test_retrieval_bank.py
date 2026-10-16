@@ -87,6 +87,11 @@ def test_due_between_includes_both_ends() -> None:
     assert ids(rb.due_between(date(2026, 10, 12), date(2026, 10, 18)), rows) == ["12", "15", "18"]
 
 
+def test_dated_is_the_opposite_of_undated() -> None:
+    rows = [row("a", USER, PEER, TODAY), row("b", USER, PEER)]
+    assert ids(rb.dated(), rows) == ["a"] and ids(rb.undated(), rows) == ["b"]
+
+
 def test_overdue_is_strictly_before_today_and_undated_is_not_overdue() -> None:
     rows = [row("old", USER, PEER, date(2026, 10, 11)), row("today", USER, PEER, TODAY), row("none", USER, PEER)]
     assert ids(rb.overdue(TODAY), rows) == ["old"]
@@ -208,3 +213,38 @@ def test_a_known_gap_is_recorded_and_changing_it_is_not_a_problem(company: Path)
     assert computed[1]["known_gap"] == "needs the LLM, issue #22" and "known_gap" not in computed[0]
     assert rb.compare(computed, published) == []  # adding the status to a published question is allowed
     assert rb.compare(published, computed) == []  # and so is removing it
+
+
+# --- the check used by check_dataset.py must report problems, never crash ---
+
+
+def test_check_company_bank_reports_a_consistent_file_as_ok(company: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = rb.load_context(company)
+    (company / rb.BANK_FILE).write_text("".join(json.dumps(r) + "\n" for r in rb.compute_records(company, specs_for(ctx), ctx)), encoding="utf-8")
+    monkeypatch.setattr(rb, "load_specs", lambda name, ctx: specs_for(ctx))
+    assert rb.check_company_bank(company) == []
+
+
+def test_check_company_bank_skips_a_company_without_a_bank(company: Path) -> None:
+    assert rb.check_company_bank(company) == []
+
+
+def test_check_company_bank_says_when_the_spec_module_is_missing(company: Path) -> None:
+    (company / rb.BANK_FILE).write_text("", encoding="utf-8")
+    problems = rb.check_company_bank(company)  # no scripts/retrieval_bank_acme.py exists
+    assert len(problems) == 1 and "retrieval_bank_acme.py does not" in problems[0]
+
+
+def test_check_company_bank_reports_a_broken_catalog_instead_of_crashing(company: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = rb.load_context(company)
+    (company / rb.BANK_FILE).write_text("".join(json.dumps(r) + "\n" for r in rb.compute_records(company, specs_for(ctx), ctx)), encoding="utf-8")
+    people = (company / "people.jsonl").read_text(encoding="utf-8").splitlines()
+    (company / "people.jsonl").write_text("\n".join(line for line in people if "Olga Other" not in line), encoding="utf-8")
+    monkeypatch.setattr(rb, "load_specs", lambda name, ctx: specs_for(ctx))
+    problems = rb.check_company_bank(company)
+    assert len(problems) == 1 and "cannot be computed" in problems[0]
+
+
+def test_a_question_about_somebody_not_in_the_catalog_fails_loudly() -> None:
+    with pytest.raises(ValueError):
+        CTX.person("Nobody")
