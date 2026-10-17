@@ -3,11 +3,12 @@
 ## Next
 
 1. #29 — Make the chat's "today" right in databases loaded before the reference date was stored
-2. #16 — Evaluate the chat answers against the acceptance questions
-3. #21 — Report retrieval and answer metrics together in the chat evaluation
-4. #13 — Add unit tests and selected integration tests for the first full iteration
+2. #27 — Stop the LLM from silently losing part of the prompt when the retrieval brings many commitments
+3. #16 — Evaluate the chat answers against the acceptance questions
+4. #21 — Report retrieval and answer metrics together in the chat evaluation
+5. #13 — Add unit tests and selected integration tests for the first full iteration
 
-Synced at: 05b225c
+Synced at: bf48f24
 
 This file is filled in with each /close-feature.
 
