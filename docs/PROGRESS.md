@@ -2,12 +2,12 @@
 
 ## Next
 
-1. #18 — Answer questions in a chat using the retrieved commitments
+1. #29 — Make the chat's "today" right in databases loaded before the reference date was stored
 2. #16 — Evaluate the chat answers against the acceptance questions
 3. #21 — Report retrieval and answer metrics together in the chat evaluation
 4. #13 — Add unit tests and selected integration tests for the first full iteration
 
-Synced at: 9496160
+Synced at: 05b225c
 
 This file is filled in with each /close-feature.
 
@@ -260,3 +260,5 @@ Also, the SQLite store now closes its connection after every operation (it only 
 **Location:** `app/answering/` (`__init__.py`, `ordering.py`, `prompt.py`, `llm_answerer.py`), `app/prompts/answer_question.md`, `app/static/chat.html`, `app/main.py`, `app/config.py` (`resolve_today`), `app/storage/` and `app/ingestion/dataset.py` (reference date), `scripts/evaluate_chat.py`, `scripts/evaluate_extraction.py` (`pair_expected`), `scripts/smoke_test.py`. Commits `ed4a8df`, `8f0dc45`, `94fc9e5`, `053a566`, `3976df3`, `fee57a4`, `974c3eb`.
 
 **Tests:** 181 tests in the repo: `tests/test_answering.py` (ordering, state, prompt, answerer, endpoint, limits, "today"), `tests/test_evaluate_chat.py` (heuristic, pairing, a full evaluation with stub LLMs, the database is not written), `tests/test_reference_date.py`, `tests/test_sqlite_store.py` (connections are closed). Several of them were checked by breaking the code on purpose. The smoke test calls the running service for `/chat`. The numbers above come from `scripts/evaluate_chat.py` against the real model.
+
+**Issues:** closed #18. Opened #26 (audit the extractor in depth), #27 (the silent cut of long prompts), #28 (instructions hidden in documents), #29 (the chat's "today" in databases loaded before the reference date was stored). #16 and #21 stay open: the script is a first, heuristic measurement.
