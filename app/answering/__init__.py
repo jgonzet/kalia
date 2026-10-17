@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from app.models import Commitment
+from app.models import Catalog, Commitment
 
 
 @dataclass(frozen=True)
@@ -20,8 +20,11 @@ class Answer:
 
 
 class Retriever(Protocol):
-    def retrieve(self, question: str) -> list[Commitment]:
-        """Return the stored commitments relevant to the question, ordered by id."""
+    def retrieve(self, question: str, catalog: Catalog | None = None) -> list[Commitment]:
+        """Return the stored commitments relevant to the question, ordered by id.
+
+        `catalog` is the one the caller already read, so the retriever need not read it again; None means "read it".
+        """
         ...
 
 

@@ -54,10 +54,13 @@ class RuleRetriever:
         self._store = store
         self._today = today
 
-    def retrieve(self, question: str) -> list[Commitment]:
-        """Return the commitments that match the filters found in the question, ordered by id."""
+    def retrieve(self, question: str, catalog: Catalog | None = None) -> list[Commitment]:
+        """Return the commitments that match the filters found in the question, ordered by id.
+
+        `catalog` is the one the caller already read, to avoid reading it again; it is loaded from the store if omitted.
+        """
         commitments = self._store.list_commitments()
-        catalog = self._store.load_catalog()
+        catalog = catalog or self._store.load_catalog()
         if catalog is None:
             return commitments
         filters = find_filters(question, catalog, self._today)
@@ -72,7 +75,7 @@ class AllCommitmentsRetriever:
     def __init__(self, store: Store, today: date) -> None:
         self._store = store
 
-    def retrieve(self, question: str) -> list[Commitment]:
+    def retrieve(self, question: str, catalog: Catalog | None = None) -> list[Commitment]:
         """Return every stored commitment."""
         return self._store.list_commitments()
 

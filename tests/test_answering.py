@@ -8,6 +8,7 @@ from app.answering import Answer
 from app.answering.llm_answerer import DEGRADED_TEXT, LLMAnswerer
 from app.answering.ordering import due_state, group_by_project
 from app.answering.prompt import NO_PROJECT, build_prompt
+from app.answering.retrieval import RuleRetriever
 from app.config import Settings
 from app.llm import LLMError
 from app.main import MAX_QUESTION_CHARS, create_app
@@ -152,9 +153,11 @@ class StubRetriever:
     def __init__(self, commitments: list[Commitment]) -> None:
         self.commitments = commitments
         self.questions: list[str] = []
+        self.catalogs: list[Catalog | None] = []
 
-    def retrieve(self, question: str) -> list[Commitment]:
+    def retrieve(self, question: str, catalog: Catalog | None = None) -> list[Commitment]:
         self.questions.append(question)
+        self.catalogs.append(catalog)
         return self.commitments
 
 
@@ -221,6 +224,25 @@ class TestLLMAnswerer:
         retriever, store = StubRetriever([commitment(1)]), StubStore()
         LLMAnswerer(StubLLM(), retriever, store, TODAY).answer("q")  # type: ignore[arg-type]
         assert store.catalog_loads == 1
+
+    def test_the_catalog_it_read_is_handed_to_the_retriever(self) -> None:
+        retriever = StubRetriever([commitment(1)])
+        LLMAnswerer(StubLLM(), retriever, StubStore(), TODAY).answer("q")  # type: ignore[arg-type]
+        assert retriever.catalogs == [CATALOG]
+
+    def test_with_the_real_retriever_the_catalog_is_read_once_per_question(self, tmp_path: Path) -> None:
+        class Counting(SqliteStore):
+            loads = 0
+
+            def load_catalog(self) -> Catalog | None:
+                Counting.loads += 1
+                return super().load_catalog()
+
+        counting = Counting(str(tmp_path / "c.db"), "owner")
+        counting.save_catalog(CATALOG)
+        counting.save_document_commitments("d", [commitment(1)])
+        LLMAnswerer(StubLLM(), RuleRetriever(counting, TODAY), counting, TODAY).answer("¿Qué hay con Beto?")
+        assert Counting.loads == 1
 
     def test_another_prompt_file_can_be_used(self, tmp_path: Path) -> None:
         template = tmp_path / "other.md"

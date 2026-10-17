@@ -23,8 +23,8 @@ class LLMAnswerer:
 
     def answer(self, question: str) -> Answer:
         """Return the LLM's answer; if the call fails or comes back empty, return the commitments with `degraded` set."""
-        commitments = self._retriever.retrieve(question)
         catalog = self._store.load_catalog()
+        commitments = self._retriever.retrieve(question, catalog)
         people = person_names(catalog)
         prompt = build_prompt(question, commitments, catalog, self._today, self._prompt)
         try:
