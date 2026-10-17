@@ -74,9 +74,10 @@ def parse_document(path: Path) -> Document:
 
 
 def load_dataset(company_dir: Path, store: Store) -> int:
-    """Store the catalog and every non-held-out document; return how many documents were ingested."""
+    """Store the catalog, the dataset's reference date and every non-held-out document; return how many documents."""
     source = DatasetSource(company_dir)
     store.save_catalog(source.catalog())
+    store.save_reference_date(date.fromisoformat(source.company["reference_date"]))
     count = 0
     for document in source.documents():
         ingest_document(document, store)

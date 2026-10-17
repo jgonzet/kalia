@@ -24,7 +24,11 @@ class Settings:
     @property
     def today(self) -> date:
         """The date the app treats as "today": the reference date if set, else the system date."""
-        return self.reference_date or date.today()
+        return self.resolve_today(None)
+
+    def resolve_today(self, dataset_reference_date: date | None) -> date:
+        """"Today": `REFERENCE_DATE` if set, else the reference date of the loaded dataset, else the system date."""
+        return self.reference_date or dataset_reference_date or date.today()
 
     # classmethod: called on the class itself, `Settings.from_env()`, to create a new Settings.
     @classmethod
