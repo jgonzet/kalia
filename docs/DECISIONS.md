@@ -2,6 +2,33 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+## The model is spoken to in Spanish, and the overdue state is called `atrasado`
+Date: 2026-10-16
+Chose: the answering prompt and what the code adds to it (the date, the question, the states `atrasado`, `pendiente`, `sin fecha`) are in Spanish, like the data and the users' questions. `atrasado` and not `vencido`.
+Rejected: an English prompt (measured with `scripts/evaluate_chat.py`, it was not better: 72 to 81 of about 140 needed commitments against 82 and 85); `vencido` as the state (the model read "¿qué vence esta semana?" as a question about what is already overdue and answered that nothing was: 0 of 14 needed commitments, twice; the prompt now also says what "vence" means).
+Why: the extraction prompt (`app/prompts/extract_commitments.md`) is still in English. It works, and changing a working prompt needs its own measurement; no command extracts the dataset with the real backend yet (#15).
+Source: issue #18, commit fee57a4.
+
+## The code orders and labels the commitments; the LLM only filters and writes
+Date: 2026-10-16
+Chose: after the retriever, `app/answering/ordering.py` groups the commitments by project (nearest project deadline first, then id; no project last), orders each group by due date (undated last) and labels each one `atrasado`, `pendiente` or `sin fecha` against "today". The prompt gets the list already in that shape; the LLM keeps what answers the question and writes the answer in that order.
+Rejected: the LLM sorting and labelling (a 14B model drops and misplaces lines, and "overdue" is a date comparison); acting on the LLM's answer to sort it (it would break the natural-language text); sorting inside `RuleRetriever` (any later retriever would have to repeat it).
+Why: "atrasado" only says the date passed; V0 has no commitment status, so nothing says whether it was done.
+Source: issue #18, commit 94fc9e5.
+
+## `Answerer.answer` returns an `Answer`; an LLM failure is a normal response marked `degraded`
+Date: 2026-10-16
+Chose: `Answer(text, commitments, degraded, people)`, where `people` maps catalog ids to names so the page shows names. If the LLM raises `LLMError` or answers nothing, `POST /chat` still responds 200, with `degraded: true`, a notice and the retrieved commitments.
+Rejected: returning a `str` (a failure could not show the commitments); an error status (the page would show nothing); presenting the retrieved list as a normal answer (it can hold commitments that do not fit, and nothing would say that the LLM failed).
+Source: issue #18, commit 94fc9e5.
+
+## "Today" is `REFERENCE_DATE`, else the reference date stored with the loaded dataset, else the system date
+Date: 2026-10-16
+Chose: the loader saves the dataset's `reference_date` in a new table (`dataset_meta`); `Settings.resolve_today` picks `REFERENCE_DATE`, then that stored date, then the system date, and the chat does it on every question.
+Rejected: the system date as the default (the deadlines of the dataset, September and October 2026, become overdue as days pass); the date in `compose.yaml` (a second copy of what `company.json` holds); a column in `catalog_meta` (a database created before would need a migration, and there are none); computing it once at startup (a server running past midnight keeps the old day).
+Why: a database loaded before this has no stored date until the dataset is loaded again.
+Source: issue #18, commits 8f0dc45 (storage, loader, `resolve_today`) and 94fc9e5 (read on every question).
+
 ## The CI runs the dataset check and the strict retrieval evaluation
 Date: 2026-10-15
 Chose: after the unit tests, `.github/workflows/ci.yml` runs `scripts/check_dataset.py` and `scripts/evaluate_retrieval.py lamanija --strict --no-log`, so a push fails if the dataset and its retrieval bank disagree or if a question loses commitments without declaring a `known_gap`.
