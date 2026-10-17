@@ -137,12 +137,17 @@ def _pair_up(expected: list[Expected], extracted: list[Commitment], same_due: bo
     return pairs
 
 
+def pair_expected(expected: list[Expected], extracted: list[Commitment]) -> list[tuple[Expected, Commitment]]:
+    """Pair expected with extracted commitments of one document: same people and due date first, then same people only."""
+    pairs = _pair_up(expected, extracted, same_due=True)
+    left_expected = [e for e in expected if e.id not in {p[0].id for p in pairs}]
+    left_extracted = [c for c in extracted if c.id not in {p[1].id for p in pairs}]
+    return pairs + _pair_up(left_expected, left_extracted, same_due=False)
+
+
 def evaluate_document(key: AnswerKey, extracted: list[Commitment]) -> DocumentResult:
     """Match one document's extracted commitments against its answer key (rules in the module docstring)."""
-    pairs = _pair_up(list(key.commitments), extracted, same_due=True)
-    left_expected = [e for e in key.commitments if e.id not in {p[0].id for p in pairs}]
-    left_extracted = [c for c in extracted if c.id not in {p[1].id for p in pairs}]
-    pairs += _pair_up(left_expected, left_extracted, same_due=False)
+    pairs = pair_expected(list(key.commitments), extracted)
     matched_expected = {e.id for e, _ in pairs}
     matched_extracted = {c.id for _, c in pairs}
     return DocumentResult(
