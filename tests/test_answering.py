@@ -88,15 +88,15 @@ class TestBuildPrompt:
         prompt = build_prompt("¿Qué hay?", commitments, CATALOG, TODAY)
         assert prompt.index("## Soon") < prompt.index("## Late") < prompt.index(f"## {NO_PROJECT}")
 
-    def test_lines_show_names_state_and_source_not_catalog_ids(self) -> None:
+    def test_lines_show_names_and_state_but_neither_ids_nor_the_source_document(self) -> None:
         prompt = build_prompt("q", [commitment(1, date(2026, 10, 1), "j-soon")], CATALOG, TODAY)
-        line = next(line for line in prompt.splitlines() if line.startswith("d-c1"))
-        assert line == "d-c1 | Ana Ruiz -> Beto Paz | task 1 | 2026-10-01 | atrasado | d (2026-10-01)"
-        assert "p-ana" not in prompt
+        line = next(line for line in prompt.splitlines() if line.startswith("Ana Ruiz ->"))
+        assert line == "Ana Ruiz -> Beto Paz | task 1 | 2026-10-01 | atrasado"
+        assert "p-ana" not in prompt and "d-c1" not in prompt and "(2026-10-01)" not in prompt
 
     def test_undated_commitment_says_no_deadline(self) -> None:
         prompt = build_prompt("q", [commitment(1)], CATALOG, TODAY)
-        assert "| task 1 | ninguna | sin fecha |" in prompt
+        assert "| task 1 | ninguna | sin fecha" in prompt
 
     def test_question_user_and_today_are_in_the_prompt(self) -> None:
         prompt = build_prompt("¿Qué prometí?", [commitment(1)], CATALOG, TODAY)

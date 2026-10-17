@@ -40,10 +40,9 @@ def _group_text(group: ProjectGroup, people: dict[str, str], today: date) -> str
 
 
 def _line(commitment: Commitment, people: dict[str, str], today: date) -> str:
+    """One line of the list. It leaves out the id and the source document: the model must not show them, and they
+    take about 40% of the tokens of a long list."""
     who = people.get(commitment.who_id, commitment.who_id)
     to_whom = people.get(commitment.to_whom_id, commitment.to_whom_id)
     due = commitment.due.isoformat() if commitment.due else "ninguna"
-    return (
-        f"{commitment.id} | {who} -> {to_whom} | {commitment.what} | {due} | {due_state(commitment, today)}"
-        f" | {commitment.document_id} ({commitment.document_date.isoformat()})"
-    )
+    return f"{who} -> {to_whom} | {commitment.what} | {due} | {due_state(commitment, today)}"
