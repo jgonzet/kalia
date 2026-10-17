@@ -152,7 +152,7 @@ def measure(
 
     def describe(c: Commitment) -> str:
         who, to_whom = answer.people.get(c.who_id, c.who_id), answer.people.get(c.to_whom_id, c.to_whom_id)
-        return f"{c.id} {who} -> {to_whom}: {c.what} ({c.due or 'no deadline'})"
+        return f"{c.id} {who} -> {to_whom}: {c.what} ({c.due or 'sin fecha'})"
 
     return QuestionResult(
         name=name,

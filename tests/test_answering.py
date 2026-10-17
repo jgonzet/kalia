@@ -36,16 +36,16 @@ def group_ids(commitments: list[Commitment], catalog: Catalog | None = CATALOG) 
 
 class TestDueState:
     def test_no_due_date(self) -> None:
-        assert due_state(commitment(1), TODAY) == "no deadline"
+        assert due_state(commitment(1), TODAY) == "sin fecha"
 
-    def test_before_today_is_overdue(self) -> None:
-        assert due_state(commitment(1, date(2026, 10, 11)), TODAY) == "overdue"
+    def test_before_today_is_atrasado(self) -> None:
+        assert due_state(commitment(1, date(2026, 10, 11)), TODAY) == "atrasado"
 
-    def test_today_is_pending(self) -> None:
-        assert due_state(commitment(1, TODAY), TODAY) == "pending"
+    def test_today_is_pendiente(self) -> None:
+        assert due_state(commitment(1, TODAY), TODAY) == "pendiente"
 
-    def test_after_today_is_pending(self) -> None:
-        assert due_state(commitment(1, date(2026, 10, 13)), TODAY) == "pending"
+    def test_after_today_is_pendiente(self) -> None:
+        assert due_state(commitment(1, date(2026, 10, 13)), TODAY) == "pendiente"
 
 
 class TestGroupByProject:
@@ -91,30 +91,30 @@ class TestBuildPrompt:
     def test_lines_show_names_state_and_source_not_catalog_ids(self) -> None:
         prompt = build_prompt("q", [commitment(1, date(2026, 10, 1), "j-soon")], CATALOG, TODAY)
         line = next(line for line in prompt.splitlines() if line.startswith("d-c1"))
-        assert line == "d-c1 | Ana Ruiz -> Beto Paz | task 1 | 2026-10-01 | overdue | d (2026-10-01)"
+        assert line == "d-c1 | Ana Ruiz -> Beto Paz | task 1 | 2026-10-01 | atrasado | d (2026-10-01)"
         assert "p-ana" not in prompt
 
     def test_undated_commitment_says_no_deadline(self) -> None:
         prompt = build_prompt("q", [commitment(1)], CATALOG, TODAY)
-        assert "| task 1 | none | no deadline |" in prompt
+        assert "| task 1 | ninguna | sin fecha |" in prompt
 
     def test_question_user_and_today_are_in_the_prompt(self) -> None:
         prompt = build_prompt("¿Qué prometí?", [commitment(1)], CATALOG, TODAY)
-        assert prompt.rstrip().endswith("Question: ¿Qué prometí?")
-        assert "assistant of Ana Ruiz" in prompt
-        assert "Today is 2026-10-12" in prompt
+        assert prompt.rstrip().endswith("Pregunta: ¿Qué prometí?")
+        assert "asistente de Ana Ruiz" in prompt
+        assert "Hoy es 2026-10-12" in prompt
 
     def test_no_placeholder_is_left(self) -> None:
         prompt = build_prompt("q", [commitment(1)], CATALOG, TODAY)
         assert "$" not in prompt
 
     def test_empty_list_says_none(self) -> None:
-        assert "Commitments:\n\n(none)\n" in build_prompt("q", [], CATALOG, TODAY)
+        assert "Compromisos:\n\n(ninguno)\n" in build_prompt("q", [], CATALOG, TODAY)
 
     def test_without_catalog_ids_stand_in_for_names(self) -> None:
         prompt = build_prompt("q", [commitment(1)], None, TODAY)
         assert "p-ana -> p-beto" in prompt
-        assert "assistant of the user" in prompt
+        assert "asistente de la persona que pregunta" in prompt
 
     def test_a_dollar_sign_in_the_question_or_a_commitment_does_not_break_it(self) -> None:
         tricky = Commitment("d-c1", "o", ANA.id, BETO.id, "pay $user $100", None, None, "d", TODAY)
@@ -124,7 +124,7 @@ class TestBuildPrompt:
 
 def example_of(prompt: str) -> str:
     """The worked example of the prompt: from its heading to the line before the list of commitments."""
-    return prompt[prompt.index("Example (") : prompt.index("\nCommitments:\n")]
+    return prompt[prompt.index("Ejemplo (") : prompt.index("\nCompromisos:\n")]
 
 
 class TestPromptFile:
@@ -132,7 +132,7 @@ class TestPromptFile:
     def test_the_example_is_about_whoever_the_user_is(self, user: str) -> None:
         catalog = Catalog(user, (ANA, BETO), ())
         example = example_of(build_prompt("q", [commitment(1)], catalog, TODAY))
-        assert f"the asker is {user}" in example
+        assert f"quien pregunta es {user}" in example
         assert f"{user} -> Zeta" in example and f"Zeta -> {user}" in example
 
     def test_the_example_does_not_name_a_fixed_user(self) -> None:
@@ -141,10 +141,10 @@ class TestPromptFile:
         assert "Beto" not in example_of(prompt)  # a literal name would contradict the real user
         assert "$" not in prompt
 
-    @pytest.mark.parametrize("state", ["overdue", "pending", "no deadline"])
+    @pytest.mark.parametrize("state", ["atrasado", "pendiente", "sin fecha"])
     def test_every_state_the_code_writes_is_explained_in_the_prompt(self, state: str) -> None:
         prompt = build_prompt("q", [], CATALOG, TODAY)
-        instructions = prompt[: prompt.index("Example (")]
+        instructions = prompt[: prompt.index("Ejemplo (")]
         assert f'"{state}"' in instructions
         assert state in {due_state(commitment(1, d), TODAY) for d in (None, date(2026, 1, 1), TODAY)}
 
@@ -202,7 +202,7 @@ class TestLLMAnswerer:
         answerer, _ = make_answerer(llm, [commitment(1)])
         answerer.answer("¿Qué?")
         assert len(llm.prompts) == 1
-        assert "Question: ¿Qué?" in llm.prompts[0] and "task 1" in llm.prompts[0]
+        assert "Pregunta: ¿Qué?" in llm.prompts[0] and "task 1" in llm.prompts[0]
 
     def test_llm_error_degrades_instead_of_raising(self) -> None:
         commitments = [commitment(1)]
@@ -338,12 +338,12 @@ class TestChatQuestionLimits:
         llm = StubLLM()
         response = client(store, llm).post("/chat", json={"question": "  " + "a" * MAX_QUESTION_CHARS + "  "})
         assert response.status_code == 200
-        assert f"Question: {'a' * MAX_QUESTION_CHARS}\n" in llm.prompts[0] + "\n"
+        assert f"Pregunta: {'a' * MAX_QUESTION_CHARS}\n" in llm.prompts[0] + "\n"
 
 
 def asked_today(app_client: TestClient, llm: StubLLM) -> str:
     app_client.post("/chat", json={"question": "q"})
-    return next(line for line in llm.prompts[-1].splitlines() if "Today is" in line).split("Today is ")[1][:10]
+    return next(line for line in llm.prompts[-1].splitlines() if "Hoy es" in line).split("Hoy es ")[1][:10]
 
 
 class TestChatUsesTheReferenceDate:

@@ -25,9 +25,9 @@ def build_prompt(
     """
     people = person_names(catalog)
     groups = group_by_project(commitments, catalog)
-    body = "\n\n".join(_group_text(g, people, today) for g in groups) or "(none)"
+    body = "\n\n".join(_group_text(g, people, today) for g in groups) or "(ninguno)"
     return Template(template.read_text(encoding="utf-8")).substitute(
-        user=catalog.user if catalog else "the user",
+        user=catalog.user if catalog else "la persona que pregunta",
         today=today.isoformat(),
         commitments=body,
         question=question,
@@ -42,7 +42,7 @@ def _group_text(group: ProjectGroup, people: dict[str, str], today: date) -> str
 def _line(commitment: Commitment, people: dict[str, str], today: date) -> str:
     who = people.get(commitment.who_id, commitment.who_id)
     to_whom = people.get(commitment.to_whom_id, commitment.to_whom_id)
-    due = commitment.due.isoformat() if commitment.due else "none"
+    due = commitment.due.isoformat() if commitment.due else "ninguna"
     return (
         f"{commitment.id} | {who} -> {to_whom} | {commitment.what} | {due} | {due_state(commitment, today)}"
         f" | {commitment.document_id} ({commitment.document_date.isoformat()})"

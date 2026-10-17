@@ -39,13 +39,14 @@ def group_by_project(commitments: list[Commitment], catalog: Catalog | None) -> 
 
 
 def due_state(commitment: Commitment, today: date) -> str:
-    """Whether the due date has passed: "no deadline", "overdue" (before today) or "pending" (today or later).
+    """Whether the due date has passed: "sin fecha", "atrasado" (before today) or "pendiente" (today or later).
 
-    V0 has no commitment status, so "overdue" only says the date passed, not that nothing was done.
+    The words are Spanish because the model reads them in the prompt. V0 has no commitment status, so "atrasado"
+    only says the date passed, not that nothing was done.
     """
     if commitment.due is None:
-        return "no deadline"
-    return "overdue" if commitment.due < today else "pending"
+        return "sin fecha"
+    return "atrasado" if commitment.due < today else "pendiente"
 
 
 def _project_order(project: Project) -> tuple[date, str]:
