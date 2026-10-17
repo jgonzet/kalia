@@ -2,6 +2,8 @@
 
 import json
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import date
 
 from app.models import Catalog, Commitment, Document, DocumentType, Person, Project
@@ -60,10 +62,16 @@ class SqliteStore:
         with self._connect() as conn:
             conn.executescript(_SCHEMA)
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        """Open a connection for one operation: it commits on success, rolls back on error and is always closed."""
         conn = sqlite3.connect(self._db_path)
         conn.row_factory = sqlite3.Row
-        return conn
+        try:
+            with conn:  # sqlite3's own `with` commits or rolls back but does not close
+                yield conn
+        finally:
+            conn.close()
 
     def save_document_commitments(self, document_id: str, commitments: list[Commitment]) -> None:
         with self._connect() as conn:
