@@ -22,6 +22,7 @@ from app.config import Settings  # noqa: E402
 from app.ingestion.dataset import DatasetSource  # noqa: E402
 from app.llm import build_llm  # noqa: E402
 from app.llm import LLMError  # noqa: E402
+from app.llm.fake import FakeLLM  # noqa: E402
 from app.main import create_app  # noqa: E402
 from app.models import Catalog, Commitment, Document  # noqa: E402
 from app.storage.sqlite import SqliteStore  # noqa: E402
@@ -140,6 +141,27 @@ def check_extraction_on_ingest(db_path: str) -> None:
     assert any(c.document_id == "doc-x" for c in store.list_commitments()), "failed extraction wiped commitments"
 
 
+class FailingLLM:
+    """Fails like an unreachable LLM."""
+
+    def complete(self, prompt: str) -> str:
+        raise LLMError("stub failure")
+
+
+def check_chat(base_url: str, db_path: str) -> None:
+    """Check that the running service answers /chat and serves the page, and that /chat degrades when the LLM fails."""
+    answer = httpx.post(f"{base_url}/chat", json={"question": "¿Qué compromisos tengo?"}, timeout=10.0)
+    data = answer.json()
+    assert answer.status_code == 200 and data["answer"] == "fake response" and data["degraded"] is False, answer.text
+    assert data["commitments"], "the chat returned no commitments from the loaded database"
+    assert "<form" in httpx.get(f"{base_url}/", timeout=5.0).text, "chat page was not served"
+
+    store = SqliteStore(db_path, OWNER_ID)  # the failing LLM cannot be injected into the running service
+    failed = TestClient(create_app(llm=FailingLLM(), store=store)).post("/chat", json={"question": "¿Qué compromisos tengo?"})
+    assert failed.status_code == 200 and failed.json()["degraded"] is True, "LLM failure broke the chat request"
+    assert len(failed.json()["commitments"]) == len(data["commitments"]), "degraded answer lost the commitments"
+
+
 def main() -> int:
     port = free_port()
     base_url = f"http://127.0.0.1:{port}"
@@ -159,6 +181,7 @@ def main() -> int:
         check_ingestion(base_url, db_path)
         check_commitments(db_path)
         check_extraction_on_ingest(db_path)
+        check_chat(base_url, db_path)
     except (AssertionError, RuntimeError, subprocess.CalledProcessError) as exc:
         print(f"SMOKE TEST FAILED: {exc}")
         return 1

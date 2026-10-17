@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KALIA</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
+  #log { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1rem; }
+  .q { align-self: flex-end; background: #e8f0fe; padding: .5rem .75rem; border-radius: .5rem; }
+  .a { background: #f4f4f4; padding: .5rem .75rem; border-radius: .5rem; white-space: pre-wrap; }
+  .a.degraded { background: #fff4e5; }
+  .a ul { margin: .5rem 0 0; padding-left: 1.25rem; }
+  form { display: flex; gap: .5rem; }
+  input { flex: 1; padding: .5rem; }
+</style>
+</head>
+<body>
+<h1>KALIA</h1>
+<div id="log"></div>
+<form id="form">
+  <input id="question" autocomplete="off" maxlength="1000" placeholder="Preguntá por los compromisos..." required>
+  <button>Enviar</button>
+</form>
+<script>
+const log = document.getElementById("log");
+const input = document.getElementById("question");
+const button = document.querySelector("#form button");
+
+function add(className, text) {
+  const div = document.createElement("div");
+  div.className = className;
+  div.textContent = text;
+  log.appendChild(div);
+  return div;
+}
+
+document.getElementById("form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const question = input.value.trim();
+  if (!question) return;
+  input.value = "";
+  add("q", question);
+  const box = add("a", "...");
+  input.disabled = button.disabled = true;  // one question at a time: the model can take a while
+  try {
+    const response = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    });
+    if (!response.ok) throw new Error(response.status);
+    const data = await response.json();
+    box.textContent = data.answer;
+    if (data.degraded) {
+      box.classList.add("degraded");
+      const list = document.createElement("ul");
+      for (const c of data.commitments) {
+        const item = document.createElement("li");
+        item.textContent = `${c.who} → ${c.to_whom}: ${c.what}` + (c.due ? ` (${c.due})` : "");
+        list.appendChild(item);
+      }
+      box.appendChild(list);
+    }
+  } catch (error) {
+    box.textContent = "No pude contactar al servidor.";
+    box.classList.add("degraded");
+  } finally {
+    input.disabled = button.disabled = false;
+    input.focus();
+  }
+});
+</script>
+</body>
+</html>

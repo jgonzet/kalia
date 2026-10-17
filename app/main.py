@@ -1,10 +1,16 @@
 """Web app entry point. Run with `uvicorn app.main:create_app --factory`."""
 
 import datetime as dt
+from pathlib import Path
+from typing import Annotated
 
 from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel, StringConstraints
 
+from app.answering import Answerer
+from app.answering.llm_answerer import LLMAnswerer
+from app.answering.retrieval import RuleRetriever
 from app.config import Settings
 from app.extraction import CommitmentExtractor
 from app.extraction.llm_extractor import LLMExtractor
@@ -14,6 +20,9 @@ from app.llm import LLMClient, build_llm
 from app.models import Document, DocumentType
 from app.storage import Store
 from app.storage.sqlite import SqliteStore
+
+_CHAT_PAGE = Path(__file__).resolve().parent / "static" / "chat.html"
+MAX_QUESTION_CHARS = 1000
 
 
 class HealthResponse(BaseModel):
@@ -31,6 +40,29 @@ class DocumentIn(BaseModel):
     text: str
 
 
+class ChatIn(BaseModel):
+    """A chat question: not empty (it would bring every commitment) and not longer than a question can reasonably be."""
+
+    question: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=MAX_QUESTION_CHARS)]
+
+
+class CommitmentOut(BaseModel):
+    """A commitment as shown in the chat, with names instead of catalog ids."""
+
+    id: str
+    who: str
+    to_whom: str
+    what: str
+    due: dt.date | None
+    document_id: str
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    degraded: bool
+    commitments: list[CommitmentOut]
+
+
 class IngestResponse(BaseModel):
     id: str
     stored: bool
@@ -42,16 +74,23 @@ def create_app(
     llm: LLMClient | None = None,
     store: Store | None = None,
     extractor: CommitmentExtractor | None = None,
+    answerer: Answerer | None = None,
 ) -> FastAPI:
     """Build the app; settings come from the environment, the LLM and the store from settings unless given.
 
     Without an `extractor`, the real backend gets an `LLMExtractor`; the fake one extracts nothing.
+    Without an `answerer`, the chat uses the rule retriever and the LLM.
     """
     settings = settings or Settings.from_env()
     llm = llm or build_llm(settings)
     store = store or SqliteStore(settings.db_path, settings.owner_id)
     if extractor is None and settings.llm_backend == "real":
         extractor = LLMExtractor(llm, settings.owner_id)
+
+    def current_answerer() -> Answerer:
+        """The injected answerer, or one built with "today" as of this request, so it does not freeze at startup."""
+        today = settings.resolve_today(store.load_reference_date())
+        return answerer or LLMAnswerer(llm, RuleRetriever(store, today), store, today)
 
     app = FastAPI(title="KALIA")
     app.state.settings = settings
@@ -69,5 +108,26 @@ def create_app(
         ingest_document(document, store)
         extracted = extractor is not None and extract_and_store(document, extractor, store)
         return IngestResponse(id=body.id, stored=True, extracted=extracted)
+
+    @app.get("/", response_class=HTMLResponse)
+    def chat_page() -> str:
+        return _CHAT_PAGE.read_text(encoding="utf-8")
+
+    @app.post("/chat")
+    def chat(body: ChatIn) -> ChatResponse:
+        """Answer a question from the stored commitments; `degraded` means the LLM failed and only the commitments came back."""
+        answer = current_answerer().answer(body.question)
+        commitments = [
+            CommitmentOut(
+                id=c.id,
+                who=answer.people.get(c.who_id, c.who_id),
+                to_whom=answer.people.get(c.to_whom_id, c.to_whom_id),
+                what=c.what,
+                due=c.due,
+                document_id=c.document_id,
+            )
+            for c in answer.commitments
+        ]
+        return ChatResponse(answer=answer.text, degraded=answer.degraded, commitments=commitments)
 
     return app
