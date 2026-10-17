@@ -61,12 +61,23 @@ There is no paid API setup yet, so the commitments of the stored documents can b
 
 1. Use a database of its own, so runs do not overwrite each other: `mkdir -p runs` and `export DB_PATH=runs/<name>.db` (`runs/` is git-ignored).
 2. Load the dataset: `uv run scripts/load_dataset.py lamanija`.
-3. Fill in the commitments, with the manual steps above or through `POST /documents` with the real backend. There is no command yet that extracts the whole dataset with the real backend.
-4. Evaluate: `uv run scripts/evaluate_extraction.py lamanija --out runs/<name>.json`.
+3. Fill in the commitments, either with the manual steps above or with a local model: `uv run scripts/extract_dataset.py lamanija --db runs/<name>.db --model <model>` creates the database (steps 1 and 2 are included, it refuses to write into one that exists) and extracts the 24 documents one by one through the same code as `POST /documents` (the app's prompt, `LLMExtractor`, `extract_and_store`), so it measures what the app would do. For a database that already has its documents (for example one filled with `scripts/load_dataset.py`), use `uv run scripts/extract_dataset.py --db <file> --existing`: it extracts every stored document and replaces its commitments, so work on a copy to keep the old ones. The endpoint and the key come from `LLM_BASE_URL` and `LLM_API_KEY`. It prints one line per document (commitments found, seconds) and lists the ones whose LLM call failed (exit code 1; their stored commitments stay as they were).
+4. Evaluate: `DB_PATH=runs/<name>.db uv run scripts/evaluate_extraction.py lamanija --model <model> --out runs/<name>.json`.
 
 The output has a table per document (worst first), the detail of each document with errors (missing, extra, wrong due date or project) and totals. The totals add up the counts of all the documents. `--doc <id>` shows one document in full. Each full evaluation is also appended to `runs/metrics.jsonl` (git-ignored) with the commit, the database file, the model you name with `--model` (the stored commitments do not say which model made them) and a hash of the prompt file as it is now, which is not the prompt that made them if the file changed since. `uv run scripts/run_log.py --stage extraction` lists the runs, so models and prompts can be compared over time; `--no-log` skips it. The JSON of `--out` is still available for a per-document comparison.
 
 Within a document, an extracted commitment is paired with an expected one when they have the same people and due date, or the same people and another due date (counted as a wrong due date). Extracted commitments that are left over are "extra", expected ones that are left over are "missing". A "valid" extraction is not a "correct" one: validation (`import`) only checks the format. The evaluation does not detect `not_commitments` by itself: it counts the extra commitments of documents that have them and prints the phrases next to them to be read.
+
+Reference numbers on `lamanija` (73 expected commitments, English prompt), to compare any new model or prompt against. The local models run at the server's default temperature, so repeat a run before drawing conclusions: two runs of `qwen2.5:14b` gave 37 and 39 matched, but precision 92% and 80%.
+
+| Extraction | Matched | Recall | Precision | Due correct |
+|---|---|---|---|---|
+| Claude, manual flow | 70 | 96% | 97% | 68/70 |
+| `qwen2.5:14b` (2 runs) | 37 / 39 | 51% / 53% | 92% / 80% | 21/37, 22/39 |
+| `llama3.1` (8B) | 37 | 51% | 59% | 18/37 |
+| `llama3.2` (3B) | 17 | 23% | 52% | 3/17 |
+
+With the local models the chat starts from about half of the commitments (see "Known limitations").
 
 ## Evaluate the retrieval
 
@@ -110,6 +121,7 @@ Read the numbers with these limits in mind:
 - Single user, no authentication.
 - Content is synthetic and in Spanish.
 - Commitments have no status: all extracted commitments are treated as open. The chat marks each one as `atrasado` (its due date is before "today"), `pendiente` or `sin fecha`, computed by the code; `atrasado` only says the date passed, not that nothing was done.
+- Extraction with a local model finds about half of the commitments (see "Evaluate the extraction"): it skips some documents altogether, writes a short name ("Burns") where the catalog has the full one, so that commitment is discarded, and gets the relative dates wrong more than half of the time. What the chat can answer starts from there (#26).
 - The chat answer is only as good as the model: with `qwen2.5:14b` it leaves out about 40% of the commitments the question needs, scattered through the list, and it sometimes changes a person in a line (see "Evaluate the chat"). The page shows the text as it comes, so the Markdown a model writes (`###`, `**`) appears raw, and it lists the commitments only when the LLM failed. The answering prompt is in Spanish, like the data; the extraction prompt is still in English.
 - A prompt longer than the model's context window is cut silently by Ollama (4096 tokens by default in this setup). The prompt of a question that brings every commitment ("¿Qué prometí?" with 72) is about 3900 tokens, under the window with little room: a larger dataset passes it (#27).
 - The text of every commitment, which comes from the documents, is put in the prompt as it is. With sources that are not your own, a document could carry instructions for the model (#28).
