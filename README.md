@@ -27,6 +27,8 @@ Defaults need no setup. To override any setting, copy `.env.example` to `.env` a
 
 The app listens on <http://localhost:8000> (`/health` answers when it is up). The SQLite file lives in a Docker volume.
 
+The chat page is at <http://localhost:8000/> and talks to `POST /chat` (`{"question": "..."}`; 1 to 1000 characters). The answer has the text, the commitments it was built from (with names) and `degraded`: true when the LLM failed and only those commitments came back. "Today" for questions such as "this week" is, in this order, `REFERENCE_DATE`, the reference date of the dataset loaded with `scripts/load_dataset.py` (so a database loaded before this existed has none until it is loaded again), or the system date.
+
 ## Checks
 
 - Smoke test (fake LLM, needs no Ollama, also what CI runs): `uv run scripts/smoke_test.py`
@@ -40,7 +42,7 @@ Environment variables are listed in `.env.example`, which is the only source.
 
 ## Load the synthetic dataset
 
-`uv run scripts/load_dataset.py lamanija` stores the catalog and every document except the held-out one in the SQLite file (`DB_PATH`). A further document is added with `POST /documents`.
+`uv run scripts/load_dataset.py lamanija` stores the catalog, the dataset's reference date (the "today" of the chat) and every document except the held-out one in the SQLite file (`DB_PATH`). A further document is added with `POST /documents`.
 
 ## Extract commitments with an external Claude session
 
@@ -85,13 +87,32 @@ A bank is only useful if it fails when the retriever breaks. `uv run scripts/che
 
 Each run is appended to `runs/metrics.jsonl` (git-ignored) with the commit (`*` if the tree had uncommitted changes), the retriever, the dataset, the suite and the questions version. `uv run scripts/run_log.py` lists the runs, so a change can be compared with the ones before it. Use `--no-log` to measure without logging. `--strict` makes the exit code 1 if a question loses commitments without declaring a `known_gap`; it is the line that must hold on every change, and `docs/DATASET.md` ("When a question fails") says what to do with a question that does not pass.
 
+## Evaluate the chat
+
+`scripts/evaluate_chat.py` measures what the chat puts in its answers, with a real LLM, against the five acceptance questions of a synthetic dataset (`questions.jsonl`). It is a development tool, not part of the app, and it is how a model or a prompt of the chat is compared: the answering prompt is `app/prompts/answer_question.md`, the model is `LLM_MODEL`. Its own bank of questions is issue #16; the retrieval and the chat together, issue #21.
+
+1. Have a database with the extracted commitments (see "Evaluate the extraction"), for example `export DB_PATH=runs/<name>.db`. The script copies it and never writes it.
+2. Have Ollama (or the endpoint in `LLM_BASE_URL`) running with the model.
+3. `uv run scripts/evaluate_chat.py lamanija --db runs/<name>.db`. Useful options: `--model` and `--extraction-model` (the second one extracts the held-out document of question 5), `--prompt <file>` to try instructions that are not the app's, `--question <id>` for one question, `--show` to read each answer with what it omitted or added, `--out <file>` for the full results in JSON, `--no-log`.
+
+Per question it prints counts only: how many commitments the question needs (`expected`), how many of those are not in the database because the extraction missed them (`lost`: not the chat's fault), how many the retriever brought (`needed`), how many of those the answer contains (`in answer`), and how many commitments that were not needed it contains (`extra`). Question 5 is measured before and after the held-out document is ingested and extracted into the copy. The commitments are compared by content (people and due date) because the ids of a real extraction do not match those of the `expected` files.
+
+Read the numbers with these limits in mind:
+- "The answer contains a commitment" is a heuristic (half of the words of its `what` appear in the text). It does not notice a changed person or date; read the answers with `--show` before trusting a small difference.
+- The LLM runs with the server's default temperature, so the same prompt gives different numbers each time: about five of the 140 needed commitments in total between runs, more on a single question. Compare prompts with repeated runs, and do not read a smaller difference as a finding.
+- The baseline of 2026-10-16, `qwen2.5:14b` with Ollama's default settings: the retriever brought nearly exactly what each question needed, and the answers contained about 55% of it (72 to 81 of 140 over six wordings of the prompt; temperature 0 did not change it); it rarely added commitments that were not needed (one to three in the whole run). The same prompt pasted by hand into Claude (claude.ai) gave 15 of 15 on "my boss" with both directions and 7 of 14 on "due this week", the second because of a flaw in the wording of that day's prompt (it made the model keep only what involves the user), corrected since. So with a stronger model the design works; what limits the answers today is the local model. `llama3.1` (8B) gave 46 of 140.
+- Each run is appended to `runs/metrics.jsonl` (stage `chat`) with the commit, the models, a hash of the prompt file and the database; `uv run scripts/run_log.py --stage chat` lists them.
+
 ## Known limitations
 
 - `POST /documents` extracts commitments only with the real LLM backend (Ollama by default). With the fake one, or if the call fails, the document is stored and the response says `extracted: false`.
 - The dataset in `data/` is not part of the Docker image, so the loader runs on the host, not inside the container.
 - Single user, no authentication.
 - Content is synthetic and in Spanish.
-- Commitments have no status: all extracted commitments are treated as open.
+- Commitments have no status: all extracted commitments are treated as open. The chat marks each one as `overdue` (its due date is before "today"), `pending` or `no deadline`, computed by the code; `overdue` only says the date passed, not that nothing was done.
+- The chat answer is only as good as the model: with `qwen2.5:14b` it leaves out about 45% of the commitments the question needs, scattered through the list, and it sometimes changes a person in a line (see "Evaluate the chat"). The page shows the text as it comes, so the Markdown a model writes (`###`, `**`) appears raw. The answer's wording (`Sin proyecto`, the notice when the LLM fails, the page) is in Spanish, while the prompt is in English and the states (`overdue`...) can appear in English inside an answer in Spanish.
+- A prompt longer than the model's context window is cut silently by Ollama (4096 tokens by default in this setup). A question that brings every commitment ("¿Qué prometí?" with 72) is about 5400 tokens (#27).
+- The text of every commitment, which comes from the documents, is put in the prompt as it is. With sources that are not your own, a document could carry instructions for the model.
 - Each commitment points to a single source document. The same commitment mentioned in later documents is stored again as a new one, so near-duplicates can appear.
 - Retrieval works with rules over the question text: a person (full name, first name or a surname no one else shares; a name that is also an ordinary word, like a person called "Rosa", would be read as that person), "jefe"/"jefa" (the user's boss, or the boss of someone, "el jefe de Edna"), and the phrases "esta semana", "en la semana" and "la semana que viene". A rule narrows only when it understands the phrase; anything else leaves the result wider, so the LLM that answers can discard what is not needed. A question with none of the rules gets every commitment, and so does one that mentions a week in any other way ("la semana pasada", "la semana del 19", "dentro de una semana"). A person named without a word about the user ("tengo", "prometí", "debo", "me prometió"/"me deben" and similar, or "con" right before the person, as in "con Frink") brings all of their commitments, not only those shared with the user ("mi", "yo" and a request like "¿me podés decir…?" do not count as such a word). A surname shared by two people (such as "Bouvier") picks no one, silently. The user is found in the catalog by name. Today it does not understand days ("hoy", "mañana", "el viernes", exact dates), months, overdue or undated commitments, projects, areas, roles, topics or typos: it returns every commitment and the chat has to discard the rest. The retrieval bank measures all of this (`docs/DATASET.md`).
 - Every document must come with its type, date and participants as metadata. Sources that do not carry them (meetings, group chats) are not supported yet.

@@ -15,3 +15,8 @@ The format of every dataset file is defined in `docs/DATASET.md` and the reasons
 - The reference date lives only in `company.json`; do not repeat it in other dataset files.
 - Editing the text of an accepted document invalidates its `text_sha256`; refresh it. Changing the commitments of an `expected` file after its document was accepted means the text may no longer contain them: re-check the text and the questions that cite those commitments.
 - `scripts/check_dataset.py` checks the documents against their `expected` files. Run it every time you add or edit documents or `expected` files; how and what it checks is in `docs/DATASET.md` ("Checking the dataset").
+
+## Measuring the chat
+
+- To compare a model or a prompt of the chat (`app/prompts/answer_question.md`, `LLM_MODEL`), use `scripts/evaluate_chat.py`; how to run it and how to read its numbers is in the README ("Evaluate the chat"). Do not improvise a one-off harness.
+- Before replacing the answering prompt, run the script with `--prompt <new file>` against the current one and repeat the runs: the numbers move between runs of the same prompt (README says by how much).
