@@ -13,7 +13,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 COPY app ./app
-COPY scripts ./scripts
+COPY scripts/check_llm.py ./scripts/check_llm.py
 
 # Writable directory for whatever the app persists locally; compose decides what goes there.
 RUN useradd --create-home app && mkdir /var/lib/kalia && chown app /var/lib/kalia
