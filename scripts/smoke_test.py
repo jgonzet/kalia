@@ -162,6 +162,34 @@ def check_chat(base_url: str, db_path: str) -> None:
     assert len(failed.json()["commitments"]) == len(data["commitments"]), "degraded answer lost the commitments"
 
 
+class CountingLLM:
+    """Counts how many times it is called."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def complete(self, prompt: str) -> str:
+        self.calls += 1
+        return "ok"
+
+
+def check_chat_too_long(db_path: str) -> None:
+    """Check that a prompt that does not fit the context window degrades the answer without calling the LLM."""
+    store = SqliteStore(db_path, OWNER_ID)
+    question = {"question": "¿Qué compromisos tengo?"}
+    llm = CountingLLM()
+
+    tiny = Settings(llm_backend="fake", llm_context_tokens=50)
+    response = TestClient(create_app(settings=tiny, llm=llm, store=store)).post("/chat", json=question)
+    assert response.status_code == 200 and response.json()["degraded"] is True, "an oversized prompt was not degraded"
+    assert response.json()["commitments"], "the oversized answer lost the commitments"
+    assert llm.calls == 0, "the LLM was called with a prompt that does not fit"
+
+    roomy = Settings(llm_backend="fake", llm_context_tokens=1_000_000)
+    response = TestClient(create_app(settings=roomy, llm=llm, store=store)).post("/chat", json=question)
+    assert response.json()["degraded"] is False and llm.calls == 1, "a prompt that fits was not sent to the LLM"
+
+
 def main() -> int:
     port = free_port()
     base_url = f"http://127.0.0.1:{port}"
@@ -182,6 +210,7 @@ def main() -> int:
         check_commitments(db_path)
         check_extraction_on_ingest(db_path)
         check_chat(base_url, db_path)
+        check_chat_too_long(db_path)
     except (AssertionError, RuntimeError, subprocess.CalledProcessError) as exc:
         print(f"SMOKE TEST FAILED: {exc}")
         return 1

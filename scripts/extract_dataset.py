@@ -13,13 +13,14 @@ Two ways to use it, both through the same path as `POST /documents` (the app's p
 
 Then measure it with `DB_PATH=<db> uv run scripts/evaluate_extraction.py <company> --model <model>`.
 
-The endpoint and the key come from LLM_BASE_URL and LLM_API_KEY; the model from `--model` (default: LLM_MODEL).
+The backend, the endpoint and the key come from LLM_BACKEND, LLM_BASE_URL and LLM_API_KEY; the model from `--model` (default: LLM_MODEL).
 A document whose LLM call fails is listed at the end and the exit code is 1; its stored commitments stay as they were.
 """
 
 import argparse
 import sys
 import time
+from dataclasses import replace
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -29,7 +30,7 @@ from app.config import Settings  # noqa: E402
 from app.extraction.llm_extractor import LLMExtractor  # noqa: E402
 from app.extraction.run import extract_and_store  # noqa: E402
 from app.ingestion.dataset import load_dataset  # noqa: E402
-from app.llm.openai_compatible import OpenAICompatibleLLM  # noqa: E402
+from app.llm import build_llm  # noqa: E402
 from app.storage.sqlite import SqliteStore  # noqa: E402
 
 
@@ -65,7 +66,7 @@ def main(argv: list[str]) -> int:
         args.db.parent.mkdir(parents=True, exist_ok=True)
         store = SqliteStore(str(args.db), defaults.owner_id)
         load_dataset(company_dir, store)
-    extractor = LLMExtractor(OpenAICompatibleLLM(defaults.llm_base_url, args.model, defaults.llm_api_key), defaults.owner_id)
+    extractor = LLMExtractor(build_llm(replace(defaults, llm_model=args.model)), defaults.owner_id)
 
     failed: list[str] = []
     started = time.monotonic()

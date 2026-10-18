@@ -6,7 +6,7 @@ import pytest
 import app.config as config
 from app.config import Settings
 
-ENV_VARS = ("LLM_BACKEND", "LLM_BASE_URL", "LLM_MODEL", "LLM_API_KEY", "REFERENCE_DATE", "DB_PATH")
+ENV_VARS = ("LLM_BACKEND", "LLM_BASE_URL", "LLM_CONTEXT_TOKENS", "LLM_MODEL", "LLM_API_KEY", "REFERENCE_DATE", "DB_PATH")
 
 
 @pytest.fixture(autouse=True)
@@ -40,7 +40,7 @@ def test_variables_override_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_invalid_backend_raises(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("LLM_BACKEND", "openai")
+    monkeypatch.setenv("LLM_BACKEND", "real")
     with pytest.raises(ValueError):
         Settings.from_env()
 

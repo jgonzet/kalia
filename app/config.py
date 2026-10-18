@@ -6,7 +6,14 @@ from datetime import date
 from pathlib import Path
 from typing import Literal
 
-LLMBackend = Literal["real", "fake"]
+LLMBackend = Literal["ollama", "openai_compatible", "fake"]
+LLM_BACKENDS = ("ollama", "openai_compatible", "fake")
+
+# Ollama's native API is at the server root; any OpenAI-compatible endpoint is at `/v1`.
+DEFAULT_BASE_URLS = {"ollama": "http://localhost:11434", "openai_compatible": "http://localhost:11434/v1"}
+# The context window the app asks Ollama for. Measured on 2026-10-17 with `qwen2.5:14b` on a 12 GB GPU: 10240 tokens
+# run entirely on the GPU (11.4 GB), 12288 already send 5% of the model to the CPU.
+DEFAULT_OLLAMA_CONTEXT_TOKENS = 10240
 
 # `.env` holds plain settings and `.env.secrets` the API keys; both sit in the project root.
 ROOT = Path(__file__).resolve().parent.parent
@@ -29,15 +36,31 @@ def load_env_files() -> None:
 # frozen=True: values can't be changed after a Settings object is created.
 @dataclass(frozen=True)
 class Settings:
-    llm_backend: LLMBackend = "real"
-    llm_base_url: str = "http://localhost:11434/v1"
+    llm_backend: LLMBackend = "ollama"
+    llm_base_url: str | None = None
     llm_model: str = "qwen2.5:14b"
     llm_api_key: str = "ollama"
+    llm_context_tokens: int | None = None
     reference_date: date | None = None
     db_path: str = "kalia.db"
     owner_id: str = "local"
 
     # property: use it like a field, `settings.today`, without parentheses.
+    @property
+    def base_url(self) -> str:
+        """The LLM endpoint: `LLM_BASE_URL` if set, else the default of the backend (the fake one has none)."""
+        return self.llm_base_url or DEFAULT_BASE_URLS.get(self.llm_backend, "")
+
+    @property
+    def context_tokens(self) -> int | None:
+        """The context window in tokens: `LLM_CONTEXT_TOKENS` if set, else the default for Ollama, else unknown (None).
+
+        With Ollama it is also what the client asks the server to run with, so it is never an assumption.
+        """
+        if self.llm_context_tokens:
+            return self.llm_context_tokens
+        return DEFAULT_OLLAMA_CONTEXT_TOKENS if self.llm_backend == "ollama" else None
+
     @property
     def today(self) -> date:
         """The date the app treats as "today": the reference date if set, else the system date."""
@@ -50,14 +73,16 @@ class Settings:
         load_env_files()
         defaults = cls()
         backend = os.environ.get("LLM_BACKEND") or defaults.llm_backend
-        if backend not in ("real", "fake"):
-            raise ValueError(f"LLM_BACKEND must be 'real' or 'fake', got {backend!r}")
+        if backend not in LLM_BACKENDS:
+            raise ValueError(f"LLM_BACKEND must be one of {', '.join(LLM_BACKENDS)}, got {backend!r}")
+        context_tokens = os.environ.get("LLM_CONTEXT_TOKENS")
         reference_date = os.environ.get("REFERENCE_DATE")
         return cls(
             llm_backend=backend,
             llm_base_url=os.environ.get("LLM_BASE_URL") or defaults.llm_base_url,
             llm_model=os.environ.get("LLM_MODEL") or defaults.llm_model,
             llm_api_key=os.environ.get("LLM_API_KEY") or defaults.llm_api_key,
+            llm_context_tokens=int(context_tokens) if context_tokens else None,
             reference_date=date.fromisoformat(reference_date) if reference_date else None,
             db_path=os.environ.get("DB_PATH") or defaults.db_path,
             owner_id=os.environ.get("OWNER_ID") or defaults.owner_id,

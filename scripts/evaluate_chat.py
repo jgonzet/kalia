@@ -180,6 +180,7 @@ def evaluate(
     prompt: Path = PROMPT_PATH,
     question_ids: list[str] | None = None,
     log: Callable[[str], None] = print,
+    context_tokens: int | None = None,
 ) -> list[QuestionResult]:
     """Measure the acceptance questions on a copy of the database; `db_path` itself is not written."""
     source = DatasetSource(company_dir)
@@ -194,7 +195,7 @@ def evaluate(
             raise ValueError(f"{db_path} has no catalog: load the dataset and extract its commitments first (README)")
         keys = load_answer_keys(company_dir, catalog)
         retriever = RuleRetriever(store, reference_date)
-        answerer = LLMAnswerer(llm, retriever, store, reference_date, prompt)
+        answerer = LLMAnswerer(llm, retriever, store, reference_date, prompt, context_tokens)
 
         # A held-out document that is already stored leaves nothing to measure "before", so its questions are skipped.
         already = {
@@ -317,7 +318,9 @@ def main(argv: list[str]) -> int:
     llm = build_llm(replace(defaults, llm_model=args.model))
     extraction_llm = build_llm(replace(defaults, llm_model=args.extraction_model))
     try:
-        results = evaluate(company_dir, args.db, defaults.owner_id, llm, extraction_llm, args.prompt, args.questions)
+        results = evaluate(
+            company_dir, args.db, defaults.owner_id, llm, extraction_llm, args.prompt, args.questions, context_tokens=defaults.context_tokens
+        )
     except ValueError as error:
         print(error)
         return 1

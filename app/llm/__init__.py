@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from app.config import Settings
+from app.config import DEFAULT_OLLAMA_CONTEXT_TOKENS, Settings
 
 
 class LLMError(Exception):
@@ -22,10 +22,15 @@ def build_llm(settings: Settings) -> LLMClient:
 
         return FakeLLM()
 
+    if settings.llm_backend == "ollama":
+        from app.llm.ollama import OllamaLLM
+
+        return OllamaLLM(settings.base_url, settings.llm_model, settings.context_tokens or DEFAULT_OLLAMA_CONTEXT_TOKENS)
+
     from app.llm.openai_compatible import OpenAICompatibleLLM
 
     return OpenAICompatibleLLM(
-        base_url=settings.llm_base_url,
+        base_url=settings.base_url,
         model=settings.llm_model,
         api_key=settings.llm_api_key,
     )

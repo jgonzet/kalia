@@ -78,19 +78,19 @@ def create_app(
 ) -> FastAPI:
     """Build the app; settings come from the environment, the LLM and the store from settings unless given.
 
-    Without an `extractor`, the real backend gets an `LLMExtractor`; the fake one extracts nothing.
+    Without an `extractor`, a real backend (not `fake`) gets an `LLMExtractor`; the fake one extracts nothing.
     Without an `answerer`, the chat uses the rule retriever and the LLM.
     """
     settings = settings or Settings.from_env()
     llm = llm or build_llm(settings)
     store = store or SqliteStore(settings.db_path, settings.owner_id)
-    if extractor is None and settings.llm_backend == "real":
+    if extractor is None and settings.llm_backend != "fake":
         extractor = LLMExtractor(llm, settings.owner_id)
 
     def current_answerer() -> Answerer:
         """The injected answerer, or one built with "today" as of this request, so it does not freeze at startup."""
         today = settings.today
-        return answerer or LLMAnswerer(llm, RuleRetriever(store, today), store, today)
+        return answerer or LLMAnswerer(llm, RuleRetriever(store, today), store, today, context_tokens=settings.context_tokens)
 
     app = FastAPI(title="KALIA")
     app.state.settings = settings

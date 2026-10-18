@@ -5,7 +5,7 @@ COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     PATH="/srv/.venv/bin:$PATH" \
-    LLM_BASE_URL=http://host.docker.internal:11434/v1
+    LLM_BASE_URL=http://host.docker.internal:11434
 
 WORKDIR /srv
 
