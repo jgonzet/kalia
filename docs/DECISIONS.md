@@ -2,6 +2,26 @@
 
 Real choices between alternatives, newest at the top. This file is also filled in with each /close-feature.
 
+Superseded decisions are in [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md); this file keeps the ones still in force.
+
+## Env files are loaded by the app's own code
+Date: 2026-10-17
+Chose: `Settings.from_env()` reads `.env` and `.env.secrets` from the project root with a few lines of standard library, so the app and every script see them; variables already set in the shell win.
+Rejected: `python-dotenv` (a new dependency for a dozen lines); `uv run --env-file` (every invocation must remember the flag, or the setting is ignored); leaving `uv run` without them (`REFERENCE_DATE` ignored in local scripts).
+Source: issue #29, commit a6149b5.
+
+## The Docker image carries only `scripts/check_llm.py`
+Date: 2026-10-17
+Chose: the `Dockerfile` copies `app/` and `scripts/check_llm.py`, the one script documented to run inside the container (`docker compose run --rm app python scripts/check_llm.py`).
+Rejected: copying all of `scripts/` (development tools such as the evaluations and the extraction would sit in the production image; the loader cannot run there anyway because `data/` is not in the image).
+Source: issue #29, `Dockerfile`.
+
+## "Today" is `REFERENCE_DATE`, else the system date
+Date: 2026-10-17
+Chose: `Settings.today` is `REFERENCE_DATE` if set, else the system date, read on every question. The dataset's date is no longer stored in the database (`dataset_meta` is gone).
+Rejected: storing the dataset's date at load time (a database loaded before the table existed had none and fell back to the system date without a sign; a date frozen in the data is wrong for real use).
+Source: issue #29.
+
 ## The model is spoken to in Spanish, and the overdue state is called `atrasado`
 Date: 2026-10-16
 Chose: the answering prompt and what the code adds to it (the date, the question, the states `atrasado`, `pendiente`, `sin fecha`) are in Spanish, like the data and the users' questions. `atrasado` and not `vencido`.
@@ -21,13 +41,6 @@ Date: 2026-10-16
 Chose: `Answer(text, commitments, degraded, people)`, where `people` maps catalog ids to names so the page shows names. If the LLM raises `LLMError` or answers nothing, `POST /chat` still responds 200, with `degraded: true`, a notice and the retrieved commitments.
 Rejected: returning a `str` (a failure could not show the commitments); an error status (the page would show nothing); presenting the retrieved list as a normal answer (it can hold commitments that do not fit, and nothing would say that the LLM failed).
 Source: issue #18, commit 94fc9e5.
-
-## "Today" is `REFERENCE_DATE`, else the reference date stored with the loaded dataset, else the system date
-Date: 2026-10-16
-Chose: the loader saves the dataset's `reference_date` in a new table (`dataset_meta`); `Settings.resolve_today` picks `REFERENCE_DATE`, then that stored date, then the system date, and the chat does it on every question.
-Rejected: the system date as the default (the deadlines of the dataset, September and October 2026, become overdue as days pass); the date in `compose.yaml` (a second copy of what `company.json` holds); a column in `catalog_meta` (a database created before would need a migration, and there are none); computing it once at startup (a server running past midnight keeps the old day).
-Why: a database loaded before this has no stored date until the dataset is loaded again.
-Source: issue #18, commits 8f0dc45 (storage, loader, `resolve_today`) and 94fc9e5 (read on every question).
 
 ## The CI runs the dataset check and the strict retrieval evaluation
 Date: 2026-10-15

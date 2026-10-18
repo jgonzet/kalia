@@ -27,7 +27,7 @@ Defaults need no setup. To override any setting, copy `.env.example` to `.env` a
 
 The app listens on <http://localhost:8000> (`/health` answers when it is up). The SQLite file lives in a Docker volume.
 
-The chat page is at <http://localhost:8000/> and talks to `POST /chat` (`{"question": "..."}`; 1 to 1000 characters). The answer has the text, the commitments it was built from (with names) and `degraded`: true when the LLM failed and only those commitments came back. "Today" for questions such as "this week" is, in this order, `REFERENCE_DATE`, the reference date of the dataset loaded with `scripts/load_dataset.py` (so a database loaded before this existed has none until it is loaded again), or the system date.
+The chat page is at <http://localhost:8000/> and talks to `POST /chat` (`{"question": "..."}`; 1 to 1000 characters). The answer has the text, the commitments it was built from (with names) and `degraded`: true when the LLM failed and only those commitments came back. "Today" for questions such as "this week" is `REFERENCE_DATE` if set, otherwise the system date. To ask as of the dataset's day, set it to the `reference_date` in `data/<company>/company.json`. Scripts run with `uv run` read `.env` and `.env.secrets` from the project root (variables already set in the shell win); Docker Compose reads `.env`.
 
 ## Checks
 
@@ -42,7 +42,7 @@ Environment variables are listed in `.env.example`, which is the only source.
 
 ## Load the synthetic dataset
 
-`uv run scripts/load_dataset.py lamanija` stores the catalog, the dataset's reference date (the "today" of the chat) and every document except the held-out one in the SQLite file (`DB_PATH`). A further document is added with `POST /documents`.
+`uv run scripts/load_dataset.py lamanija` stores the catalog and every document except the held-out one in the SQLite file (`DB_PATH`). A further document is added with `POST /documents`.
 
 ## Extract commitments with an external Claude session
 
@@ -118,6 +118,7 @@ Read the numbers with these limits in mind:
 
 - `POST /documents` extracts commitments only with the real LLM backend (Ollama by default). With the fake one, or if the call fails, the document is stored and the response says `extracted: false`.
 - The dataset in `data/` is not part of the Docker image, so the loader runs on the host, not inside the container.
+- Scripts read both `.env` and `.env.secrets`, but Docker Compose passes only `.env` to the container, so an API key in `.env.secrets` does not reach the app in Docker. Ollama, the default, needs no key.
 - Single user, no authentication.
 - Content is synthetic and in Spanish.
 - Commitments have no status: all extracted commitments are treated as open. The chat marks each one as `atrasado` (its due date is before "today"), `pendiente` or `sin fecha`, computed by the code; `atrasado` only says the date passed, not that nothing was done.

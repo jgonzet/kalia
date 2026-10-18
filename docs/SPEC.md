@@ -51,7 +51,7 @@ Derived from the vision, so V0 does not have to be rewritten as the product grow
 
 - Ingestion is source-agnostic: every input becomes a normalized document (type, date, participants, text). Adding a source later means adding an adapter, not changing the rest.
 - Ingestion is incremental and idempotent: loading the same document twice does not duplicate its commitments. A document is identified by its id.
-- The reference date ("today", used by questions such as "due this week") comes from configuration, defaulting to a date defined by the dataset.
+- The reference date ("today", used by questions such as "due this week") comes from configuration (`REFERENCE_DATE`), defaulting to the system date.
 - Relative deadlines in a document ("by Friday") are resolved against that document's date; a commitment without a deadline has a null one.
 - Every extracted commitment is open: V0 has no commitment status or closing.
 - Every stored commitment has a stable id, links to catalog entities, and a reference to its source document and that document's date.
