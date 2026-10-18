@@ -2,13 +2,12 @@
 
 ## Next
 
-1. #27 — Stop the LLM from silently losing part of the prompt when the retrieval brings many commitments
-2. #16 — Evaluate the chat answers against the acceptance questions
-3. #21 — Report retrieval and answer metrics together in the chat evaluation
-4. #13 — Add unit tests and selected integration tests for the first full iteration
-5. #30 — Make "this week" end on Friday, as the working week does
+1. #16 — Evaluate the chat answers against the acceptance questions
+2. #21 — Report retrieval and answer metrics together in the chat evaluation
+3. #13 — Add unit tests and selected integration tests for the first full iteration
+4. #30 — Make "this week" end on Friday, as the working week does
 
-Synced at: f96c79a
+Synced at: 0fd3ebd
 
 This file is filled in with each /close-feature.
 
@@ -173,3 +172,34 @@ Decisions recorded: "Today is `REFERENCE_DATE`, else the system date" (replaces 
 **Tests:** 173 tests pass. `tests/test_reference_date.py` was removed with the code it tested; `tests/test_config.py` covers the system-date fallback and the env files (the environment wins over the file); `tests/test_answering.py` checks the chat uses `REFERENCE_DATE`. By hand: the rebuilt image gives 2026-10-12 with the `.env` and the system date without it, and `docker compose run --rm app python scripts/check_llm.py` still answers.
 
 **Issues:** closed #29. Opened #30 (make "this week" end on Friday).
+
+## 2026-10-17 — Context window of the LLM: set by the app, and the chat degrades when the prompt does not fit
+
+**Purpose:** work on #27: with Ollama's default window (4096 tokens) a question that brings many commitments built a prompt Ollama cut without telling anyone, and the answer looked normal. Now the app sets the window and does not send a prompt that would not fit.
+
+**Input:** `LLM_BACKEND` (`ollama` by default, `openai_compatible`, `fake`), `LLM_BASE_URL` (optional) and `LLM_CONTEXT_TOKENS` (optional), from the shell, `.env` or `.env.secrets`.
+
+**Output:** `OllamaLLM` (`app/llm/ollama.py`), a client of Ollama's native `/api/chat` that sends `options.num_ctx`. `Settings.base_url` and `Settings.context_tokens` resolve the defaults per backend. `LLMAnswerer` takes `context_tokens` and, when the prompt is estimated not to fit, answers with `degraded=True`, the new `TOO_LONG_TEXT` and the retrieved commitments, without calling the LLM. `LLM_BACKEND=real` no longer exists (it fails at startup with the list of valid values).
+
+**Logic:**
+1. `Settings.context_tokens` is `LLM_CONTEXT_TOKENS` if set; otherwise 10240 for `ollama` and `None` for the other backends.
+2. `build_llm` builds `OllamaLLM(base_url, model, context_tokens)` for `ollama`, which sends it as `num_ctx` on every request, or the previous `/v1` client for `openai_compatible`. The same value goes to `LLMAnswerer` (`create_app` and `evaluate_chat.py`), so the window the server runs with and the limit the app checks cannot differ.
+3. `LLMAnswerer.answer` builds the prompt and asks `fits_context` (`app/llm/tokens.py`): estimated tokens (characters / 3) against the window minus 5%. No window means it fits. If it does not fit, the chat returns the commitments with the "too many commitments" text.
+4. Why the second client and not `/v1`, and what was rejected: "Ollama gets its own client, and the context window is set by the app".
+
+**Important assumptions:**
+- 10240 is the largest window at which `qwen2.5:14b` ran entirely on the 12 GB GPU of the development machine (11.4 GB; 12288 sent 5% to the CPU; measured with `/api/ps`). Another GPU or model needs another value.
+- 3 characters per token comes from 3.07 to 3.19 measured on `qwen2.5:14b` with the answering prompt; another model may tokenize Spanish differently.
+- The window is shared by the prompt and the answer, and the answer's room is not reserved: only the prompt is checked.
+- The default URL depends on the backend: `http://localhost:11434` for `ollama` (the Dockerfile no longer ends it in `/v1`) and `http://localhost:11434/v1` for `openai_compatible`. A `.env` with `LLM_BASE_URL` ending in `/v1` needs `LLM_BACKEND=openai_compatible`.
+- With `openai_compatible` the app cannot make the server use a window, so it checks only if `LLM_CONTEXT_TOKENS` is set.
+- `OllamaLLM` uses `urllib` from the standard library: no new dependency.
+- `scripts/check_llm.py` asks `/api/ps` for the window of the loaded model and fails if it is not the configured one.
+- `scripts/extract_dataset.py` now builds its client with `build_llm`, so it follows `LLM_BACKEND`; with `fake` it no longer calls a real model.
+- The id and the source document were already out of each prompt line (commit `974c3eb`); that alone left "¿Qué prometí?" at about 3900 tokens.
+
+**Location:** `app/llm/ollama.py`, `app/llm/tokens.py`, `app/llm/__init__.py`, `app/config.py`, `app/answering/llm_answerer.py`, `app/main.py`, `scripts/check_llm.py`, `scripts/extract_dataset.py`, `scripts/evaluate_chat.py`, `scripts/smoke_test.py`, `Dockerfile`, `.env.example`, `README.md`. Commit `0fd3ebd`.
+
+**Tests:** 173 tests pass (`tests/test_config.py` only changed its invalid-backend value). `scripts/smoke_test.py` has a new check: with `LLM_CONTEXT_TOKENS=50` the chat is `degraded` and the LLM is not called, with a large window it is called. By hand against `qwen2.5:14b`: `scripts/check_llm.py` answers and reports a window of 10240; a chat on a database of 49 commitments answers normally and degrades with a window of 1000. Not covered: `OllamaLLM` has no test of its own, and the estimate is not checked against another model.
+
+**Issues:** closed #27.

@@ -4,6 +4,13 @@ Real choices between alternatives, newest at the top. This file is also filled i
 
 Superseded decisions are in [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md); this file keeps the ones still in force.
 
+## Ollama gets its own client, and the context window is set by the app
+Date: 2026-10-17
+Chose: `LLM_BACKEND` is `ollama` (default, native `/api/chat`), `openai_compatible` (the previous client, `/v1`) or `fake`. `LLM_CONTEXT_TOKENS` (default 10240 with Ollama) is sent to Ollama as `num_ctx` and is also the limit `LLMAnswerer` compares the prompt with, so both cannot differ. A prompt estimated not to fit (characters / 3, 5% margin) is not sent: the answer is `degraded` with the list of commitments.
+Rejected: keeping only the `/v1` client (measured with Ollama 0.19.0: it ignores `num_ctx`, so the app cannot set the window); only reading the window with `/api/ps` (the server's operator decides it and the app cannot guarantee it); counting tokens with the model's tokenizer (a library per model, while `LLM_MODEL` is configurable); cutting the list or splitting the question into several calls (for V0, degrading and saying so is enough).
+Why: the right answer for a prompt that does not fit is open. A later version should handle it properly (for example, fewer commitments chosen by relevance, or several calls combined); until then the user gets the list and a clear message, never a silently cut answer.
+Source: issue #27.
+
 ## Env files are loaded by the app's own code
 Date: 2026-10-17
 Chose: `Settings.from_env()` reads `.env` and `.env.secrets` from the project root with a few lines of standard library, so the app and every script see them; variables already set in the shell win.
@@ -247,6 +254,7 @@ Date: 2026-10-05
 Chose: `LLM_BACKEND` (`real`/`fake`, default `real`) picks the client at startup; the smoke test and CI set `fake`. Code-level tests pass the fake directly, with no variable.
 Rejected: building the app inside the smoke test with the fake injected (skips the real startup path the container uses); an `openai` backend name (reads as "uses OpenAI").
 Source: issue #1, commit 598a918.
+Refined 2026-10-17: the values are now `ollama` (default), `openai_compatible` and `fake`; `real` is gone ("Ollama gets its own client...").
 
 ## The app runs in Docker from the start; Ollama stays on the host
 Date: 2026-10-05
