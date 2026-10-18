@@ -89,7 +89,7 @@ def create_app(
 
     def current_answerer() -> Answerer:
         """The injected answerer, or one built with "today" as of this request, so it does not freeze at startup."""
-        today = settings.resolve_today(store.load_reference_date())
+        today = settings.today
         return answerer or LLMAnswerer(llm, RuleRetriever(store, today), store, today)
 
     app = FastAPI(title="KALIA")

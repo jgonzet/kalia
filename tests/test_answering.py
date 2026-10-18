@@ -347,21 +347,7 @@ def asked_today(app_client: TestClient, llm: StubLLM) -> str:
 
 
 class TestChatUsesTheReferenceDate:
-    def test_the_chat_uses_the_date_of_the_loaded_dataset(self, store: SqliteStore) -> None:
-        store.save_reference_date(date(2026, 10, 12))
-        llm = StubLLM()
-        assert asked_today(TestClient(create_app(Settings(llm_backend="fake"), llm, store)), llm) == "2026-10-12"
-
-    def test_the_environment_overrides_the_dataset(self, store: SqliteStore) -> None:
-        store.save_reference_date(date(2026, 10, 12))
+    def test_the_chat_uses_reference_date_as_today(self, store: SqliteStore) -> None:
         llm = StubLLM()
         settings = Settings(llm_backend="fake", reference_date=date(2026, 3, 12))
         assert asked_today(TestClient(create_app(settings, llm, store)), llm) == "2026-03-12"
-
-    def test_it_is_read_on_every_question_not_once_at_startup(self, store: SqliteStore) -> None:
-        llm = StubLLM()
-        app_client = TestClient(create_app(Settings(llm_backend="fake"), llm, store))
-        store.save_reference_date(date(2026, 1, 1))
-        assert asked_today(app_client, llm) == "2026-01-01"
-        store.save_reference_date(date(2026, 1, 2))
-        assert asked_today(app_client, llm) == "2026-01-02"

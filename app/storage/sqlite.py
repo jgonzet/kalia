@@ -50,10 +50,6 @@ CREATE TABLE IF NOT EXISTS catalog_meta (
     owner_id TEXT PRIMARY KEY,
     user_name TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS dataset_meta (
-    owner_id TEXT PRIMARY KEY,
-    reference_date TEXT
-);
 """
 
 
@@ -158,20 +154,6 @@ class SqliteStore:
                 "INSERT OR REPLACE INTO catalog_meta (owner_id, user_name) VALUES (?, ?)",
                 (self._owner_id, catalog.user),
             )
-
-    def save_reference_date(self, reference_date: date | None) -> None:
-        with self._connect() as conn:
-            conn.execute(
-                "INSERT OR REPLACE INTO dataset_meta (owner_id, reference_date) VALUES (?, ?)",
-                (self._owner_id, reference_date.isoformat() if reference_date else None),
-            )
-
-    def load_reference_date(self) -> date | None:
-        with self._connect() as conn:
-            row = conn.execute(
-                "SELECT reference_date FROM dataset_meta WHERE owner_id = ?", (self._owner_id,)
-            ).fetchone()
-        return date.fromisoformat(row["reference_date"]) if row and row["reference_date"] else None
 
     def load_catalog(self) -> Catalog | None:
         with self._connect() as conn:

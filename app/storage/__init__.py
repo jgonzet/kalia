@@ -1,6 +1,5 @@
 """Storage: persists commitments, documents and the catalog behind interfaces, so the backing database can change."""
 
-from datetime import date
 from typing import Protocol
 
 from app.models import Catalog, Commitment, Document
@@ -40,15 +39,5 @@ class CatalogStore(Protocol):
         ...
 
 
-class ReferenceDateStore(Protocol):
-    def save_reference_date(self, reference_date: date | None) -> None:
-        """Store the "today" of the loaded dataset, replacing the previous one; None clears it."""
-        ...
-
-    def load_reference_date(self) -> date | None:
-        """Return the stored "today" of the dataset, or None if none was saved."""
-        ...
-
-
-class Store(CommitmentStore, DocumentStore, CatalogStore, ReferenceDateStore, Protocol):
+class Store(CommitmentStore, DocumentStore, CatalogStore, Protocol):
     """Everything the app needs from storage."""

@@ -3,9 +3,26 @@
 import os
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
 from typing import Literal
 
 LLMBackend = Literal["real", "fake"]
+
+# `.env` holds plain settings and `.env.secrets` the API keys; both sit in the project root.
+ROOT = Path(__file__).resolve().parent.parent
+ENV_FILES = (ROOT / ".env", ROOT / ".env.secrets")
+
+
+def load_env_files() -> None:
+    """Put the `KEY=value` lines of the env files into `os.environ`; variables already set win, missing files are skipped."""
+    for path in ENV_FILES:
+        if not path.is_file():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                name, value = line.split("=", 1)
+                os.environ.setdefault(name.strip(), value.strip().strip("\"'"))
 
 
 # dataclass: Python writes the boilerplate that builds the class from its fields.
@@ -24,16 +41,13 @@ class Settings:
     @property
     def today(self) -> date:
         """The date the app treats as "today": the reference date if set, else the system date."""
-        return self.resolve_today(None)
-
-    def resolve_today(self, dataset_reference_date: date | None) -> date:
-        """"Today": `REFERENCE_DATE` if set, else the reference date of the loaded dataset, else the system date."""
-        return self.reference_date or dataset_reference_date or date.today()
+        return self.reference_date or date.today()
 
     # classmethod: called on the class itself, `Settings.from_env()`, to create a new Settings.
     @classmethod
     def from_env(cls) -> "Settings":
-        """Build settings from the environment; empty or missing variables fall back to defaults."""
+        """Build settings from the environment (after loading the env files); empty or missing variables fall back to defaults."""
+        load_env_files()
         defaults = cls()
         backend = os.environ.get("LLM_BACKEND") or defaults.llm_backend
         if backend not in ("real", "fake"):
