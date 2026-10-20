@@ -1,4 +1,4 @@
-"""Check that the documents and the expected files of a synthetic dataset agree, and that its retrieval bank still matches them.
+"""Check that the documents and the expected files of a synthetic dataset agree, and that its retrieval bank and its chat bank still match them.
 
 Usage: uv run scripts/check_dataset.py [company ...] [--stamp] [--allow-pending]
 
@@ -13,9 +13,12 @@ import re
 import sys
 from pathlib import Path
 
+from chat_bank import check_company_chat_bank
+from chat_judge import content_words
 from retrieval_bank import check_company_bank
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+MIN_JUDGEABLE_WORDS = 3  # words of four letters or more a commitment's `what` needs for the judge of the chat to find it
 COMMITMENT_ID = re.compile(r"^(?P<doc>.+)-c(?P<n>\d+)$")
 HEADER_KEYS = ("id", "type", "date", "participants")
 
@@ -105,6 +108,9 @@ def check_company(company_dir: Path, stamp: bool, allow_pending: bool) -> tuple[
         if expected["document_id"] != doc_id:
             errors.append(f"{doc_id}: file name differs from document_id {expected['document_id']}")
         seen_commitments |= check_expected(expected, people, projects, seen_commitments, errors)
+        for c in expected.get("extractions", {}).get("commitments", []):
+            if len(content_words(c["what"])) < MIN_JUDGEABLE_WORDS:
+                warnings.append(f"{c['id']}: `what` has fewer than {MIN_JUDGEABLE_WORDS} words of four letters or more, so the judge of the chat cannot tell it from others (docs/DATASET.md, \"Chat bank\")")
 
         if doc_id not in document_files:
             continue
@@ -141,6 +147,7 @@ def check_company(company_dir: Path, stamp: bool, allow_pending: bool) -> tuple[
         elif expected["text_sha256"] != digest:
             errors.append(f"{doc_id}: text changed since text_sha256 was stamped")
     errors += [f"retrieval bank: {problem}" for problem in check_company_bank(company_dir)]
+    errors += [f"chat bank: {problem}" for problem in check_company_chat_bank(company_dir)]
     return errors, warnings
 
 
