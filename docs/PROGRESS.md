@@ -2,12 +2,13 @@
 
 ## Next
 
-1. #16 — Evaluate the chat answers against the acceptance questions
-2. #21 — Report retrieval and answer metrics together in the chat evaluation
-3. #13 — Add unit tests and selected integration tests for the first full iteration
-4. #30 — Make "this week" end on Friday, as the working week does
+1. #32 — Reorganize scripts/ by topic
+2. #33 — Make the count of invented commitments in the chat bank trustworthy
+3. #21 — Report retrieval and answer metrics together in the chat evaluation
+4. #13 — Add unit tests and selected integration tests for the first full iteration
+5. #30 — Make "this week" end on Friday, as the working week does
 
-Synced at: 0fd3ebd
+Synced at: 7f17efd
 
 This file is filled in with each /close-feature.
 
@@ -203,3 +204,37 @@ Decisions recorded: "Today is `REFERENCE_DATE`, else the system date" (replaces 
 **Tests:** 173 tests pass (`tests/test_config.py` only changed its invalid-backend value). `scripts/smoke_test.py` has a new check: with `LLM_CONTEXT_TOKENS=50` the chat is `degraded` and the LLM is not called, with a large window it is called. By hand against `qwen2.5:14b`: `scripts/check_llm.py` answers and reports a window of 10240; a chat on a database of 49 commitments answers normally and degrades with a window of 1000. Not covered: `OllamaLLM` has no test of its own, and the estimate is not checked against another model.
 
 **Issues:** closed #27.
+
+## 2026-10-20 — Chat bank: measuring what the LLM does with a list that is already chosen
+
+**Purpose:** work on #16. The chat was measured with the five acceptance questions through the real retriever, counting words, so a wrong answer could not be traced to a stage and a changed person or date went unseen. Now the LLM is measured alone, on a bank of its own, with a judge that checks people and dates.
+
+**Input:** `data/<company>/chat_bank.jsonl` (generated, 64 questions for `lamanija`), the `expected` files, the answering prompt and a real LLM (`LLM_MODEL`, `--model`).
+
+**Output:** `answer_from_commitments` (`app/answering/llm_answerer.py`); `scripts/chat_bank.py` and `scripts/chat_bank_lamanija.py` (the bank and its conditions); `scripts/chat_judge.py` (the judge) and `scripts/check_chat_judge.py` (checks it); `scripts/evaluate_chat.py` rewritten; `app/prompts/answer_question.history.md`; a warning in `check_dataset.py`; a new CI step. First baseline, `qwen2.5:14b` with the prompt as it stands, four runs: 365, 370, 383 and 384 of 564 needed commitments said (about 66%), 34 to 38 noise commitments said, 5 to 7 lines with a wrong person or direction, at most one wrong date; the three degradation checks pass.
+
+**Logic:**
+1. A question of the bank is a condition over one commitment (`rule`) and some kinds of noise, each also a condition. `chat_bank.py` applies them to the `expected` files and writes the ids of `needed` and `noise`; the noise is a fixed pick, evenly spaced, of at most 8. It reuses the conditions, the context and the questions of the retrieval bank (`retrieval_bank.py`), so a rule lives in one place. `check_dataset.py` recomputes the file and fails if a published list changed. See "The chat bank reuses the engine and the questions of the retrieval bank, and adds the noise".
+2. `evaluate_chat.py` builds the commitments from the `expected` files, gives each question's list to `answer_from_commitments` (the code the chat runs after it retrieves: prompt, context check, failure handling) and judges the answer. See "The chat is measured by handing it a list, not by running the retriever".
+3. `chat_judge.py` splits the answer into lines, matches each commitment given with the line that shares at least half of its four-letter words (people and date break ties), and then checks the two people, the direction when the line has an arrow, and the due date. A line that names a person and has an arrow or a date but matches nothing is `invented`. See "The answers to the chat are judged with rules, not with a second LLM".
+4. Three checks run apart from the bank: the LLM raises, comes back empty, or the prompt does not fit; the chat must return `degraded` with the fixed text and the commitments. If every answer is degraded, the script says the LLM did not answer, exits 1 and logs nothing.
+5. Each run is logged with the stage `chat_bank`, apart from the old `chat` runs, whose metrics are not comparable. The reason behind each measured change of the prompt goes in the history file next to it (`app/prompts/answer_question.history.md`).
+
+**Important assumptions:**
+- Every list of the chat bank is that of the whole dataset, the held-out document included, and no question is run twice (`@before` and `@after`): 25 of the 64 questions would have run twice (101 runs instead of 64) and the LLM is handed a list either way. Whether an answer reflects a document ingested later depends on ingestion and retrieval, so it is for question 5 of the acceptance questions and #21. My choice, not discussed beforehand.
+- The history of the answering prompt is a file next to it, with one row per measured change (date, commit, prompt hash, what changed and why, result), and the README points to it. A `--note` on each run was left out because `runs/` is not in git, and the README because its paragraph grew with every test and mixed history with instructions.
+- The judge is a heuristic written for the answers seen so far. `invented` is an upper bound: of nine lines read, at least three were not inventions. A paraphrase with fewer than half of the words is counted as left out and as invented. The limits are in `docs/DATASET.md` ("What the bank does not cover" and "What the judge needs from the dataset"); #33 is about the count of invented.
+- 64 questions: 44 from the retrieval bank (those the LLM can decide from its prompt) and 20 new. Questions that need the org chart, roles or areas are out, except "¿Qué compromisos tengo con mi jefe?", which has no noise and only measures that nothing is left out.
+- The noise is up to 8 commitments split evenly between its kinds (`DEFAULT_NOISE_SIZE`); the volume questions use 0, 25 and all. For "este mes" the noise is only overdue commitments from earlier months, because "este mes" means from today to the end of the month (`docs/DATASET.md`).
+- The numbers move between runs of the same prompt: 19 of 564 in four runs, most of it in a few long lists; 29 of the 64 questions gave the same count in three runs. The first run used the judge before the fix for two people who share a surname, and the noise of "este mes" was changed after the four runs.
+- `check_chat_judge.py` uses a company made up inside the script, so it depends on no dataset and runs in the CI; `tests/test_chat_judge.py` covers the parts of the judge.
+- The judge does not import `app/`, so what it measures does not depend on the code under test.
+- `check_dataset.py` warns when the `what` of a commitment has fewer than 3 words of four letters or more. No commitment of `lamanija` does.
+- The acceptance questions are no longer run by `evaluate_chat.py`; they belong to the end-to-end evaluation (#21). Question 5 (the answer after a new document) is measured nowhere today.
+- A local run of the whole bank takes about 7.5 minutes on `qwen2.5:14b`. Its cost on an API is #31.
+
+**Location:** `app/answering/llm_answerer.py`, `scripts/chat_bank.py`, `scripts/chat_bank_lamanija.py`, `scripts/chat_judge.py`, `scripts/check_chat_judge.py`, `scripts/evaluate_chat.py`, `scripts/check_dataset.py`, `data/lamanija/chat_bank.jsonl`, `app/prompts/answer_question.history.md`, `.github/workflows/ci.yml`, `README.md`, `docs/DATASET.md`. Commits `ecf2cbd`, `cd45fac`, `71a623a`, `7f17efd`.
+
+**Tests:** 220 tests pass (173 before): `tests/test_chat_judge.py` (parts of the judge), `tests/test_chat_bank.py` (noise, records, comparison with the published file), `tests/test_answering.py` (`answer_from_commitments`), `tests/test_evaluate_chat.py` rewritten. `check_chat_judge.py` sees its 19 cases and the CI runs it; the code was broken on purpose to check that the tests and the cases notice. By hand: four runs against `qwen2.5:14b` and nine answers read against the judge's verdict, which found the fix for the shared surname.
+
+**Issues:** closed #16. Opened while working on it, apart from this unit: #31 (tokens sent by the evaluations), #32 (reorganize `scripts/`) and #33 (the count of invented commitments).

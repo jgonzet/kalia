@@ -4,6 +4,25 @@ Real choices between alternatives, newest at the top. This file is also filled i
 
 Superseded decisions are in [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md); this file keeps the ones still in force.
 
+## The chat is measured by handing it a list, not by running the retriever
+Date: 2026-10-19
+Chose: `app/answering/llm_answerer.py` has `answer_from_commitments(llm, question, commitments, catalog, today, ...)`, which `LLMAnswerer.answer` calls once the retriever has chosen; `scripts/evaluate_chat.py` calls it with the list of each question of `chat_bank.jsonl` (needed commitments plus noise, from the `expected` files), so the real prompt, context check and failure handling are measured and the retrieval is not.
+Rejected: a stand-in retriever that returns the fixed list (an object that imitates a protocol to get through a door the code does not have); calling `build_prompt` and the LLM from the script (the context check and the failure handling would be copied, and they are what the degradation checks test).
+Source: issue #16.
+
+## The answers to the chat are judged with rules, not with a second LLM
+Date: 2026-10-19
+Chose: `scripts/chat_judge.py` finds each commitment given in the answer by the words of its `what`, then checks people, direction (on lines with an arrow) and due date, and flags lines that claim an unknown commitment. `scripts/check_chat_judge.py` checks it on hand-written answers before its numbers are read.
+Rejected: an LLM as judge (its cost grows with every run and every question, its own variability adds to the one measured, and it measures well only if it is stronger than the model under test, which a local model is not); the half-of-the-words heuristic it replaces (it cannot see a changed person or date, or an invented commitment).
+Why: a bank of about 75 questions run several times per model needs a judge that costs nothing and gives the same verdict twice; the price is that paraphrases the rules do not see are lost (documented in `docs/DATASET.md`, "Chat bank").
+Source: issue #16.
+
+## The chat bank reuses the engine and the questions of the retrieval bank, and adds the noise
+Date: 2026-10-19
+Chose: `scripts/chat_bank.py` imports the conditions, context and `expected` reader of `scripts/retrieval_bank.py`; the questions of the retrieval bank that the LLM can decide from its prompt are taken by id (their rule stays in one place) and nearly every question gets kinds of noise (not the open question, nor "mi jefe"), each a condition, stored in `chat_bank.jsonl` as ids with their reason. New questions cover what an LLM can get wrong, not what the rules can.
+Rejected: a second engine for the chat bank (two copies of the meaning of "esta semana" or "vencidos" would drift); questions that need the org chart, roles or areas (the LLM never sees them, so they test nothing it controls).
+Source: issue #16.
+
 ## Ollama gets its own client, and the context window is set by the app
 Date: 2026-10-17
 Chose: `LLM_BACKEND` is `ollama` (default, native `/api/chat`), `openai_compatible` (the previous client, `/v1`) or `fake`. `LLM_CONTEXT_TOKENS` (default 10240 with Ollama) is sent to Ollama as `num_ctx` and is also the limit `LLMAnswerer` compares the prompt with, so both cannot differ. A prompt estimated not to fit (characters / 3, 5% margin) is not sent: the answer is `degraded` with the list of commitments.
@@ -55,6 +74,7 @@ Chose: after the unit tests, `.github/workflows/ci.yml` runs `scripts/check_data
 Rejected: leaving both checks to be run by hand before pushing (a regression of the retrieval or an edit of the `expected` files could reach main unnoticed).
 Why: the cost is a few seconds per push; the price is that a deliberate change of the dataset must also update the bank or declare the gap.
 Source: issue #17, commit 154d70a.
+Refined 2026-10-20: `ci.yml` also runs `scripts/check_chat_judge.py`, which uses a made-up company defined in the script, so it needs no dataset and no LLM, and fails if the judge of the chat stops telling apart the ways an answer goes wrong (issue #16).
 
 ## The retrieval is measured on a database built from the `expected` files, not on the extracted commitments
 Date: 2026-10-15

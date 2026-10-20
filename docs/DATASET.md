@@ -13,6 +13,7 @@ Format of the files under `data/<company>/`. The reasons for each choice are in 
 | `expected/<document id>.json` | the answer key of one document (see below) |
 | `questions.jsonl` | the acceptance questions with their expected answers (see below) |
 | `retrieval_bank.jsonl` | the bank of questions that measures the retrieval alone (see "Retrieval bank") |
+| `chat_bank.jsonl` | the bank of questions that measures the LLM of the chat alone (see "Chat bank") |
 | `documents/<document id>.md` | the generated texts: a metadata header plus free text (see below) |
 
 The generator's instructions live in `data/generation/`, shared by all companies (see "Generating documents").
@@ -37,7 +38,7 @@ Markdown, pasted whole into every generation batch. A blockquote header states t
 | `not_commitments` | phrases the text must contain that are not commitments (conditionals, hypotheses); an extractor that returns them makes a false positive |
 | `text_sha256` | hash of the accepted text; `null` until the document is accepted |
 
-A commitment: `id` (`<document id>-cN`), `who`, `to_whom`, `what`, `due` (`YYYY-MM-DD` or `null`), `due_text` (the deadline phrase as the text says it, or `null`; for diagnosis only, the app does not use it) and `project` (name or `null`).
+A commitment: `id` (`<document id>-cN`), `who`, `to_whom`, `what` (at least three words of four letters or more, so the judge of the chat can find it: see "What the judge needs from the dataset"), `due` (`YYYY-MM-DD` or `null`), `due_text` (the deadline phrase as the text says it, or `null`; for diagnosis only, the app does not use it) and `project` (name or `null`).
 
 A commitment exists only if the text shows the person accepting it; in an email the reply is inside the same document. Each commitment is promised in one document only.
 
@@ -75,7 +76,7 @@ Rules the answers are computed with:
 
 ## Retrieval bank
 
-`retrieval_bank.jsonl` measures one thing: whether the retrieval brings the commitments a question needs. It is separate from `questions.jsonl` on purpose: those are the acceptance questions of V0 (the "done" criterion, answered end to end by the chat), while the bank has many questions written to probe the retrieval from different angles. The bank of the chat, which measures what the LLM does with commitments already retrieved, is a different file with its own script, designed in issue #16.
+`retrieval_bank.jsonl` measures one thing: whether the retrieval brings the commitments a question needs. It is separate from `questions.jsonl` on purpose: those are the acceptance questions of V0 (the "done" criterion, answered end to end by the chat), while the bank has many questions written to probe the retrieval from different angles. The bank of the chat, which measures what the LLM does with commitments already retrieved, is a different file with its own script (see "Chat bank").
 
 Same format as `questions.jsonl`, plus two fields: `category` (the angle, below) and `rule` (the condition that defines the answer, in words). `expected` and `after_held_out` mean the same. A published question is never edited or removed; a changed one gets a new `version` and the latest version of each `id` is the one measured. The one optional field is `known_gap`: the retrieval is known to lose commitments for this question and it is accepted for now, with the reason and the issue. It is a status, not part of the question, so adding or removing it does not need a new version.
 
@@ -160,6 +161,74 @@ The line that must hold on every change is `uv run scripts/evaluate_retrieval.py
 
 Then measure with `uv run scripts/evaluate_retrieval.py <company> --suite bank` and decide what to do with a failure as in "When a question fails" (README, "Evaluate the retrieval"). A new rule of the retriever also needs its mutation in `scripts/check_bank_sensitivity.py`.
 
+## Chat bank
+
+`chat_bank.jsonl` measures one thing: what the LLM does with a list of commitments that is already chosen. The retrieval and the extraction are left out on purpose, so a wrong answer can be traced to the LLM and not to a stage before it. It is separate from `retrieval_bank.jsonl` and `questions.jsonl` (`docs/DECISIONS.md`); running both stages together is issue #21.
+
+Each line is a question with the list the LLM is given: `id`, `version`, `category`, `question`, `rule`, `noise_rules`, `needed` and `noise`. `needed` are the ids of the commitments the question needs; `noise` maps the id of each commitment that is not needed but is given anyway to the reason it is there (the opposite direction, the same person with others, the neighbouring week, another project). `rule` and `noise_rules` are the conditions in words. The ids are those of the `expected` files, and the lists are those of the whole dataset, the held-out document included: the LLM is handed a list, so whether a document came later does not change what it is asked to do. Whether an answer reflects a document ingested later is measured where ingestion takes part (`questions.jsonl`, question 5, and issue #21). A published question is never edited or removed; a changed one gets a new `version`, and the latest version of each `id` is the one measured.
+
+### How the lists are computed
+
+Like the retrieval bank (`scripts/retrieval_bank.py`, whose conditions, context and meaning of every term in "What each term means" it reuses): each question is a condition over one commitment written in `scripts/chat_bank_<company>.py`, and `scripts/chat_bank.py` applies it to the `expected` files without importing `app/`. A question of the retrieval bank is reused by id with `reuse(...)`, so its rule lives in one place; the noise is what the chat bank adds. The noise of a question is a few kinds of commitment, each a condition, and a fixed share of the total (8 by default) is taken evenly along the commitments of each kind and stored in the file, so it can be read. `check_dataset.py` recomputes the file and fails if a published list changed.
+
+The person who proposes a question writes its rule; whoever reviews the bank reads the rules, which are a line each, and not the lists of ids.
+
+### What is measured
+
+The list goes through `answer_from_commitments` (`app/answering/llm_answerer.py`), the code the chat runs after it retrieves, with the real prompt and LLM. The answer is judged by `scripts/chat_judge.py`, with rules and no second LLM: for each commitment given, whether the answer says it and with the right people and due date, and which lines claim a commitment nobody gave. Only counts are reported, per category and in total (`scripts/evaluate_chat.py`, README "Evaluate the chat"). Three checks that are not in the bank run with it: the chat when the LLM fails, comes back empty, or the prompt does not fit the context window. What the judge can and cannot tell apart is checked by `scripts/check_chat_judge.py`.
+
+A question belongs here only if the LLM can answer it from what its prompt shows: the user's name, the people, text, due date, state and project of each commitment, and today's date. It does not see the org chart, roles or areas.
+
+### What the judge needs from the dataset
+
+The judge (`scripts/chat_judge.py`) finds a commitment in an answer by the words of its `what` and tells the people apart by name, so the data has to keep a few properties. Whoever adds people, projects or documents keeps them; `scripts/check_dataset.py` warns about the first one and the rest are on whoever writes:
+
+- **Every `what` has at least three words of four letters or more** ("armar la lista de pendientes", not "ir a ver"). With fewer, the judge cannot tell the commitment from others. `check_dataset.py` warns.
+- **A person is told apart by a part of the name of four letters or more.** Shorter parts ("Van" in "Milhouse Van Houten") are read as ordinary words and never name anyone. A name that is also an ordinary word of four letters or more (like "Rosa") would be read as that person in any line that has the word.
+- **People who share a surname** (the two Bouvier) are told apart only when the answer writes the first name; "Bouvier" alone names both and is not an error.
+- **Two commitments of the same people with nearly the same `what` and no different date** are matched with the answer by the order of the best score, so one of them may take the line of the other. Avoid them, or give them different dates.
+- **Dates are absolute in `expected/`** (`2026-10-06`); the judge reads them in the forms listed in "What the bank does not cover".
+
+### Categories and what each covers
+
+| Category | Angle | Questions |
+|---|---|---|
+| `direction` | who promised and who received: user to X, X to user, X to anyone, anyone to X, both ways, involving X, between two others, "yo" and "me" | 11 |
+| `person` | how a person is named: surname, first name, lowercase, a typo, two people at once, a name that fits two people | 6 |
+| `date` | today, tomorrow, this week, next week, last week, this month, overdue, undated, a weekday (including the one that is today's), an exact date, a range, a day with several commitments | 12 |
+| `hierarchy` | the boss, with no noise: the LLM does not see the org chart, so the question measures only whether the answer leaves a commitment out | 1 |
+| `state` | "abiertos" includes overdue, overdue of mine, undated owed to me | 3 |
+| `project` | a project by full name, by part of its name, none | 3 |
+| `combination` | two or three filters at once, with noise that meets all but one | 9 |
+| `topic` | what a commitment is about, judged by the words of `what`, alone and with a person | 4 |
+| `open` | a question that narrows nothing: the whole list, none of it noise | 1 |
+| `none` | nothing matches and the rest is noise: an unknown person, an unknown project, an empty day, a pair with nothing between them | 4 |
+| `volume` | the same question with no noise, 25, and all the other commitments, and a question with few needed among all the others, to see how the answer falls as the list grows | 4 |
+| `language` | the same kind of question in English, without accents or question marks, and very colloquial | 4 |
+| `unanswerable` | what the list cannot answer (the org chart, what was said in a meeting): the right answer lists no commitment as if it answered | 2 |
+
+### What the bank does not cover
+
+Passing it does not mean the chat is tested. Today it measures how the LLM filters and words a list of at most a few dozen commitments, on this dataset.
+
+- **The author is the same.** One person chose the questions; the rules are read by whoever reviews them, but the angles nobody thought of are not here. A batch written without seeing the rules or the prompt is part of issue #21.
+- **Questions that need the org chart or the catalog beyond names:** "mis pares", "la gente de Arte", "la Directora de Arte". The prompt does not show them to the LLM; the retrieval resolves them (retrieval bank, `hierarchy` and `group`). "Mi jefe" is in the bank with no noise, so it measures only that the answer leaves nothing out, not that the LLM finds the boss.
+- **Questions about meaning with no word to look for:** a topic is only judged by the words listed in its rule. Counts, comparisons, summaries, prioritisation ("¿qué es lo más urgente?") and anything V0 leaves out.
+- **Size of production:** the biggest list is the whole dataset (about 75 commitments); nothing is known about hundreds or thousands.
+- **One company, one language:** Spanish data of one synthetic studio; the English questions only change the language of the question.
+- **The judge is a heuristic, and it reads a narrow set of forms** (see "What the judge needs from the dataset"). It is a set of rules written for the data we have, not a general reader; making it work with many more ways of writing is future work and nothing here covers it yet. What it does not see today: a paraphrase that shares fewer than half of the four-letter words of a commitment (it counts as left out and the line as invented), two commitments said in one line (only one counts), a direction in a line without an arrow, a date written in a form other than `2026-10-06`, `6 de octubre`, `6 oct` or `06/10`, a person called by a nickname or a pronoun other than "yo", "me", "mi", "vos", "tu", "te", and a number like `1/2` in prose, which reads as a date. `invented` is an upper bound: in the first runs about half of the lines it flagged were not inventions (a sentence of prose with a name and a date, a commitment shortened until it shared less than half of its words). `scripts/check_chat_judge.py` shows what it tells apart and `--show` of `scripts/evaluate_chat.py` lets you read the answers.
+- **`unanswerable` counts as extra any commitment the answer lists**, even if it is a sensible thing to offer when it cannot answer.
+- **Instructions inside the text of a commitment** (issue #28) and conversations of several turns are not measured.
+- **The extraction and the ingestion are left out.** Commitments come from the `expected` files, as they should be, not as an LLM extracts them, and every document is there from the start; question 5 of the acceptance questions (the answer after a new document) is not measured here.
+
+### Adding questions
+
+1. Find the angle in the table above. If it is new, add a row to the table here.
+2. Append a `ChatSpec` (or a `reuse(...)` of a retrieval question) in `scripts/chat_bank_<company>.py`, written as a user would type it, with the kinds of noise a retrieval could let through. A new term needs its meaning in "What each term means" first.
+3. Run `uv run scripts/chat_bank.py <company>`. It adds the new questions and recomputes the others; if a published list changed, it stops and asks for a new `version`.
+4. Check that the question discriminates: its noise must not be empty unless the category says so.
+5. For a new company, write its `scripts/chat_bank_<company>.py` with a `specs(ctx, retrieval)` function.
+
 ## Generating documents
 
 Claude Code writes the documents inside the repo, reading the files below from disk.
@@ -181,5 +250,5 @@ To write a batch of documents:
 `uv run scripts/check_dataset.py [company ...]` (standard library only). Flags: `--stamp` fills in `text_sha256` of every present document; `--allow-pending` does not fail on `expected` files without a document yet. It checks (a `due_text` missing from its text is only a warning):
 - Every document has an `expected` file and the other way round; the header `id` equals the file name; `type`, `date` and `participants` match the `expected` file; `participants` and `projects` are names from the catalog.
 - `text_sha256` matches the text.
-- If `retrieval_bank.jsonl` exists, it is recomputed from its spec and the `expected` files: it fails when the answer of a published question has changed (see "Retrieval bank").
+- If `retrieval_bank.jsonl` exists, it is recomputed from its spec and the `expected` files: it fails when the answer of a published question has changed (see "Retrieval bank"). The same goes for `chat_bank.jsonl` (see "Chat bank").
 - Commitment ids are unique and of the form `<document id>-cN` (numbers need not be contiguous); `who` and `to_whom` are participants of the document; `project` is one of the document's projects or `null`; every `mentions` id is a commitment of an earlier document.
