@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.answering import Answer
-from app.answering.llm_answerer import DEGRADED_TEXT, LLMAnswerer
+from app.answering.llm_answerer import DEGRADED_TEXT, TOO_LONG_TEXT, LLMAnswerer, answer_from_commitments
 from app.answering.ordering import due_state, group_by_project
 from app.answering.prompt import NO_PROJECT, build_prompt
 from app.answering.retrieval import RuleRetriever
@@ -187,6 +187,37 @@ class StubLLM:
 def make_answerer(llm: StubLLM, commitments: list[Commitment]) -> tuple[LLMAnswerer, StubRetriever]:
     retriever = StubRetriever(commitments)
     return LLMAnswerer(llm, retriever, StubStore(), TODAY), retriever  # type: ignore[arg-type]
+
+
+class TestAnswerFromCommitments:
+    """The part of the chat after the retrieval, which the chat bank also uses with a list it chose itself."""
+
+    def test_answers_from_the_given_commitments_without_any_retriever(self) -> None:
+        commitments = [commitment(1), commitment(2)]
+        llm = StubLLM("  hola  ")
+        answer = answer_from_commitments(llm, "¿Qué?", commitments, CATALOG, TODAY)
+        assert answer == Answer("hola", commitments, degraded=False, people=NAMES)
+        assert "task 1" in llm.prompts[0] and "task 2" in llm.prompts[0] and "¿Qué?" in llm.prompts[0]
+
+    def test_a_failing_or_empty_llm_degrades_and_returns_the_commitments(self) -> None:
+        commitments = [commitment(1)]
+        for llm in (StubLLM(error=True), StubLLM("   ")):
+            assert answer_from_commitments(llm, "q", commitments, CATALOG, TODAY) == Answer(DEGRADED_TEXT, commitments, degraded=True, people=NAMES)
+
+    def test_a_prompt_that_does_not_fit_the_context_window_is_not_sent(self) -> None:
+        commitments = [commitment(1)]
+        llm = StubLLM()
+        answer = answer_from_commitments(llm, "q", commitments, CATALOG, TODAY, context_tokens=1)
+        assert answer == Answer(TOO_LONG_TEXT, commitments, degraded=True, people=NAMES) and llm.prompts == []
+
+    def test_without_a_catalog_it_still_answers_and_has_no_names(self) -> None:
+        answer = answer_from_commitments(StubLLM("ok"), "q", [commitment(1)], None, TODAY)
+        assert answer.text == "ok" and answer.people == {}
+
+    def test_the_chat_gives_the_same_answer_as_the_function_with_what_it_retrieved(self) -> None:
+        commitments = [commitment(1), commitment(2)]
+        answerer, _ = make_answerer(StubLLM("same"), commitments)
+        assert answerer.answer("q") == answer_from_commitments(StubLLM("same"), "q", commitments, CATALOG, TODAY)
 
 
 class TestLLMAnswerer:
