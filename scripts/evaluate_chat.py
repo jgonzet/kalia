@@ -1,45 +1,37 @@
-"""Measure what the chat puts in its answers, with a real LLM, against the acceptance questions of a dataset.
+"""Measure what the LLM of the chat does with a list of commitments that is already chosen, with a real LLM.
 
-A development tool, not part of the app: real users have no answer key. See README ("Evaluate the chat").
-Use it to compare a model or a prompt on the chat: it is how the quality of the answers was measured in #18 and
-what #16 grows into (its own bank of questions) and #21 puts together with the retrieval.
+A development tool, not part of the app: real users have no answer key. It is how a model or a prompt of the chat is
+compared (the answering prompt is `app/prompts/answer_question.md`, the model is `LLM_MODEL`). See README ("Evaluate the chat").
 
-    uv run scripts/evaluate_chat.py lamanija --db runs/<name>.db            all the acceptance questions, with the model in the environment
-    uv run scripts/evaluate_chat.py lamanija --db runs/<name>.db --model llama3.1
-    uv run scripts/evaluate_chat.py lamanija --db runs/<name>.db --prompt /tmp/other_prompt.md   a prompt that is not the app's
-    uv run scripts/evaluate_chat.py lamanija --db runs/<name>.db --question q2-semana --show    one question, with the answer in full
-    uv run scripts/evaluate_chat.py lamanija --db runs/<name>.db --out runs/chat.json --no-log
+    uv run scripts/evaluate_chat.py lamanija                                  the whole chat bank, with the model in the environment
+    uv run scripts/evaluate_chat.py lamanija --model llama3.1
+    uv run scripts/evaluate_chat.py lamanija --prompt /tmp/other_prompt.md   a prompt that is not the app's
+    uv run scripts/evaluate_chat.py lamanija --category date --show           one category, with each answer and what was wrong in it
+    uv run scripts/evaluate_chat.py lamanija --question skinner --no-log      the questions whose id contains this text
 
-What it does, per question of `questions.jsonl` (the latest version of each):
-1. Takes a COPY of the database (`--db`, default `DB_PATH`), which must already hold the extracted commitments
-   (README, "Evaluate the extraction"). The database you name is never written.
-2. Runs the real chat on it: the rule retriever, the prompt and the LLM (`LLM_BASE_URL`, `LLM_MODEL`, `--model`).
-3. Finds, in the database, the commitments each question needs, comparing by content (people and due date), not by id:
-   the ids of a real extraction do not match those of the `expected` files. The ones that were not extracted are
-   "lost in extraction": no later stage can recover them, so they are not counted against the chat.
-4. Counts how many of the needed commitments the retriever brought, how many of those the answer contains, and how
-   many commitments that were not needed the answer contains ("extra").
-A question with `after_held_out` (acceptance question 5) is measured before and after the held-out document is
-ingested and extracted into the copy; the extraction uses `--extraction-model` (default: the app's default model).
+The questions are those of `data/<company>/chat_bank.jsonl` (the latest version of each). For each one the LLM is given a
+controlled list, not the output of the retriever: the commitments the question needs plus some it does not (the noise),
+all taken from the `expected` files, so the retrieval and the extraction cannot be blamed for what the answer lacks. The
+question goes through `answer_from_commitments`, the same code the chat runs after it retrieves, and the answer is judged
+by `scripts/chat_judge.py` (rules, no second LLM; what it can and cannot notice is in its docstring and checked by
+`scripts/check_chat_judge.py`).
 
-"The answer contains a commitment" is a heuristic: at least half of the words of its `what` (longer than three
-letters, without accents) appear in the answer. It can miss a commitment the model rewrote a lot and cannot tell
-that a person or a date was changed. Read the answers (`--show`, or `--out`) before trusting a difference of a few.
-Only counts are printed. The LLM runs with the server's default temperature, so the same prompt gives different
-numbers each time (about five of the 140 needed commitments between runs of the same prompt, more on one question):
-a change smaller than that is not a finding. Each run is appended to `runs/metrics.jsonl` (stage "chat") with the commit,
-the model, a hash of the prompt file and the database name; `--no-log` skips it.
+Per question it counts: the commitments needed (`needed`), how many the answer says (`said`), how many it leaves out
+(`missing`), how many of the noise it says anyway (`extra`), how many it says with the wrong people (`people`) or the wrong
+due date (`due`), how many say no date at all (`no date`) and how many lines look like a commitment nobody gave (`invented`, an upper bound).
+Three more checks run apart from the bank: the answer when the LLM fails, comes back empty, or the prompt does not fit.
+The LLM runs with the server's default temperature, so the same prompt gives different numbers each time: compare prompts
+with repeated runs. Each run is appended to `runs/metrics.jsonl` (stage "chat_bank") with the commit, the model, a hash of the
+prompt file and the bank version; `--no-log` skips it.
 """
 
 import argparse
 import hashlib
 import json
-import re
-import shutil
 import sys
 import tempfile
 import time
-import unicodedata
+from collections import defaultdict
 from dataclasses import asdict, dataclass, replace
 from datetime import date
 from pathlib import Path
@@ -49,243 +41,259 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))  # make `app` importable
 
 import run_log  # noqa: E402  (scripts/ is already on sys.path when this file is run or imported by another script)
-from app.answering import Answerer  # noqa: E402
-from app.answering.llm_answerer import LLMAnswerer  # noqa: E402
+from app.answering import Answer  # noqa: E402
+from app.answering.llm_answerer import DEGRADED_TEXT, TOO_LONG_TEXT, answer_from_commitments  # noqa: E402
 from app.answering.prompt import PROMPT_PATH  # noqa: E402
-from app.answering.retrieval import RuleRetriever  # noqa: E402
 from app.config import Settings  # noqa: E402
-from app.extraction.llm_extractor import LLMExtractor  # noqa: E402
-from app.extraction.run import extract_and_store  # noqa: E402
-from app.ingestion import ingest_document  # noqa: E402
 from app.ingestion.dataset import DatasetSource  # noqa: E402
-from app.llm import LLMClient, build_llm  # noqa: E402
-from app.models import Commitment  # noqa: E402
-from app.storage.sqlite import SqliteStore  # noqa: E402
-from evaluate_extraction import AnswerKey, Expected, load_answer_keys, pair_expected  # noqa: E402
-from evaluate_retrieval import load_latest_questions  # noqa: E402
+from app.llm import LLMClient, LLMError, build_llm  # noqa: E402
+from app.models import Catalog, Commitment  # noqa: E402
+from chat_bank import BANK_FILE, ChatRecord, latest, read_bank  # noqa: E402
+from chat_judge import Item, Judgement, judge  # noqa: E402
+from evaluate_retrieval import build_store  # noqa: E402
 
-IN_ANSWER_SHARE = 0.5  # share of the content words of a commitment that must appear in the answer
-MIN_WORD_LENGTH = 4
+STAGE = "chat_bank"
+DEGRADATION_SAMPLE = 8  # commitments the degradation checks hand to the chat
 
 
 @dataclass(frozen=True)
 class QuestionResult:
-    name: str  # the question id; "<id>@before" and "<id>@after" for a question measured around the held-out document
+    name: str  # the question id
+    category: str
     question: str
-    expected: int
-    lost_in_extraction: int  # expected but not in the database: the chat cannot be blamed for them
-    retrieved: int
-    needed_retrieved: int  # needed commitments the retriever brought
-    needed_in_answer: int  # needed commitments the answer contains (a heuristic, see the module docstring)
-    extra_in_answer: int  # commitments that were not needed and the answer contains anyway
+    needed: int
+    noise_given: int
+    said: int  # needed commitments the answer says
+    missing: int
+    extra: int  # noise commitments the answer says anyway
+    wrong_people: int  # needed commitments said with a person or a direction that is not theirs
+    wrong_due: int  # needed commitments said with another due date
+    no_due: int  # needed commitments said without any due date
+    invented: int  # lines of the answer that claim a commitment nobody gave
     degraded: bool
     seconds: float
     answer: str
-    omitted: list[str]  # needed, retrieved and not in the answer, one line each
-    extra: list[str]
+    lines: dict[str, list[str]]  # what was wrong, by kind: missing, extra, wrong_people, wrong_due, invented
 
 
 @dataclass(frozen=True)
 class Totals:
     questions: int
-    expected: int
-    lost_in_extraction: int
-    retrieved: int
-    needed_retrieved: int
-    needed_in_answer: int
-    extra_in_answer: int
+    needed: int
+    noise_given: int
+    said: int
+    missing: int
+    extra: int
+    wrong_people: int
+    wrong_due: int
+    no_due: int
+    invented: int
     degraded: int
 
 
-def content_words(text: str) -> set[str]:
-    """Lowercase words of four letters or more, without accents: what two phrasings of one commitment share."""
-    plain = "".join(c for c in unicodedata.normalize("NFD", text.lower()) if unicodedata.category(c) != "Mn")
-    return {word for word in re.findall(r"[a-z0-9]+", plain) if len(word) >= MIN_WORD_LENGTH}
+@dataclass(frozen=True)
+class DegradationCheck:
+    name: str
+    ok: bool
+    detail: str
 
 
-def is_in_answer(commitment: Commitment, answer: str) -> bool:
-    """Whether the answer contains the commitment: half of the content words of its `what` appear in it."""
-    words = content_words(commitment.what)
-    return bool(words) and len(words & content_words(answer)) / len(words) >= IN_ANSWER_SHARE
+class _RaisingLLM:
+    def complete(self, prompt: str) -> str:
+        raise LLMError("simulated failure")
 
 
-def find_needed(expected_ids: list[str], keys: dict[str, AnswerKey], stored: list[Commitment]) -> tuple[list[Commitment], list[str]]:
-    """Find, among the stored commitments, the ones the expected ids stand for; also return the expected ids with none."""
-    wanted_by_document: dict[str, list[Expected]] = {}
-    unknown: list[str] = []
-    for expected_id in expected_ids:
-        document_id = expected_id.rsplit("-c", 1)[0]
-        key = keys.get(document_id)
-        found = [e for e in key.commitments if e.id == expected_id] if key else []
-        if found:
-            wanted_by_document.setdefault(document_id, []).extend(found)
-        else:
-            unknown.append(expected_id)
-    needed: list[Commitment] = []
-    lost = list(unknown)
-    for document_id, wanted in wanted_by_document.items():
-        pairs = pair_expected(wanted, [c for c in stored if c.document_id == document_id])
-        needed += [c for _, c in pairs]
-        paired = {e.id for e, _ in pairs}
-        lost += [e.id for e in wanted if e.id not in paired]
-    return needed, lost
+class _EmptyLLM:
+    def complete(self, prompt: str) -> str:
+        return "   "
+
+
+class _MustNotBeCalledLLM:
+    def complete(self, prompt: str) -> str:
+        raise AssertionError("the LLM was called with a prompt that does not fit the context window")
+
+
+def describe(item: Item, names: dict[str, str]) -> str:
+    return f"{item.id} {names[item.who]} -> {names[item.to_whom]}: {item.what} ({item.due or 'sin fecha'})"
 
 
 def measure(
-    name: str,
-    question: str,
-    expected_ids: list[str],
-    keys: dict[str, AnswerKey],
-    store: SqliteStore,
-    retriever: RuleRetriever,
-    answerer: Answerer,
+    record: ChatRecord,
+    commitments: dict[str, Commitment],
+    catalog: Catalog,
+    today: date,
+    llm: LLMClient,
+    prompt: Path,
+    context_tokens: int | None,
 ) -> QuestionResult:
-    """Ask the chat one question and count what its answer has of the commitments the question needs."""
-    needed, lost = find_needed(expected_ids, keys, store.list_commitments())
-    retrieved = retriever.retrieve(question)
+    """Give the LLM the needed commitments and the noise of a question and count what its answer does with them."""
+    needed = set(record["needed"])
+    given = [commitments[cid] for cid in sorted(needed | set(record["noise"]))]
+    items = [Item(c.id, c.who_id, c.to_whom_id, c.what, c.due, c.id in needed) for c in given]
     started = time.monotonic()
-    answer = answerer.answer(question)
+    answer = answer_from_commitments(llm, record["question"], given, catalog, today, prompt, context_tokens)
     seconds = time.monotonic() - started
-    needed_ids = {c.id for c in needed}
-    needed_retrieved = [c for c in retrieved if c.id in needed_ids]
-    in_answer = [c for c in retrieved if is_in_answer(c, answer.text)]
+    people = {p.id: p.name for p in catalog.people}
+    user_id = next((p.id for p in catalog.people if p.name == catalog.user), None)
+    judgement = judge(answer.text, items, people, user_id, today.year)
+    return _result(record, judgement, len(record["noise"]), answer, seconds, people)
 
-    def describe(c: Commitment) -> str:
-        who, to_whom = answer.people.get(c.who_id, c.who_id), answer.people.get(c.to_whom_id, c.to_whom_id)
-        return f"{c.id} {who} -> {to_whom}: {c.what} ({c.due or 'sin fecha'})"
 
+def _result(record: ChatRecord, j: Judgement, noise_given: int, answer: Answer, seconds: float, people: dict[str, str]) -> QuestionResult:
+    kinds = {
+        "missing": [describe(v.item, people) for v in j.needed_missing],
+        "extra": [describe(v.item, people) for v in j.noise_present],
+        "wrong_people": [f"{describe(v.item, people)}  <-  {v.line}" for v in j.wrong_people],
+        "wrong_due": [f"{describe(v.item, people)}  <-  {v.line}" for v in j.wrong_due],
+        "invented": list(j.invented),
+    }
     return QuestionResult(
-        name=name,
-        question=question,
-        expected=len(expected_ids),
-        lost_in_extraction=len(lost),
-        retrieved=len(retrieved),
-        needed_retrieved=len(needed_retrieved),
-        needed_in_answer=sum(c.id in needed_ids for c in in_answer),
-        extra_in_answer=sum(c.id not in needed_ids for c in in_answer),
+        name=record["id"],
+        category=record["category"],
+        question=record["question"],
+        needed=len(j.needed_present) + len(j.needed_missing),
+        noise_given=noise_given,
+        said=len(j.needed_present),
+        missing=len(j.needed_missing),
+        extra=len(j.noise_present),
+        wrong_people=len(j.wrong_people),
+        wrong_due=len(j.wrong_due),
+        no_due=len(j.missing_due),
+        invented=len(j.invented),
         degraded=answer.degraded,
         seconds=round(seconds, 1),
         answer=answer.text,
-        omitted=[describe(c) for c in needed_retrieved if c not in in_answer],
-        extra=[describe(c) for c in in_answer if c.id not in needed_ids],
+        lines=kinds,
     )
+
+
+def check_degradation(commitments: list[Commitment], catalog: Catalog, today: date, prompt: Path) -> list[DegradationCheck]:
+    """Run the three failures the chat must survive: the LLM raises, comes back empty, or the prompt does not fit."""
+    cases: list[tuple[str, LLMClient, int | None, str]] = [
+        ("the LLM fails", _RaisingLLM(), None, DEGRADED_TEXT),
+        ("the LLM comes back empty", _EmptyLLM(), None, DEGRADED_TEXT),
+        ("the prompt does not fit the context window", _MustNotBeCalledLLM(), 1, TOO_LONG_TEXT),
+    ]
+    checks = []
+    for name, llm, context_tokens, text in cases:
+        try:
+            answer = answer_from_commitments(llm, "¿Qué compromisos hay?", commitments, catalog, today, prompt, context_tokens)
+        except Exception as error:  # a degradation that raises is exactly what is being checked
+            checks.append(DegradationCheck(name, False, f"raised {type(error).__name__}: {error}"))
+            continue
+        problems = []
+        if not answer.degraded:
+            problems.append("not marked degraded")
+        if answer.text != text:
+            problems.append("text is not the fixed one")
+        if answer.commitments != commitments:
+            problems.append("the commitments were not returned")
+        checks.append(DegradationCheck(name, not problems, "; ".join(problems) or "degraded, with the fixed text and the commitments"))
+    return checks
 
 
 def evaluate(
     company_dir: Path,
-    db_path: str,
-    owner_id: str,
     llm: LLMClient,
-    extraction_llm: LLMClient,
     prompt: Path = PROMPT_PATH,
-    question_ids: list[str] | None = None,
-    log: Callable[[str], None] = print,
+    question_filters: list[str] | None = None,
+    categories: list[str] | None = None,
     context_tokens: int | None = None,
-) -> list[QuestionResult]:
-    """Measure the acceptance questions on a copy of the database; `db_path` itself is not written."""
+    log: Callable[[str], None] = print,
+) -> tuple[list[QuestionResult], list[DegradationCheck], list[ChatRecord]]:
+    """Run the chat bank (or the part chosen) through `llm`, plus the degradation checks."""
     source = DatasetSource(company_dir)
-    reference_date = date.fromisoformat(source.company["reference_date"])
-    questions = [q for q in load_latest_questions(company_dir / "questions.jsonl") if not question_ids or q["id"] in question_ids]
+    catalog = source.catalog()
+    today = date.fromisoformat(source.company["reference_date"])
+    records = [
+        r
+        for r in latest(read_bank(company_dir / BANK_FILE))
+        if (not question_filters or any(f in r["id"] for f in question_filters)) and (not categories or r["category"] in categories)
+    ]
+    if not records:
+        raise ValueError(f"no question of {BANK_FILE} matches what was asked")
     with tempfile.TemporaryDirectory() as tmp:
-        copy = str(Path(tmp) / "copy.db")
-        shutil.copyfile(db_path, copy)
-        store = SqliteStore(copy, owner_id)
-        catalog = store.load_catalog()
-        if catalog is None:
-            raise ValueError(f"{db_path} has no catalog: load the dataset and extract its commitments first (README)")
-        keys = load_answer_keys(company_dir, catalog)
-        retriever = RuleRetriever(store, reference_date)
-        answerer = LLMAnswerer(llm, retriever, store, reference_date, prompt, context_tokens)
-
-        # A held-out document that is already stored leaves nothing to measure "before", so its questions are skipped.
-        already = {
-            q["after_held_out"]["document"]
-            for q in questions
-            if q["after_held_out"] and store.get_document(q["after_held_out"]["document"])
-        }
-        runnable = [q for q in questions if not (q["after_held_out"] and q["after_held_out"]["document"] in already)]
-        for document_id in sorted(already):
-            log(f"skipping the questions around {document_id}: it is already in the database, so there is no 'before'")
-
-        results: list[QuestionResult] = []
-        for q in runnable:
-            name = q["id"] + ("@before" if q["after_held_out"] else "")
-            results.append(measure(name, q["question"], q["expected"], keys, store, retriever, answerer))
-            log(f"{name}: {results[-1].needed_in_answer} of {results[-1].needed_retrieved} needed commitments in the answer ({results[-1].seconds} s)")
-
-        after = [q for q in runnable if q["after_held_out"]]
-        documents = sorted({q["after_held_out"]["document"] for q in after if q["after_held_out"]})
-        ingested = True
-        for document_id in documents:
-            document = source.document(document_id)
-            ingest_document(document, store)
-            if not extract_and_store(document, LLMExtractor(extraction_llm, owner_id), store):
-                log(f"the extraction of {document_id} failed: the questions measured after it are skipped")
-                ingested = False
-        for q in after if ingested else []:
-            held_out = q["after_held_out"]
-            if held_out:
-                results.append(measure(q["id"] + "@after", q["question"], held_out["expected"], keys, store, retriever, answerer))
-                log(f"{results[-1].name}: {results[-1].needed_in_answer} of {results[-1].needed_retrieved} needed commitments in the answer ({results[-1].seconds} s)")
-    return results
+        store = build_store(str(Path(tmp) / "all.db"), company_dir, catalog, True, set())
+        commitments = {c.id: c for c in store.list_commitments()}
+    results: list[QuestionResult] = []
+    for record in records:
+        result = measure(record, commitments, catalog, today, llm, prompt, context_tokens)
+        results.append(result)
+        log(f"{result.name}: {result.said} of {result.needed} needed, {result.extra} extra ({result.seconds} s)")
+    checks = check_degradation(list(commitments.values())[:DEGRADATION_SAMPLE], catalog, today, prompt)
+    return results, checks, records
 
 
 def totals(results: list[QuestionResult]) -> Totals:
-    """Add up the counts of every question (not their percentages)."""
+    """Add up the counts of the questions (not their percentages)."""
     return Totals(
         questions=len(results),
-        expected=sum(r.expected for r in results),
-        lost_in_extraction=sum(r.lost_in_extraction for r in results),
-        retrieved=sum(r.retrieved for r in results),
-        needed_retrieved=sum(r.needed_retrieved for r in results),
-        needed_in_answer=sum(r.needed_in_answer for r in results),
-        extra_in_answer=sum(r.extra_in_answer for r in results),
+        needed=sum(r.needed for r in results),
+        noise_given=sum(r.noise_given for r in results),
+        said=sum(r.said for r in results),
+        missing=sum(r.missing for r in results),
+        extra=sum(r.extra for r in results),
+        wrong_people=sum(r.wrong_people for r in results),
+        wrong_due=sum(r.wrong_due for r in results),
+        no_due=sum(r.no_due for r in results),
+        invented=sum(r.invented for r in results),
         degraded=sum(r.degraded for r in results),
     )
 
 
-def format_report(results: list[QuestionResult], show: bool) -> str:
-    """The table of counts per question and the totals; with `show`, also each answer and what it omitted or added."""
-    lines = [f"{'question':<20}{'expected':>9}{'lost':>6}{'retrieved':>10}{'needed':>8}{'in answer':>10}{'extra':>7}{'degraded':>9}{'seconds':>8}"]
+HEADER = f"{'':<28}{'questions':>10}{'needed':>8}{'said':>6}{'missing':>8}{'extra':>7}{'people':>7}{'due':>5}{'no date':>8}{'invented':>9}{'degraded':>9}"
+
+
+def _row(label: str, t: Totals) -> str:
+    return f"{label:<28}{t.questions:>10}{t.needed:>8}{t.said:>6}{t.missing:>8}{t.extra:>7}{t.wrong_people:>7}{t.wrong_due:>5}{t.no_due:>8}{t.invented:>9}{t.degraded:>9}"
+
+
+def has_problem(r: QuestionResult) -> bool:
+    return bool(r.missing or r.extra or r.wrong_people or r.wrong_due or r.invented or r.degraded)
+
+
+def format_report(results: list[QuestionResult], checks: list[DegradationCheck], show: bool) -> str:
+    """The counts per category and in total, the questions with something wrong, and the degradation checks."""
+    by_category: dict[str, list[QuestionResult]] = defaultdict(list)
     for r in results:
-        lines.append(f"{r.name:<20}{r.expected:>9}{r.lost_in_extraction:>6}{r.retrieved:>10}{r.needed_retrieved:>8}{r.needed_in_answer:>10}{r.extra_in_answer:>7}{str(r.degraded):>9}{r.seconds:>8}")
-    t = totals(results)
-    lines.append(f"{'TOTAL':<20}{t.expected:>9}{t.lost_in_extraction:>6}{t.retrieved:>10}{t.needed_retrieved:>8}{t.needed_in_answer:>10}{t.extra_in_answer:>7}{t.degraded:>9}")
-    lines.append("")
-    lines.append("expected: commitments the question needs | lost: of those, not extracted (not the chat's fault) | needed: needed ones the retriever brought")
-    lines.append("in answer: needed ones the answer contains (heuristic) | extra: not needed, but in the answer")
+        by_category[r.category].append(r)
+    lines = [HEADER] + [_row(category, totals(items)) for category, items in by_category.items()] + [_row("TOTAL", totals(results)), ""]
+    lines.append("needed: commitments the question needs | said: of those, the answer says them | missing: it leaves them out")
+    lines.append("extra: noise the answer says anyway | people / due: said with the wrong person or direction / the wrong due date")
+    lines.append("no date: said without any date | invented: lines that look like a commitment nobody gave (an upper bound: read them with --show)")
+    bad = [r for r in results if has_problem(r)]
+    lines += ["", f"Questions with something wrong: {len(bad)} of {len(results)}"]
+    for r in bad:
+        lines.append(f"  {r.name:<44}{r.said:>3}/{r.needed:<3} missing {r.missing}, extra {r.extra}, people {r.wrong_people}, due {r.wrong_due}, invented {r.invented}" + (", DEGRADED" if r.degraded else ""))
+    if checks:
+        lines += ["", "Degradation checks:"] + [f"  {'ok  ' if c.ok else 'FAIL'} {c.name}: {c.detail}" for c in checks]
     if show:
         for r in results:
-            lines += ["", f"=== {r.name}: {r.question}", r.answer]
-            if r.omitted:
-                lines += ["-- omitted:"] + [f"   {line}" for line in r.omitted]
-            if r.extra:
-                lines += ["-- extra:"] + [f"   {line}" for line in r.extra]
+            lines += ["", f"=== {r.name} [{r.category}]: {r.question}", r.answer]
+            for kind, found in r.lines.items():
+                if found:
+                    lines += [f"-- {kind}:"] + [f"   {line}" for line in found]
     return "\n".join(lines)
 
 
-def log_run(results: list[QuestionResult], company: str, model: str, extraction_model: str, prompt: Path, db_path: str, questions_version: str) -> run_log.RunRecord:
+def log_run(results: list[QuestionResult], checks: list[DegradationCheck], company: str, model: str, prompt: Path, versions: str) -> run_log.RunRecord:
     """Add the evaluation to the run log: what was tried, the totals and the counts of each question."""
     t = totals(results)
+    metrics = {k: float(v) for k, v in asdict(t).items()}
+    metrics["degradation_checks_failed"] = float(sum(not c.ok for c in checks))
     return run_log.append_run(
-        stage="chat",
-        params={
-            "dataset": company,
-            "model": model,
-            "extraction_model": extraction_model,
-            "prompt_sha256": hashlib.sha256(prompt.read_bytes()).hexdigest()[:12],
-            "database": Path(db_path).name,
-            "questions_version": questions_version,
-        },
-        metrics={k: float(v) for k, v in asdict(t).items()},
+        stage=STAGE,
+        params={"dataset": company, "model": model, "prompt_sha256": hashlib.sha256(prompt.read_bytes()).hexdigest()[:12], "bank_versions": versions},
+        metrics=metrics,
         details={
             r.name: {
-                "expected": r.expected,
-                "lost_in_extraction": r.lost_in_extraction,
-                "retrieved": r.retrieved,
-                "needed_retrieved": r.needed_retrieved,
-                "needed_in_answer": r.needed_in_answer,
-                "extra_in_answer": r.extra_in_answer,
+                "needed": r.needed,
+                "said": r.said,
+                "missing": r.missing,
+                "extra": r.extra,
+                "wrong_people": r.wrong_people,
+                "wrong_due": r.wrong_due,
+                "invented": r.invented,
             }
             for r in results
         },
@@ -296,44 +304,40 @@ def main(argv: list[str]) -> int:
     defaults = Settings.from_env()
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("company")
-    parser.add_argument("--db", default=defaults.db_path, help="database with the extracted commitments; it is copied, never written (default: DB_PATH)")
     parser.add_argument("--model", default=defaults.llm_model, help="model that answers (default: LLM_MODEL)")
-    parser.add_argument("--extraction-model", default=defaults.llm_model, help="model that extracts the held-out document (default: LLM_MODEL)")
     parser.add_argument("--prompt", type=Path, default=PROMPT_PATH, help="instructions of the answering prompt (default: the app's)")
-    parser.add_argument("--question", action="append", dest="questions", help="measure only this question id (repeatable)")
-    parser.add_argument("--show", action="store_true", help="print each answer and the commitments it omitted or added")
+    parser.add_argument("--question", action="append", dest="questions", help="only the questions whose id contains this text (repeatable)")
+    parser.add_argument("--category", action="append", dest="categories", help="only this category (repeatable)")
+    parser.add_argument("--show", action="store_true", help="print each answer and what was wrong in it")
     parser.add_argument("--out", type=Path, help="write the full results, answers included, to this JSON file")
     parser.add_argument("--no-log", action="store_true", help="do not add the run to runs/metrics.jsonl")
     args = parser.parse_args(argv)
 
     company_dir = ROOT / "data" / args.company
-    if not company_dir.is_dir():
-        print(f"no dataset at {company_dir}")
-        return 1
-    if not Path(args.db).exists():
-        print(f"no database at {args.db}")
+    if not (company_dir / BANK_FILE).exists():
+        print(f"no {BANK_FILE} at {company_dir}: run scripts/chat_bank.py {args.company} first")
         return 1
     if defaults.llm_backend == "fake":
         print("LLM_BACKEND=fake: the answers are fixed text, so this only checks the plumbing")
     llm = build_llm(replace(defaults, llm_model=args.model))
-    extraction_llm = build_llm(replace(defaults, llm_model=args.extraction_model))
     try:
-        results = evaluate(
-            company_dir, args.db, defaults.owner_id, llm, extraction_llm, args.prompt, args.questions, context_tokens=defaults.context_tokens
-        )
+        results, checks, records = evaluate(company_dir, llm, args.prompt, args.questions, args.categories, defaults.context_tokens)
     except ValueError as error:
         print(error)
         return 1
     print()
-    print(format_report(results, args.show))
+    print(format_report(results, checks, args.show))
+    if all(r.degraded for r in results):
+        print(f"\nevery answer came back degraded: the LLM did not answer (is {args.model} available at LLM_BASE_URL?). Nothing was logged.")
+        return 1
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(json.dumps([asdict(r) for r in results], ensure_ascii=False, indent=2), encoding="utf-8")
+        args.out.write_text(json.dumps({"results": [asdict(r) for r in results], "degradation": [asdict(c) for c in checks]}, ensure_ascii=False, indent=2), encoding="utf-8")
     if not args.no_log:
-        version = ",".join(sorted({q["version"] for q in load_latest_questions(company_dir / "questions.jsonl")}))
-        record = log_run(results, args.company, args.model, args.extraction_model, args.prompt, args.db, version)
+        versions = ",".join(sorted({r["version"] for r in records}))
+        record = log_run(results, checks, args.company, args.model, args.prompt, versions)
         print(f"\nlogged in {run_log.DEFAULT_LOG.relative_to(ROOT)} (commit {record['git']['commit']}{'*' if record['git']['dirty'] else ''})")
-    return 0
+    return 1 if any(not c.ok for c in checks) else 0
 
 
 if __name__ == "__main__":
