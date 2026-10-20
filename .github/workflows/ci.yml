@@ -15,6 +15,7 @@ jobs:
       - run: uv sync
       - run: uv run pytest
       - run: uv run scripts/check_dataset.py
+      - run: uv run scripts/check_chat_judge.py
       - run: uv run scripts/evaluate_retrieval.py lamanija --strict --no-log
       - run: uv run scripts/smoke_test.py
       - run: docker build -t kalia .
