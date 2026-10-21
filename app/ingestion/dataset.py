@@ -1,6 +1,7 @@
 """Dataset adapter: reads `data/<company>/` (format in docs/DATASET.md) as a document source."""
 
 import json
+import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
@@ -12,6 +13,8 @@ from app.extraction.run import extract_and_store
 from app.ingestion import ingest_document
 from app.models import Catalog, Document, DocumentType, Person, Project
 from app.storage import Store
+
+logger = logging.getLogger(__name__)
 
 
 class CompanyInfo(TypedDict):
@@ -76,6 +79,11 @@ def parse_document(path: Path) -> Document:
     )
 
 
+# After this many extractions in a row fail, the LLM is taken as unreachable and the rest are not tried: with every call
+# waiting for its timeout, a load of 24 documents would otherwise take that timeout 24 times.
+MAX_CONSECUTIVE_FAILURES = 3
+
+
 @dataclass(frozen=True)
 class LoadResult:
     documents: int
@@ -86,17 +94,30 @@ def load_dataset(company_dir: Path, store: Store, extractor: CommitmentExtractor
     """Store the catalog and every non-held-out document; return how many documents and which extractions failed.
 
     With an `extractor`, also store each document's commitments; a document whose extraction fails is logged and left
-    without commitments, and the load goes on. Without one, no commitments are stored.
+    without commitments, and the load goes on, unless `MAX_CONSECUTIVE_FAILURES` extractions fail in a row: the
+    remaining documents are then stored without trying and counted as failed. Without an extractor, no commitments
+    are stored.
     """
     source = DatasetSource(company_dir)
     store.save_catalog(source.catalog())
     count = 0
     failed: list[str] = []
+    in_a_row = 0
     for document in source.documents():
         ingest_document(document, store)
-        if extractor is not None and not extract_and_store(document, extractor, store):
-            failed.append(document.id)
         count += 1
+        if extractor is None:
+            continue
+        if in_a_row >= MAX_CONSECUTIVE_FAILURES:
+            failed.append(document.id)
+            continue
+        if extract_and_store(document, extractor, store):
+            in_a_row = 0
+            continue
+        failed.append(document.id)
+        in_a_row += 1
+        if in_a_row == MAX_CONSECUTIVE_FAILURES:
+            logger.warning("%d extractions failed in a row: the LLM looks unreachable, the other documents are not tried", in_a_row)
     return LoadResult(count, tuple(failed))
 
 

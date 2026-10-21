@@ -6,7 +6,7 @@ import urllib.request
 
 from app.llm import LLMError
 
-TIMEOUT_SECONDS = 120.0
+TIMEOUT_SECONDS = 60.0
 
 
 class OllamaLLM:
