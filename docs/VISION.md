@@ -60,6 +60,9 @@ Solo temas: sin orden y sin estado. El trabajo concreto pasa a ser GitHub Issues
 - Preguntas de aclaración y aprendizaje por usuario.
 - Red de avatares con privilegios jerárquicos.
 - Proceso residente en segundo plano en la PC del usuario.
+- Calidad de la extracción: qué parte de los compromisos de un documento se captura, con qué modelo y con qué diseño (un solo LLM, varios pasos, agentes).
+- Calidad de la recuperación: qué compromisos se traen para una pregunta, y cómo se entiende una pregunta escrita de cualquier manera.
+- Versión alojada en un servidor, para que otras personas la prueben subiendo sus propios documentos sin clonar el repositorio (implica varios usuarios, autenticación y qué pasa con documentos de terceros).
 
 ## V0 como primer paso
 
