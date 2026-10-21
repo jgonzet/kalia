@@ -2,6 +2,7 @@
 
 import json
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import TypedDict, cast, get_args
@@ -75,8 +76,14 @@ def parse_document(path: Path) -> Document:
     )
 
 
-def load_dataset(company_dir: Path, store: Store, extractor: CommitmentExtractor | None = None) -> int:
-    """Store the catalog and every non-held-out document; return how many documents.
+@dataclass(frozen=True)
+class LoadResult:
+    documents: int
+    failed: tuple[str, ...]  # ids of the documents whose extraction failed; always empty without an extractor
+
+
+def load_dataset(company_dir: Path, store: Store, extractor: CommitmentExtractor | None = None) -> LoadResult:
+    """Store the catalog and every non-held-out document; return how many documents and which extractions failed.
 
     With an `extractor`, also store each document's commitments; a document whose extraction fails is logged and left
     without commitments, and the load goes on. Without one, no commitments are stored.
@@ -84,12 +91,13 @@ def load_dataset(company_dir: Path, store: Store, extractor: CommitmentExtractor
     source = DatasetSource(company_dir)
     store.save_catalog(source.catalog())
     count = 0
+    failed: list[str] = []
     for document in source.documents():
         ingest_document(document, store)
-        if extractor is not None:
-            extract_and_store(document, extractor, store)
+        if extractor is not None and not extract_and_store(document, extractor, store):
+            failed.append(document.id)
         count += 1
-    return count
+    return LoadResult(count, tuple(failed))
 
 
 def _read_jsonl(path: Path) -> list[dict[str, str | int | None]]:

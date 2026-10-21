@@ -40,9 +40,12 @@ function add(className, text) {
 // Say clearly when the data is a sample and where its commitments came from, so nobody reads them as a measure of the extraction.
 fetch("/sample").then((r) => r.json()).then((s) => {
   if (!s.loaded) return;
-  const how = s.commitments_source === "extraction"
-    ? `se extrajeron al arrancar con tu LLM (${s.llm_model})`
-    : "vienen precalculados, no se extrajeron ahora";
+  let how = "vienen precalculados, no se extrajeron ahora";
+  if (s.commitments_source === "extraction") {
+    how = s.failed_documents
+      ? `se intentaron extraer al arrancar con tu LLM (${s.llm_model}), pero falló en ${s.failed_documents} documentos, que quedaron sin compromisos`
+      : `se extrajeron al arrancar con tu LLM (${s.llm_model})`;
+  }
   const box = document.getElementById("sample");
   box.textContent = `Datos de ejemplo (${s.company}). Los compromisos ${how}.`;
   box.hidden = false;

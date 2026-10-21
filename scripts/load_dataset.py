@@ -24,8 +24,8 @@ def main(argv: list[str]) -> int:
         print(f"no dataset at {company_dir}")
         return 1
     settings = Settings.from_env()
-    count = load_dataset(company_dir, SqliteStore(settings.db_path, settings.owner_id))
-    print(f"loaded {count} documents and the catalog into {settings.db_path}")
+    result = load_dataset(company_dir, SqliteStore(settings.db_path, settings.owner_id))
+    print(f"loaded {result.documents} documents and the catalog into {settings.db_path}")
     return 0
 
 

@@ -19,29 +19,41 @@ class SampleInfo:
 
     company: str
     commitments_source: CommitmentsSource
+    failed_documents: int = 0  # documents whose extraction failed in this start; 0 when nothing was loaded now
 
 
 def prepare_sample(settings: Settings, store: Store, extractor: CommitmentExtractor | None) -> tuple[Settings, SampleInfo]:
-    """Load `data/<SAMPLE_COMPANY>/` into an empty store; return the settings with its date as the default "today", and its info.
+    """Load `data/<SAMPLE_COMPANY>/` into the store; return the settings with its date as the default "today", and its info.
 
-    A store that already has a catalog is left as it is. The commitments come from `COMMITMENTS_SOURCE`: the `expected`
-    files, or `extractor` (None, like the fake backend, leaves the documents without commitments). The date of the
-    sample's `company.json` is used only when `REFERENCE_DATE` is not set. The info reports the current
-    `COMMITMENTS_SOURCE`, which is not what a store loaded by an earlier run was filled with.
+    It loads when the store has no catalog or lacks a document of the sample (an interrupted load is completed on the
+    next start, since loading again replaces what was there); a store that holds the whole sample is left as it is.
+    The commitments come from `COMMITMENTS_SOURCE`: the `expected` files, or `extractor` (None, like the fake backend,
+    leaves the documents without commitments). The date of the sample's `company.json` is used only when
+    `REFERENCE_DATE` is not set. The info reports the current `COMMITMENTS_SOURCE`, which is not what a store loaded
+    by an earlier run was filled with, and how many extractions failed in this start.
     """
     company_dir = ROOT / "data" / str(settings.sample_company)
     if not (company_dir / "company.json").is_file():
         raise ValueError(f"SAMPLE_COMPANY={settings.sample_company!r}: no dataset at {company_dir}")
-    if store.load_catalog() is None:
+    failed = 0
+    source_docs = DatasetSource(company_dir).documents()
+    if store.load_catalog() is None or any(store.get_document(d.id) is None for d in source_docs):
         if settings.commitments_source == "expected":
             source: CommitmentExtractor | None = ExpectedCommitmentsReader(company_dir, settings.owner_id)
         else:
             source = extractor
             if source is None:
                 logger.warning("COMMITMENTS_SOURCE=extraction but this LLM backend extracts nothing: no commitments loaded")
-        count = load_dataset(company_dir, store, source)
-        logger.info("sample %s loaded: %d documents, commitments from %s", settings.sample_company, count, settings.commitments_source)
+        result = load_dataset(company_dir, store, source)
+        failed = len(result.failed)
+        logger.info(
+            "sample %s loaded: %d documents, commitments from %s, %d extractions failed",
+            settings.sample_company,
+            result.documents,
+            settings.commitments_source,
+            failed,
+        )
     company = DatasetSource(company_dir).company
     if settings.reference_date is None:
         settings = replace(settings, reference_date=date.fromisoformat(company["reference_date"]))
-    return settings, SampleInfo(company["name"], settings.commitments_source)
+    return settings, SampleInfo(company["name"], settings.commitments_source, failed)

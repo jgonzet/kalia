@@ -38,6 +38,7 @@ class SampleResponse(BaseModel):
     company: str | None = None
     commitments_source: str | None = None
     llm_model: str | None = None  # only when the commitments were extracted by the LLM
+    failed_documents: int = 0  # documents whose extraction failed when the sample was loaded
 
 
 class DocumentIn(BaseModel):
@@ -120,7 +121,13 @@ def create_app(
         if sample is None:
             return SampleResponse(loaded=False)
         model = settings.llm_model if sample.commitments_source == "extraction" else None
-        return SampleResponse(loaded=True, company=sample.company, commitments_source=sample.commitments_source, llm_model=model)
+        return SampleResponse(
+            loaded=True,
+            company=sample.company,
+            commitments_source=sample.commitments_source,
+            llm_model=model,
+            failed_documents=sample.failed_documents,
+        )
 
     @app.post("/documents")
     def post_document(body: DocumentIn) -> IngestResponse:
