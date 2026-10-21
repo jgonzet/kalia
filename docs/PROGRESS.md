@@ -2,13 +2,14 @@
 
 ## Next
 
-1. #32 — Reorganize scripts/ by topic
-2. #33 — Make the count of invented commitments in the chat bank trustworthy
-3. #21 — Report retrieval and answer metrics together in the chat evaluation
-4. #13 — Add unit tests and selected integration tests for the first full iteration
-5. #30 — Make "this week" end on Friday, as the working week does
+1. #36 — Make docker compose up end with a chat that has the documents and their commitments, and test it by starting the container
+2. #38 — Let the app use the Claude API as an LLM backend, with the key reaching the container, and keep Ollama as an option
+3. #37 — Run the acceptance questions by hand in the browser with the real extractor, and fix what blocks using the page
+4. #35 — Check that an answer reflects a document ingested after the initial load (acceptance question 5)
+5. #34 — Check that the app runs on another PC following only the README
+6. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
 
-Synced at: 7f17efd
+Synced at: a8c222a
 
 This file is filled in with each /close-feature.
 
