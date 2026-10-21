@@ -6,6 +6,8 @@ from datetime import date
 from pathlib import Path
 from typing import TypedDict, cast, get_args
 
+from app.extraction import CommitmentExtractor
+from app.extraction.run import extract_and_store
 from app.ingestion import ingest_document
 from app.models import Catalog, Document, DocumentType, Person, Project
 from app.storage import Store
@@ -73,13 +75,19 @@ def parse_document(path: Path) -> Document:
     )
 
 
-def load_dataset(company_dir: Path, store: Store) -> int:
-    """Store the catalog and every non-held-out document; return how many documents."""
+def load_dataset(company_dir: Path, store: Store, extractor: CommitmentExtractor | None = None) -> int:
+    """Store the catalog and every non-held-out document; return how many documents.
+
+    With an `extractor`, also store each document's commitments; a document whose extraction fails is logged and left
+    without commitments, and the load goes on. Without one, no commitments are stored.
+    """
     source = DatasetSource(company_dir)
     store.save_catalog(source.catalog())
     count = 0
     for document in source.documents():
         ingest_document(document, store)
+        if extractor is not None:
+            extract_and_store(document, extractor, store)
         count += 1
     return count
 
