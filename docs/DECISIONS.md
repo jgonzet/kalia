@@ -9,6 +9,7 @@ Date: 2026-10-21
 Chose: with `SAMPLE_COMPANY` set (the image sets `lamanija`) and an empty database, `create_app` loads the 24 non-held-out documents and their commitments from `data/lamanija/expected/`; `COMMITMENTS_SOURCE=extraction` sends the documents through the configured LLM instead. The image copies only the files that loading needs. "Today" is `REFERENCE_DATE`, else the sample's `reference_date`, else the system date.
 Rejected: a loader run on the host (the container stays empty); extracting by default (needs a key or a long wait, and the chat would read as a measure of the extraction); sending the dataset through `POST /documents` (same wait, and the app would depend on a client); loading whenever the database is empty with no variable (tests and local runs would load it).
 Source: issue #36, `app/ingestion/sample.py`.
+Refined 2026-10-21: it loads whenever a document of the sample is missing from the database, not only when it is empty, so an interrupted load is completed on the next start.
 
 ## The database lives and dies with the container
 Date: 2026-10-21

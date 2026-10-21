@@ -27,19 +27,19 @@ Defaults need no setup. To override any setting, copy `.env.example` to `.env` a
 
 The app listens on <http://localhost:8000> (`/health` answers when it is up). The SQLite file lives inside the container: `docker compose down` deletes it.
 
-The chat page is at <http://localhost:8000/> and talks to `POST /chat` (`{"question": "..."}`; 1 to 1000 characters). The answer has the text, the commitments it was built from (with names) and `degraded`: true when the LLM failed and only those commitments came back. "Today" for questions such as "this week" is `REFERENCE_DATE` if set, otherwise the system date. To ask as of the dataset's day, set it to the `reference_date` in `data/<company>/company.json`. Scripts run with `uv run` read `.env` and `.env.secrets` from the project root (variables already set in the shell win); Docker Compose reads `.env`.
+The chat page is at <http://localhost:8000/> and talks to `POST /chat` (`{"question": "..."}`; 1 to 1000 characters). The answer has the text, the commitments it was built from (with names) and `degraded`: true when the LLM failed and only those commitments came back. "Today" for questions such as "this week" is `REFERENCE_DATE` if set, otherwise the sample company's date when a sample is loaded (see "The sample company"), otherwise the system date. Outside the sample, to ask as of the dataset's day, set it to the `reference_date` in `data/<company>/company.json`. Scripts run with `uv run` read `.env` and `.env.secrets` from the project root (variables already set in the shell win); Docker Compose reads `.env`.
 
 ### The sample company
 
-When the database is empty, the app loads a sample company by itself: La Manija Games, a fictional game studio, with its people and projects and 24 of its 25 documents (the 25th is kept out on purpose, for tests). Its commitments come already computed (from `data/lamanija/expected/`), so nothing is extracted at startup and no LLM is needed to load it. The chat page says so at the top. Asking questions does need Ollama or another LLM.
+When the database does not hold the sample yet, the app loads a sample company by itself: La Manija Games, a fictional game studio, with its people and projects and 24 of its 25 documents (the 25th is kept out on purpose, for tests). Its commitments come already computed (from `data/lamanija/expected/`), so nothing is extracted at startup and no LLM is needed to load it. The chat page says so at the top. Asking questions does need Ollama or another LLM.
 
 "Today" for the sample is `REFERENCE_DATE` if you set it, otherwise 2026-10-12 (the sample's own date), otherwise the system date. Documents you send are read against that same date.
 
-To have your own LLM extract the sample's commitments instead, set `COMMITMENTS_SOURCE=extraction` in `.env` (see `.env.example`). The app then waits until the 24 documents are done before it answers (minutes with a local model), and it repeats this on every `docker compose up` because nothing is kept between runs; with a paid API that costs money each time. A document whose extraction fails is left without commitments and the rest goes on.
+To have your own LLM extract the sample's commitments instead, set `COMMITMENTS_SOURCE=extraction` in `.env` (see `.env.example`). The app then waits until the 24 documents are done before it answers (minutes with a local model), and it repeats this on every `docker compose up` because nothing is kept between runs; with a paid API that costs money each time. A document whose extraction fails is left without commitments and the rest goes on; the notice on the page says how many failed.
 
 ### Send a document of your own
 
-The page has no form for this yet. Send the document to `POST /documents`; it is stored and its commitments are extracted with the LLM you configured. The participants must be people of the sample catalog, written as in `data/lamanija/people.jsonl`:
+The page has no form for this yet. Send the document to `POST /documents`; it is stored and its commitments are extracted with the LLM you configured. The participants should be people of the sample catalog, written as in `data/lamanija/people.jsonl`: a commitment whose people the catalog does not know is discarded.
 
 ```bash
 curl -X POST http://localhost:8000/documents \
@@ -62,6 +62,7 @@ Nothing stays on your machine except the image. `docker compose down` removes th
 ## Checks
 
 - Smoke test (fake LLM, needs no Ollama, also what CI runs): `uv run scripts/smoke_test.py`
+- Docker smoke test (starts the container with the fake LLM, checks the sample is loaded and removes everything; needs Docker, also what CI runs): `uv run scripts/smoke_test_docker.py`
 - Unit tests: `uv run pytest`
 - Dataset and retrieval checks (the CI runs both): `uv run scripts/check_dataset.py` and `uv run scripts/evaluate_retrieval.py lamanija --strict --no-log`
 - Manual check against the real LLM: `docker compose run --rm app python scripts/check_llm.py`
@@ -147,7 +148,7 @@ Read the numbers with these limits in mind:
 ## Known limitations
 
 - `POST /documents` extracts commitments only with the real LLM backend (Ollama by default). With the fake one, or if the call fails, the document is stored and the response says `extracted: false`.
-- The Docker image carries only the files needed to load the sample company (`data/lamanija/`: catalog, documents and answer keys), not the question banks or the scripts. The evaluation and loading scripts run on the host.
+- The Docker image carries only the files needed to load the sample company (`data/lamanija/`: catalog, documents and answer keys), not the question banks or the scripts (except `scripts/check_llm.py`). The evaluation and loading scripts run on the host.
 - The database inside Docker is deleted with the container (`docker compose down`): nothing you send is kept between runs. Outside Docker, `DB_PATH` is a file that stays.
 - Scripts read both `.env` and `.env.secrets`, but Docker Compose passes only `.env` to the container, so an API key in `.env.secrets` does not reach the app in Docker. Ollama, the default, needs no key.
 - Single user, no authentication.

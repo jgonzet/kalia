@@ -8,7 +8,7 @@
 4. #34 — Check that the app runs on another PC following only the README
 5. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
 
-Synced at: e4dc195
+Synced at: db9ce14
 
 This file is filled in with each /close-feature.
 
@@ -276,3 +276,5 @@ Decisions recorded: "Today is `REFERENCE_DATE`, else the system date" (replaces 
 **Tests:** 220 tests pass (no new unit tests; `tests/test_config.py` now also clears `SAMPLE_COMPANY` and `COMMITMENTS_SOURCE`). `scripts/smoke_test.py` checks that `/sample` says `loaded: false` without a sample. `scripts/smoke_test_docker.py` is new and passed locally (about 10 s with the image cached). Loading `expected` into a temporary database and measuring it with `evaluate_extraction.py` gave 73 of 73 commitments, with due date and project correct. `ExpectedCommitmentsReader`, `prepare_sample` and `GET /sample` have no unit test of their own.
 
 **Issues:** closed #36. Opened while working on it, apart from this unit: #40 (let the chat page send a document to be extracted).
+
+— Refined 2026-10-21 (final audit): `prepare_sample` loads when the catalog or any document of the sample is missing, not only on an empty database, because a load interrupted during a long extraction was taken as complete on the next start (`stop` and `up` reuse the container). `load_dataset` now returns `LoadResult(documents, failed)`, `GET /sample` adds `failed_documents`, and the page says how many extractions failed: with an unreachable LLM the notice used to say "extracted with your LLM" over a chat with no commitments.
