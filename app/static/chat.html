@@ -11,12 +11,14 @@
   .a { background: #f4f4f4; padding: .5rem .75rem; border-radius: .5rem; white-space: pre-wrap; }
   .a.degraded { background: #fff4e5; }
   .a ul { margin: .5rem 0 0; padding-left: 1.25rem; }
+  #sample { background: #fffbe6; border: 1px solid #f0e2a0; padding: .5rem .75rem; border-radius: .5rem; margin-bottom: 1rem; font-size: .9rem; }
   form { display: flex; gap: .5rem; }
   input { flex: 1; padding: .5rem; }
 </style>
 </head>
 <body>
 <h1>KALIA</h1>
+<div id="sample" hidden></div>
 <div id="log"></div>
 <form id="form">
   <input id="question" autocomplete="off" maxlength="1000" placeholder="Preguntá por los compromisos..." required>
@@ -34,6 +36,17 @@ function add(className, text) {
   log.appendChild(div);
   return div;
 }
+
+// Say clearly when the data is a sample and where its commitments came from, so nobody reads them as a measure of the extraction.
+fetch("/sample").then((r) => r.json()).then((s) => {
+  if (!s.loaded) return;
+  const how = s.commitments_source === "extraction"
+    ? `se extrajeron al arrancar con tu LLM (${s.llm_model})`
+    : "vienen precalculados, no se extrajeron ahora";
+  const box = document.getElementById("sample");
+  box.textContent = `Datos de ejemplo (${s.company}). Los compromisos ${how}.`;
+  box.hidden = false;
+}).catch(() => {});  // without the notice the page still works
 
 document.getElementById("form").addEventListener("submit", async (event) => {
   event.preventDefault();
