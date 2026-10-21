@@ -18,7 +18,8 @@ import httpx
 ROOT = Path(__file__).resolve().parent.parent
 PROJECT = "kalia-smoke"
 STARTUP_TIMEOUT_SECONDS = 60.0
-SAMPLE_REFERENCE_DATE = date(2026, 10, 12)  # reference_date of data/lamanija/company.json
+SAMPLE = json.loads((ROOT / "data" / "lamanija" / "company.json").read_text(encoding="utf-8"))
+SAMPLE_REFERENCE_DATE = date.fromisoformat(SAMPLE["reference_date"])
 
 # Merged over compose.yaml: a free port, the fake LLM, and no `.env` so the machine's own settings do not leak in.
 OVERRIDE = """\
@@ -65,7 +66,13 @@ def wait_for_health(base_url: str) -> None:
 def check_sample(base_url: str) -> None:
     """Check that the sample was loaded by itself, says so, and that "today" is the sample's date, not the system's."""
     sample = httpx.get(f"{base_url}/sample", timeout=5.0).json()
-    assert sample == {"loaded": True, "company": "La Manija Games", "commitments_source": "expected", "llm_model": None}, sample
+    assert sample == {
+        "loaded": True,
+        "company": SAMPLE["name"],
+        "commitments_source": "expected",
+        "llm_model": None,
+        "failed_documents": 0,
+    }, sample
     answer = httpx.post(f"{base_url}/chat", json={"question": "¿Qué compromisos tengo?"}, timeout=10.0).json()
     assert answer["commitments"], "the chat has no commitments: the sample was not loaded"
     week = httpx.post(f"{base_url}/chat", json={"question": "¿Qué compromisos vencen esta semana?"}, timeout=10.0).json()
