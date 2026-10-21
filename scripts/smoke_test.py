@@ -155,6 +155,7 @@ def check_chat(base_url: str, db_path: str) -> None:
     assert answer.status_code == 200 and data["answer"] == "fake response" and data["degraded"] is False, answer.text
     assert data["commitments"], "the chat returned no commitments from the loaded database"
     assert "<form" in httpx.get(f"{base_url}/", timeout=5.0).text, "chat page was not served"
+    assert httpx.get(f"{base_url}/sample", timeout=5.0).json()["loaded"] is False, "the service claims to hold a sample"
 
     store = SqliteStore(db_path, OWNER_ID)  # the failing LLM cannot be injected into the running service
     failed = TestClient(create_app(llm=FailingLLM(), store=store)).post("/chat", json={"question": "¿Qué compromisos tengo?"})

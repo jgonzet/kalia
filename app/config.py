@@ -9,6 +9,10 @@ from typing import Literal
 LLMBackend = Literal["ollama", "openai_compatible", "fake"]
 LLM_BACKENDS = ("ollama", "openai_compatible", "fake")
 
+# Where the commitments of the sample company come from: its `expected` files, or the configured LLM.
+CommitmentsSource = Literal["expected", "extraction"]
+COMMITMENTS_SOURCES = ("expected", "extraction")
+
 # Ollama's native API is at the server root; any OpenAI-compatible endpoint is at `/v1`.
 DEFAULT_BASE_URLS = {"ollama": "http://localhost:11434", "openai_compatible": "http://localhost:11434/v1"}
 # The context window the app asks Ollama for. Measured on 2026-10-17 with `qwen2.5:14b` on a 12 GB GPU: 10240 tokens
@@ -44,6 +48,8 @@ class Settings:
     reference_date: date | None = None
     db_path: str = "kalia.db"
     owner_id: str = "local"
+    sample_company: str | None = None
+    commitments_source: CommitmentsSource = "expected"
 
     # property: use it like a field, `settings.today`, without parentheses.
     @property
@@ -77,6 +83,9 @@ class Settings:
             raise ValueError(f"LLM_BACKEND must be one of {', '.join(LLM_BACKENDS)}, got {backend!r}")
         context_tokens = os.environ.get("LLM_CONTEXT_TOKENS")
         reference_date = os.environ.get("REFERENCE_DATE")
+        source = os.environ.get("COMMITMENTS_SOURCE") or defaults.commitments_source
+        if source not in COMMITMENTS_SOURCES:
+            raise ValueError(f"COMMITMENTS_SOURCE must be one of {', '.join(COMMITMENTS_SOURCES)}, got {source!r}")
         return cls(
             llm_backend=backend,
             llm_base_url=os.environ.get("LLM_BASE_URL") or defaults.llm_base_url,
@@ -86,4 +95,6 @@ class Settings:
             reference_date=date.fromisoformat(reference_date) if reference_date else None,
             db_path=os.environ.get("DB_PATH") or defaults.db_path,
             owner_id=os.environ.get("OWNER_ID") or defaults.owner_id,
+            sample_company=os.environ.get("SAMPLE_COMPANY") or defaults.sample_company,
+            commitments_source=source,
         )

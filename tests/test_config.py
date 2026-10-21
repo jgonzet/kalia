@@ -6,7 +6,7 @@ import pytest
 import app.config as config
 from app.config import Settings
 
-ENV_VARS = ("LLM_BACKEND", "LLM_BASE_URL", "LLM_CONTEXT_TOKENS", "LLM_MODEL", "LLM_API_KEY", "REFERENCE_DATE", "DB_PATH")
+ENV_VARS = ("LLM_BACKEND", "LLM_BASE_URL", "LLM_CONTEXT_TOKENS", "LLM_MODEL", "LLM_API_KEY", "REFERENCE_DATE", "DB_PATH", "SAMPLE_COMPANY", "COMMITMENTS_SOURCE")
 
 
 @pytest.fixture(autouse=True)

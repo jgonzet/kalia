@@ -16,6 +16,7 @@ from app.extraction import CommitmentExtractor
 from app.extraction.llm_extractor import LLMExtractor
 from app.extraction.run import extract_and_store
 from app.ingestion import ingest_document
+from app.ingestion.sample import SampleInfo, prepare_sample
 from app.llm import LLMClient, build_llm
 from app.models import Document, DocumentType
 from app.storage import Store
@@ -28,6 +29,15 @@ MAX_QUESTION_CHARS = 1000
 class HealthResponse(BaseModel):
     status: str
     llm_backend: str
+
+
+class SampleResponse(BaseModel):
+    """What the chat page says about the loaded data; `loaded` is false when the app has no sample company."""
+
+    loaded: bool
+    company: str | None = None
+    commitments_source: str | None = None
+    llm_model: str | None = None  # only when the commitments were extracted by the LLM
 
 
 class DocumentIn(BaseModel):
@@ -86,6 +96,9 @@ def create_app(
     store = store or SqliteStore(settings.db_path, settings.owner_id)
     if extractor is None and settings.llm_backend != "fake":
         extractor = LLMExtractor(llm, settings.owner_id)
+    sample: SampleInfo | None = None
+    if settings.sample_company:
+        settings, sample = prepare_sample(settings, store, extractor)
 
     def current_answerer() -> Answerer:
         """The injected answerer, or one built with "today" as of this request, so it does not freeze at startup."""
@@ -100,6 +113,14 @@ def create_app(
     @app.get("/health")
     def health() -> HealthResponse:
         return HealthResponse(status="ok", llm_backend=settings.llm_backend)
+
+    @app.get("/sample")
+    def sample_info() -> SampleResponse:
+        """Tell the chat page whether the data is a sample and where its commitments came from."""
+        if sample is None:
+            return SampleResponse(loaded=False)
+        model = settings.llm_model if sample.commitments_source == "extraction" else None
+        return SampleResponse(loaded=True, company=sample.company, commitments_source=sample.commitments_source, llm_model=model)
 
     @app.post("/documents")
     def post_document(body: DocumentIn) -> IngestResponse:
