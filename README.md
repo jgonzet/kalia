@@ -35,7 +35,7 @@ When the database does not hold the sample yet, the app loads a sample company b
 
 "Today" for the sample is `REFERENCE_DATE` if you set it, otherwise 2026-10-12 (the sample's own date), otherwise the system date. Documents you send are read against that same date.
 
-To have your own LLM extract the sample's commitments instead, set `COMMITMENTS_SOURCE=extraction` in `.env` (see `.env.example`). The app then waits until the 24 documents are done before it answers (minutes with a local model), and it repeats this on every `docker compose up` because nothing is kept between runs; with a paid API that costs money each time. A document whose extraction fails is left without commitments and the rest goes on; the notice on the page says how many failed.
+To have your own LLM extract the sample's commitments instead, set `COMMITMENTS_SOURCE=extraction` in `.env` (see `.env.example`). The app then waits until the 24 documents are done before it answers (minutes with a local model), and it repeats this on every `docker compose up` because nothing is kept between runs; with a paid API that costs money each time. A document whose extraction fails is left without commitments and the rest goes on, unless three fail in a row: the LLM is then taken as unreachable and the others are not tried. The notice on the page says how many failed. Each call to the LLM waits at most 60 seconds.
 
 ### Send a document of your own
 

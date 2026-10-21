@@ -8,7 +8,7 @@
 4. #34 — Check that the app runs on another PC following only the README
 5. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
 
-Synced at: db9ce14
+Synced at: 06cd465
 
 This file is filled in with each /close-feature.
 
@@ -278,3 +278,7 @@ Decisions recorded: "Today is `REFERENCE_DATE`, else the system date" (replaces 
 **Issues:** closed #36. Opened while working on it, apart from this unit: #40 (let the chat page send a document to be extracted).
 
 — Refined 2026-10-21 (final audit): `prepare_sample` loads when the catalog or any document of the sample is missing, not only on an empty database, because a load interrupted during a long extraction was taken as complete on the next start (`stop` and `up` reuse the container). `load_dataset` now returns `LoadResult(documents, failed)`, `GET /sample` adds `failed_documents`, and the page says how many extractions failed: with an unreachable LLM the notice used to say "extracted with your LLM" over a chat with no commitments.
+
+— Resolved 2026-10-21: the first CI run on GitHub passed, with the container smoke test (the version of Compose on `ubuntu-latest` accepts `!override` and `!reset`).
+
+— Refined 2026-10-21: the timeout of each LLM call is 60 seconds (it was 120) in both clients, and `load_dataset` stops trying after `MAX_CONSECUTIVE_FAILURES` (3) extractions in a row fail, counting the rest as failed: with an unreachable LLM that does not answer, the start waited a timeout per document (24 times). With `openai_compatible` the SDK still retries each call twice, so a call that times out can wait up to three timeouts. A slow machine can need more than 60 seconds for one call (a cold model, a long answer); there is no setting for it yet. `tests/test_sample.py` adds 14 tests (234 pass): the reader of precomputed commitments, `load_dataset` with failures, `prepare_sample` (complete, interrupted and failed loads; "today") and `GET /sample`; broken on purpose (the old check of an empty database, no stop after failures, `who` and `to_whom` swapped), three of them fail.
