@@ -10,7 +10,7 @@ V0, a first slice that runs locally for a single user on a synthetic dataset. It
 
 1. A catalog (people, projects) and documents are ingested one at a time.
 2. An LLM extracts commitments from each document and links them to the catalog.
-3. Commitments are stored persistently.
+3. Commitments are stored in a SQLite file. Inside Docker the file is deleted with the container, so nothing is kept between runs.
 4. A question in the chat retrieves the relevant commitments, and an LLM answers using only those.
 
 The LLM is replaceable: Ollama through its native API (the default) or any OpenAI-compatible endpoint, local or API-based (`LLM_BACKEND`).
@@ -25,9 +25,39 @@ docker compose up --build
 
 Defaults need no setup. To override any setting, copy `.env.example` to `.env` and uncomment the lines you want to change.
 
-The app listens on <http://localhost:8000> (`/health` answers when it is up). The SQLite file lives in a Docker volume.
+The app listens on <http://localhost:8000> (`/health` answers when it is up). The SQLite file lives inside the container: `docker compose down` deletes it.
 
 The chat page is at <http://localhost:8000/> and talks to `POST /chat` (`{"question": "..."}`; 1 to 1000 characters). The answer has the text, the commitments it was built from (with names) and `degraded`: true when the LLM failed and only those commitments came back. "Today" for questions such as "this week" is `REFERENCE_DATE` if set, otherwise the system date. To ask as of the dataset's day, set it to the `reference_date` in `data/<company>/company.json`. Scripts run with `uv run` read `.env` and `.env.secrets` from the project root (variables already set in the shell win); Docker Compose reads `.env`.
+
+### The sample company
+
+When the database is empty, the app loads a sample company by itself: La Manija Games, a fictional game studio, with its people and projects and 24 of its 25 documents (the 25th is kept out on purpose, for tests). Its commitments come already computed (from `data/lamanija/expected/`), so nothing is extracted at startup and no LLM is needed to load it. The chat page says so at the top. Asking questions does need Ollama or another LLM.
+
+"Today" for the sample is `REFERENCE_DATE` if you set it, otherwise 2026-10-12 (the sample's own date), otherwise the system date. Documents you send are read against that same date.
+
+To have your own LLM extract the sample's commitments instead, set `COMMITMENTS_SOURCE=extraction` in `.env` (see `.env.example`). The app then waits until the 24 documents are done before it answers (minutes with a local model), and it repeats this on every `docker compose up` because nothing is kept between runs; with a paid API that costs money each time. A document whose extraction fails is left without commitments and the rest goes on.
+
+### Send a document of your own
+
+The page has no form for this yet. Send the document to `POST /documents`; it is stored and its commitments are extracted with the LLM you configured. The participants must be people of the sample catalog, written as in `data/lamanija/people.jsonl`:
+
+```bash
+curl -X POST http://localhost:8000/documents \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "id": "my-document-1",
+    "type": "email",
+    "date": "2026-10-12",
+    "participants": ["Lalo Landa", "Waylon Smithers"],
+    "text": "Hola Lalo, te confirmo que el 16 de octubre te paso el presupuesto actualizado de Jimboland. Saludos, Waylon"
+  }'
+```
+
+`type` is `email`, `meeting` or `chat`. The answer is `{"id": "my-document-1", "stored": true, "extracted": true}`; `extracted: false` means the document is stored but no commitments came out (the LLM failed, or the backend is the fake one). Sending the same `id` again replaces the document. Then ask the chat about it.
+
+### Clean up
+
+Nothing stays on your machine except the image. `docker compose down` removes the container and its database; `docker compose down --rmi local` also removes the image.
 
 ## Checks
 
@@ -42,7 +72,7 @@ Environment variables are listed in `.env.example`, which is the only source.
 
 ## Load the synthetic dataset
 
-`uv run scripts/load_dataset.py lamanija` stores the catalog and every document except the held-out one in the SQLite file (`DB_PATH`). A further document is added with `POST /documents`.
+Inside Docker the app does this by itself (see "The sample company"). Outside Docker, `uv run scripts/load_dataset.py lamanija` stores the catalog and every document except the held-out one in the SQLite file (`DB_PATH`), without commitments. A further document is added with `POST /documents`.
 
 ## Extract commitments with an external Claude session
 
@@ -117,7 +147,8 @@ Read the numbers with these limits in mind:
 ## Known limitations
 
 - `POST /documents` extracts commitments only with the real LLM backend (Ollama by default). With the fake one, or if the call fails, the document is stored and the response says `extracted: false`.
-- The dataset in `data/` is not part of the Docker image, so the loader runs on the host, not inside the container.
+- The Docker image carries only the files needed to load the sample company (`data/lamanija/`: catalog, documents and answer keys), not the question banks or the scripts. The evaluation and loading scripts run on the host.
+- The database inside Docker is deleted with the container (`docker compose down`): nothing you send is kept between runs. Outside Docker, `DB_PATH` is a file that stays.
 - Scripts read both `.env` and `.env.secrets`, but Docker Compose passes only `.env` to the container, so an API key in `.env.secrets` does not reach the app in Docker. Ollama, the default, needs no key.
 - Single user, no authentication.
 - Content is synthetic and in Spanish.

@@ -2,14 +2,13 @@
 
 ## Next
 
-1. #36 — Make docker compose up end with a chat that has the documents and their commitments, and test it by starting the container
-2. #38 — Let the app use the Claude API as an LLM backend, with the key reaching the container, and keep Ollama as an option
-3. #37 — Run the acceptance questions by hand in the browser with the real extractor, and fix what blocks using the page
-4. #35 — Check that an answer reflects a document ingested after the initial load (acceptance question 5)
-5. #34 — Check that the app runs on another PC following only the README
-6. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
+1. #38 — Let the app use the Claude API as an LLM backend, with the key reaching the container, and keep Ollama as an option
+2. #37 — Run the acceptance questions by hand in the browser with the real extractor, and fix what blocks using the page
+3. #35 — Check that an answer reflects a document ingested after the initial load (acceptance question 5)
+4. #34 — Check that the app runs on another PC following only the README
+5. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
 
-Synced at: a8c222a
+Synced at: e4dc195
 
 This file is filled in with each /close-feature.
 
@@ -239,3 +238,41 @@ Decisions recorded: "Today is `REFERENCE_DATE`, else the system date" (replaces 
 **Tests:** 220 tests pass (173 before): `tests/test_chat_judge.py` (parts of the judge), `tests/test_chat_bank.py` (noise, records, comparison with the published file), `tests/test_answering.py` (`answer_from_commitments`), `tests/test_evaluate_chat.py` rewritten. `check_chat_judge.py` sees its 19 cases and the CI runs it; the code was broken on purpose to check that the tests and the cases notice. By hand: four runs against `qwen2.5:14b` and nine answers read against the judge's verdict, which found the fix for the shared surname.
 
 **Issues:** closed #16. Opened while working on it, apart from this unit: #31 (tokens sent by the evaluations), #32 (reorganize `scripts/`) and #33 (the count of invented commitments).
+
+## 2026-10-21 — The sample company loads itself when the container starts
+
+**Purpose:** make `docker compose up` end with a chat that already has the documents and their commitments, and test it by starting the container (#36). Before, the loader ran on the host and the container's database stayed empty.
+
+**Input:** the sample company `data/lamanija/` (inside the image: `company.json`, people, projects, `documents/` and `expected/`, not the banks or the story); the variables `SAMPLE_COMPANY` (the image sets `lamanija`; unset elsewhere), `COMMITMENTS_SOURCE` (`expected`, the default, or `extraction`) and `REFERENCE_DATE`.
+
+**Output:** with an empty database the app loads the catalog, 24 documents and their 73 commitments; `GET /sample` and a notice at the top of the chat page that says the data is a sample and where its commitments came from; `ExpectedCommitmentsReader` (`app/extraction/expected.py`) and `prepare_sample` (`app/ingestion/sample.py`); `scripts/smoke_test_docker.py`, which the CI runs instead of a bare `docker build`; `compose.yaml` without a volume; README sections "The sample company", "Send a document of your own" and "Clean up".
+
+**Logic:**
+1. `create_app` calls `prepare_sample` when `SAMPLE_COMPANY` is set. It fails with a clear error if the folder does not exist, and loads only if the store has no catalog, so a second start on the same database loads nothing.
+2. `load_dataset` takes an optional extractor. For each non-held-out document it stores the document and runs `extract_and_store` with that extractor. Without one it stores no commitments, as before, so the scripts that load first and extract later are unchanged.
+3. The extractor is `ExpectedCommitmentsReader` (`expected`) or the app's `LLMExtractor` (`extraction`). The reader does not extract: it turns `expected/<id>.json` into `Commitment`s, names into catalog ids. Both sources reach the store through the same `extract_and_store`. See "The app loads a sample company at startup, with its commitments read from the `expected` files".
+4. "Today" is `REFERENCE_DATE`, else the `reference_date` of the sample's `company.json`, else the system date. `prepare_sample` returns the settings with that date, so the answerer, which reads `settings.today` on every question, uses it.
+5. `GET /sample` returns `{loaded, company, commitments_source, llm_model}` (the model only with `extraction`). `chat.html` asks for it on load and shows the notice; if `loaded` is false or the request fails the notice stays hidden.
+6. The database lives inside the container and `docker compose down` deletes it. See "The database lives and dies with the container".
+7. `smoke_test_docker.py` merges an override over `compose.yaml` (a free port, the fake LLM, no `.env`), runs `up --build -d`, checks `/sample`, that the chat has commitments, that "esta semana" falls in the week of 2026-10-12 and that compose declares no volume, and always ends with `down --rmi local --volumes`.
+
+**Important assumptions:**
+- `GET /sample` is its own endpoint and not a field of `/health`, so the page depends on it and `/health` keeps meaning "it is up". It answers 200 with `loaded: false` when there is no sample, not 404.
+- The CI now starts the container instead of only building it. It has not run on GitHub yet; the script needs Compose 2.24 or later (`!override`, `!reset`), which `ubuntu-latest` should have.
+- `ExpectedCommitmentsReader` implements `CommitmentExtractor` only so that `load_dataset` accepts it in place of an LLM extractor.
+- A document whose extraction fails is logged and left without commitments, and the load goes on. With `extraction` and the fake backend (which extracts nothing) the 24 documents load without commitments and a warning is logged.
+- `/sample` reports the `COMMITMENTS_SOURCE` configured now, not the one a database loaded by an earlier run was filled with. In Docker the two are the same because nothing is kept.
+- The Docker smoke test uses the fake LLM, so it does not cover `extraction`. That path was tried by hand against Ollama (`qwen2.5:14b`, 24 documents, ready in 106 s, no failure warnings, the chat answered without degrading); the quality of what the model extracted was not measured.
+- The README example of `POST /documents` says "el 16 de octubre" and not "el viernes": the model read "el viernes" of a document dated Monday 2026-10-12 as the 14th. With the date written out it gave 2026-10-16 three times out of three.
+- A document sent to `POST /documents` is read against the sample's date (2026-10-12) unless `REFERENCE_DATE` is set; the README says so.
+- The page notice has never been seen in a browser, only through the server (#37).
+- `scripts/extract_dataset.py` was not changed: it keeps its own loop, with a line per document and its timing.
+- Machines that ran the old compose keep an unused volume `kalia_kalia-db`; nothing removes it.
+- `.env.secrets` was added to `.gitignore` (it was missing).
+- `docs/SPEC.md` said "Persistent storage"; it now says that in V0 the database inside Docker is not kept between runs and that keeping it is for V1.
+
+**Location:** `app/extraction/expected.py`, `app/ingestion/dataset.py`, `app/ingestion/sample.py`, `app/config.py`, `app/main.py`, `app/static/chat.html`, `Dockerfile`, `.dockerignore`, `compose.yaml`, `.env.example`, `scripts/smoke_test_docker.py`, `scripts/smoke_test.py`, `.github/workflows/ci.yml`, `README.md`.
+
+**Tests:** 220 tests pass (no new unit tests; `tests/test_config.py` now also clears `SAMPLE_COMPANY` and `COMMITMENTS_SOURCE`). `scripts/smoke_test.py` checks that `/sample` says `loaded: false` without a sample. `scripts/smoke_test_docker.py` is new and passed locally (about 10 s with the image cached). Loading `expected` into a temporary database and measuring it with `evaluate_extraction.py` gave 73 of 73 commitments, with due date and project correct. `ExpectedCommitmentsReader`, `prepare_sample` and `GET /sample` have no unit test of their own.
+
+**Issues:** closed #36. Opened while working on it, apart from this unit: #40 (let the chat page send a document to be extracted).

@@ -4,6 +4,18 @@ Real choices between alternatives, newest at the top. This file is also filled i
 
 Superseded decisions are in [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md); this file keeps the ones still in force.
 
+## The app loads a sample company at startup, with its commitments read from the `expected` files
+Date: 2026-10-21
+Chose: with `SAMPLE_COMPANY` set (the image sets `lamanija`) and an empty database, `create_app` loads the 24 non-held-out documents and their commitments from `data/lamanija/expected/`; `COMMITMENTS_SOURCE=extraction` sends the documents through the configured LLM instead. The image copies only the files that loading needs. "Today" is `REFERENCE_DATE`, else the sample's `reference_date`, else the system date.
+Rejected: a loader run on the host (the container stays empty); extracting by default (needs a key or a long wait, and the chat would read as a measure of the extraction); sending the dataset through `POST /documents` (same wait, and the app would depend on a client); loading whenever the database is empty with no variable (tests and local runs would load it).
+Source: issue #36, `app/ingestion/sample.py`.
+
+## The database lives and dies with the container
+Date: 2026-10-21
+Chose: no volume in `compose.yaml`: the SQLite file is inside the container and `docker compose down` deletes it, so every `up` starts from the sample. The README says how to clean up.
+Rejected: a named volume (leaves a file on the person's machine and keeps an old sample after an update; trying the app for a while needs no persistence); a host folder mounted (permission problems between the container user and the host's).
+Source: issue #36.
+
 ## The chat is measured by handing it a list, not by running the retriever
 Date: 2026-10-19
 Chose: `app/answering/llm_answerer.py` has `answer_from_commitments(llm, question, commitments, catalog, today, ...)`, which `LLMAnswerer.answer` calls once the retriever has chosen; `scripts/evaluate_chat.py` calls it with the list of each question of `chat_bank.jsonl` (needed commitments plus noise, from the `expected` files), so the real prompt, context check and failure handling are measured and the retrieval is not.
@@ -41,6 +53,7 @@ Date: 2026-10-17
 Chose: the `Dockerfile` copies `app/` and `scripts/check_llm.py`, the one script documented to run inside the container (`docker compose run --rm app python scripts/check_llm.py`).
 Rejected: copying all of `scripts/` (development tools such as the evaluations and the extraction would sit in the production image; the loader cannot run there anyway because `data/` is not in the image).
 Source: issue #29, `Dockerfile`.
+Superseded 2026-10-21 in part: the image also carries the files of `data/lamanija/` that loading the sample needs (see "The app loads a sample company at startup..."). The rest holds: no development scripts.
 
 ## "Today" is `REFERENCE_DATE`, else the system date
 Date: 2026-10-17
@@ -174,6 +187,7 @@ Date: 2026-10-09
 Chose: `DB_PATH` and the volume mount are set in `compose.yaml`; the Dockerfile only creates a writable `/var/lib/kalia`. Changing the database engine touches compose, not the image.
 Rejected: keeping `DB_PATH=/db/kalia.db` in the Dockerfile (the image would carry a SQLite-specific path and change with every storage swap).
 Source: issue #10, commit 8c43f03.
+Superseded 2026-10-21 in part: `compose.yaml` no longer mounts a volume (see "The database lives and dies with the container"). `DB_PATH` still lives there.
 
 ## One ingestion path for every source; the dataset is an adapter
 Date: 2026-10-09
@@ -281,6 +295,7 @@ Date: 2026-10-05
 Chose: the app always runs in a container (compose, SQLite in a Docker volume); Ollama runs on the host and is reached as `host.docker.internal`.
 Rejected: running the app natively with `uv run` and Docker only for other PCs (the user wants to use it the deployed way from day one); Ollama as a second container (not needed yet).
 Source: issue #1, commit 598a918.
+Superseded 2026-10-21 in part: SQLite is no longer in a Docker volume (see "The database lives and dies with the container").
 
 ## Documents: free-text body plus a metadata header
 Date: 2026-10-05
@@ -318,3 +333,4 @@ Date: 2026-10-05
 Chose: SQLite with `owner_id` on every table and storage behind an interface; the file lives in a Docker volume.
 Rejected: Postgres (a second container and more setup for a single local user; revisit for multi-user or pgvector).
 Source: initial approved plan.
+Superseded 2026-10-21 in part: the file no longer lives in a Docker volume (see "The database lives and dies with the container").

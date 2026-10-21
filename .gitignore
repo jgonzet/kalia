@@ -6,6 +6,7 @@
 
 # Secrets and local data
 .env
+.env.secrets
 *.db
 *.sqlite
 *.sqlite3
