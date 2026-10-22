@@ -2,12 +2,11 @@
 
 ## Next
 
-1. #37 — Run the acceptance questions by hand in the browser with the real extractor, and fix what blocks using the page
-2. #35 — Check that an answer reflects a document ingested after the initial load (acceptance question 5)
-3. #34 — Check that the app runs on another PC following only the README
-4. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
+1. #35 — Check that an answer reflects a document ingested after the initial load (acceptance question 5)
+2. #34 — Check that the app runs on another PC following only the README
+3. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
 
-Synced at: 54a58d9
+Synced at: 49d7039
 
 This file is filled in with each /close-feature.
 
@@ -276,3 +275,29 @@ Decisions recorded: "Today is `REFERENCE_DATE`, else the system date" (replaces 
 **Tests:** 271 tests pass (234 before). The code was broken on purpose in four places and at least one test failed each time: the check of "no variable set" in `_read_llm`, the timeout that `build_llm` hands to `AnthropicLLM`, the check of a refusal in `AnthropicLLM.complete` and the rank of `percentile`.
 
 **Issues:** closed #44.
+
+## 2026-10-22 — First manual run of the chat in a browser with the real extractor
+
+**Purpose:** see the complete flow working by hand for the first time (documents, extraction by the real LLM, chat in a browser), write down what it does as the baseline of V0 and fix what got in the way of reading the page (#37).
+
+**Input:** the app started with `docker compose up --build`, `COMMITMENTS_SOURCE=extraction` and `qwen2.5:14b` through Ollama; the acceptance questions 1 to 4 of `docs/SPEC.md`, asked by hand in the page.
+
+**Output:** the headings (`## Project`) of an answer show as titles in `app/static/chat.html`; the baseline, written as the closing comment of #37.
+
+**Logic:**
+1. The sample's 24 documents were extracted at startup with no failed document; some items were left out for a person outside the catalog ("Smithers") or an empty or `'null'` `to_whom` (documents 0015, 0019, 0020, 0023).
+2. The notice at the top of the page shows, reads well and says the data is a sample and that the commitments were extracted with `qwen2.5:14b`.
+3. Questions 1 to 4 each got an answer built from commitments of the documents. The answer's `##` lines appeared raw; `renderAnswer` in `chat.html` now shows them as `<h3>` and every other line as a paragraph, setting only `textContent`.
+4. A new format of the answer (due date first, with the weekday computed by the code) was tried and measured against the current prompt, three runs of `scripts/evaluate_chat.py` each, and was not adopted (see below).
+
+**Important assumptions:**
+- Only the headings are rendered, not the rest of Markdown (`**` still appears raw): the page shows one kind of mark that the prompt itself asks for, and no library was added. A full renderer, if wanted, is a separate step.
+- The comparison of the new format (2026-10-22, `qwen2.5:14b`): needed commitments said, of 564, 368, 364 and 393 with the current prompt against 325, 336 and 330 with the new one; wrong person or direction 4, 8 and 7 against 1, 0 and 0; wrong due date 1, 0 and 0 against 7, 8 and 9. The code and prompt were put back; the numbers are in #45 and were not added to `answer_question.history.md`, as no prompt was replaced.
+- What the run found in the answers: the extractor resolves relative dates wrongly (commented in #26: "el viernes de la semana que viene" gave 2026-10-13 where `expected` has 2026-10-16), and "¿quién es el jefe de mi jefe?" cannot be answered because the prompt has no org chart (#46).
+- An evaluation run of about 8 minutes hung for an hour with the GPU at 0% while the laptop was on battery; it was killed and repeated. The cause is not known (see the entry of 2026-10-21 about the battery).
+
+**Location:** `app/static/chat.html`, `README.md` ("Known limitations": what the page renders, the missing org chart), `.gitignore` (`/.vscode/`).
+
+**Tests:** none new; 271 tests pass. The page was used by hand in a browser: notice, questions 1 to 4, and a second look at the answers after the change of headings.
+
+**Issues:** closed #37. Opened #45 (date first in each line of the answer, with the weekday) and #46 (decide whether the chat prompt includes the org chart); the relative dates of the extractor went as a comment on #26.
