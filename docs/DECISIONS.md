@@ -4,6 +4,29 @@ Real choices between alternatives, newest at the top. This file is also filled i
 
 Superseded decisions are in [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md); this file keeps the ones still in force.
 
+## The length of the chat's answer is not limited, in the prompt or in the client
+Date: 2026-10-21
+Chose: the answering prompt carries no length instruction and `OllamaLLM` sends no cap on the tokens written; the only bound is the timeout of each attempt (`LLM_TIMEOUT_SECONDS`, 120 s). The client of Claude needs a cap because the API asks for one, and uses 8192.
+Rejected: "respondé en 10 líneas como máximo" in the prompt (the answers said 262 to 287 of the 564 needed commitments, against 365 to 397, and 16 of 64 still passed 10 lines).
+Rejected: a cap of tokens in Ollama (4096 would have cut none of the 148 answers measured and bounds the wait at about 95 s, so with a 120 s timeout it adds little).
+Why: what makes a question slow is how much the model writes (500 or 2700 tokens for the same question), and a limit trades completeness for time.
+Source: issue #38, `docs/MEASUREMENTS.md`.
+
+## Each task that calls an LLM has its own LLM settings, and a task with any of its own inherits nothing
+Date: 2026-10-21
+Chose: `Settings.llm_for(task)` for the tasks of `LLM_TASKS` (`extractor`, `answerer`), read from `<TASK>_LLM_*`. A task without those variables uses the default `LLM_*`; one with any of them takes everything from its own and, if something is missing, the app refuses to start naming the variable. `anthropic` and `openai_compatible` have no default model and need a key. Each task gets its own client.
+Rejected: one LLM for the whole app (a model that is better at one task could not be used there).
+Rejected: inheriting variable by variable (the key of one provider could reach another, and the error would be an authentication failure far from its cause).
+Rejected: a default model for Claude (it assumes a price and an availability the app cannot know).
+Why: a wrong configuration should stop at startup with the name of the variable, not fail later in a call that may cost money.
+Source: issue #38, `app/config.py`.
+
+## Claude has its own client with the Anthropic SDK, not the OpenAI-compatible one
+Date: 2026-10-21
+Chose: `LLM_BACKEND=anthropic` builds `AnthropicLLM`; `anthropic` is a new dependency and the other backends do not change.
+Rejected: pointing `openai_compatible` at an Anthropic endpoint that speaks the OpenAI protocol (no new dependency, but it was not tried here and the SDK is what Anthropic recommends for Claude).
+Source: issue #38, commit 84e676a.
+
 ## The app loads a sample company at startup, with its commitments read from the `expected` files
 Date: 2026-10-21
 Chose: with `SAMPLE_COMPANY` set (the image sets `lamanija`) and an empty database, `create_app` loads the 24 non-held-out documents and their commitments from `data/lamanija/expected/`; `COMMITMENTS_SOURCE=extraction` sends the documents through the configured LLM instead. The image copies only the files that loading needs. "Today" is `REFERENCE_DATE`, else the sample's `reference_date`, else the system date.
@@ -42,6 +65,7 @@ Chose: `LLM_BACKEND` is `ollama` (default, native `/api/chat`), `openai_compatib
 Rejected: keeping only the `/v1` client (measured with Ollama 0.19.0: it ignores `num_ctx`, so the app cannot set the window); only reading the window with `/api/ps` (the server's operator decides it and the app cannot guarantee it); counting tokens with the model's tokenizer (a library per model, while `LLM_MODEL` is configurable); cutting the list or splitting the question into several calls (for V0, degrading and saying so is enough).
 Why: the right answer for a prompt that does not fit is open. A later version should handle it properly (for example, fewer commitments chosen by relevance, or several calls combined); until then the user gets the list and a clear message, never a silently cut answer.
 Source: issue #27.
+Refined 2026-10-21: `anthropic` joins the backends (see "Claude has its own client with the Anthropic SDK, not the OpenAI-compatible one").
 
 ## Env files are loaded by the app's own code
 Date: 2026-10-17

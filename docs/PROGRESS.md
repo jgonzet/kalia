@@ -2,91 +2,17 @@
 
 ## Next
 
-1. #38 — Let the app use the Claude API as an LLM backend, with the key reaching the container, and keep Ollama as an option
+1. #44 — Add unit tests for the per-task LLM configuration, the Claude client and the latency script
 2. #37 — Run the acceptance questions by hand in the browser with the real extractor, and fix what blocks using the page
 3. #35 — Check that an answer reflects a document ingested after the initial load (acceptance question 5)
 4. #34 — Check that the app runs on another PC following only the README
 5. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
 
-Synced at: 06cd465
+Synced at: d5d863d
 
 This file is filled in with each /close-feature.
 
-Entries before the 2026-10-15 entry "Rule-based retrieval and the retrieval bank" are in [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md); this file keeps the most recent ones.
-
-## 2026-10-15 — Rule-based retrieval and the retrieval bank
-
-**Purpose:** pick, from the stored commitments, the ones a question needs, and know how well that is done, apart from the chat (which does not exist yet) and from the extraction.
-
-**Input:** a question as text; the stored commitments and the catalog. For the measurement: `data/<company>/expected/`, `retrieval_bank.jsonl` and `questions.jsonl`.
-
-**Output:** `RuleRetriever.retrieve(question) -> list[Commitment]`; a bank of 58 questions in 9 categories for `lamanija`; `scripts/evaluate_retrieval.py` (counts per category and total, a log of each run in `runs/metrics.jsonl`); `scripts/evaluate_extraction.py` now writes its runs to the same log (`--model` names the model); `scripts/check_bank_sensitivity.py`. On the 13 acceptance questions the retrieval gets everything and nothing else. On the bank (75 measurements, some taken after the held-out document) it loses no commitment, with precision 27%, against 16% for the baseline that returns everything. Nothing in the app calls `retrieve` yet (#18).
-
-**Logic:**
-1. `find_filters` reads the question text: it recognises a person (full name, or a name part no one else shares), turns "jefe de X" and "jefe de mi jefe" into that person's manager, "mi jefe" into the user's, and "esta semana" or "la semana que viene" into a date range. Any other week gets no date filter.
-2. A person means "the commitments shared with the user" only if the question speaks of the user ("con", "tengo", "mi", "me", "yo", "prometí", "debo"); otherwise it means any commitment of theirs. "Involucr..." always means any.
-3. The filters are applied in Python over `list_commitments()`: people joined with OR, people and dates with AND. Without any filter, or without a catalog, every commitment is returned. See "The rule-based retrieval narrows only when it understands the phrase; otherwise it widens" and "Retrieval is one replaceable function; the first version is rules over the question text".
-4. The bank (`scripts/retrieval_bank.py` and `scripts/retrieval_bank_<company>.py`) defines each question as a condition over one commitment and computes its correct answer from the `expected` files, before and after the held-out document, without importing `app/`. `check_dataset.py` recomputes it and fails if a published answer changes. See "The answers of the retrieval bank are computed from conditions..." and "The retrieval has its own bank of questions...".
-5. `evaluate_retrieval.py` builds a temporary database from the `expected` files, runs the retriever on every question and counts missing and extra commitments ("The retrieval is measured on a database built from the `expected` files..."). `--retriever all` measures the baseline and `--strict` fails if a question loses commitments without declaring a `known_gap`.
-6. `check_bank_sensitivity.py` breaks one rule of the retriever at a time, in memory, and checks that some question notices; 15 of 16 mutations are noticed, the other one (a week one day shorter) cannot be with this dataset, which has no weekend deadlines.
-
-**Important assumptions:**
-- The first version of the rules, measured on the bank, lost 35 commitments; the three changes that brought it to 0 were made after seeing which questions failed, so the bank is now a development set, not a fair exam of the rules. Questions written without looking at the rules are still needed to measure them fairly.
-- The meaning of every term the dataset did not define ("hoy", "mañana", "este mes", "con X", "mis pares", an ambiguous surname = both people, and so on) was chosen while writing the bank; they are in `docs/DATASET.md`.
-- The user is found in the catalog by name (`Catalog.user` holds the name, not the id). A surname shared by two people picks no one, silently, and the result gets wider.
-- The list of words that refer to the user is short. A phrase without them gives a wider result, never a narrower one.
-- The retrieval loads every commitment into memory and filters in Python.
-- The bank supports one held-out document, like `questions.jsonl`; the latest version of each question id is the one measured.
-- The retrieval and the baseline are measured on the `expected` commitments, so extraction errors are out of this measurement.
-- `check_bank_sensitivity.py` patches names inside `app/answering/retrieval.py`; a refactor that renames them breaks it until it is updated.
-- The four reference runs at commit `17fdd83` are in `runs/metrics.jsonl`; the earlier ones, marked `*`, were made on uncommitted code during development.
-- A logged extraction run names its model by hand (`--model`), and its prompt hash is that of the prompt file at evaluation time, not necessarily the one that made the commitments.
-- The CI does not run `check_dataset.py` or `evaluate_retrieval.py --strict` yet; that is the owner's call.
-
-**Location:** `app/answering/` (`__init__.py`, `retrieval.py`), `scripts/` (`evaluate_retrieval.py`, `evaluate_extraction.py`, `run_log.py`, `retrieval_bank.py`, `retrieval_bank_lamanija.py`, `check_bank_sensitivity.py`, `check_dataset.py`), `data/lamanija/retrieval_bank.jsonl`, `tests/` (`test_retrieval.py`, `test_retrieval_bank.py`, `test_evaluate_retrieval.py`, `test_evaluate_extraction.py`), `pyproject.toml`, `README.md`, `docs/DATASET.md`, `docs/DECISIONS.md`. Commits `5f61efe`, `830de17`, `3d2fa3c`, `588f2e0`, `17fdd83` and `d7eabc1`.
-
-**Tests:** 55 unit tests (`uv run pytest`): the rules of the retriever with made-up data, the engine that computes the bank's answers with a made-up company, and the measurement. `check_dataset.py`, the smoke test and `evaluate_retrieval.py --strict` pass. The `known_gap` path was exercised only with made-up results: no question of the bank uses it yet.
-
-**Issues:** closed #17 and #20 (#20 was opened and closed within this work, its question absorbed by the bank).
-Opened #19 (replace the JSONL run log with MLflow), #21 (report retrieval and answer metrics together), #22 (interpret the question with the LLM), #23 (questions written independently of the rules), #24 (store the user's id in the catalog).
-
-— Updated 2026-10-15, after an audit of this work: three rules misread common phrases and now narrow only for what they understand ("¿Qué viene esta semana?" was read as next week, "van a vencer" as Milhouse Van Houten, and any "con" as being with the user: "¿Qué prometió Frink con el presupuesto?" lost 2 of Frink's 5 commitments). The bank has 61 questions (three were added for those cases), the sensitivity check 19 mutations of which 18 are noticed, and there are 92 unit tests. The scripts no longer crash outside a git repository, on a dataset whose catalog does not match its expected files, or on an unknown company, and `evaluate_extraction.py` does not log a run that evaluated nothing.
-
-— Resolved 2026-10-15: the CI now runs `check_dataset.py` and `evaluate_retrieval.py --strict --no-log` after the unit tests.
-
-— Updated 2026-10-15: #23 (questions written independently of the rules) was merged into #21, which will run them through the retrieval and the chat together.
-
-— Updated 2026-10-15: the words that make a person mean "shared with the user" were narrowed after measuring them: "mi", "mis" and "yo" no longer count (no effect on the bank) and "me" counts only with a verb of promising or owing in the third person ("¿Me podés decir qué prometió Frink?" lost 2 of Frink's 5 commitments). The bank has 63 questions, the sensitivity check 21 mutations of which 20 are noticed, and there are 94 unit tests.
-
-## 2026-10-15 — Audit of the retrieval work and its fixes
-
-**Purpose:** look for inconsistencies, holes and conflicts in the retrieval work of the same day, fix them, and leave the checks running on their own.
-
-**Input:** the seven commits from `5f61efe` to `1c45285`: the retriever, the bank, the evaluation scripts and the run log.
-
-**Output:** a retriever that no longer narrows on phrases it misreads; evaluation scripts that report a problem instead of crashing; a bank of 63 questions (5 added); a sensitivity check of 21 mutations, 20 noticed; 94 unit tests; and a CI that runs `check_dataset.py` and `evaluate_retrieval.py --strict --no-log`. On the bank (82 measurements) the retrieval loses no commitment and has 29% precision, against 16% for the baseline that returns everything; the 13 acceptance questions are exact.
-
-**Logic:**
-1. The audit re-derived 29 of the first 58 answers of the bank from the raw `expected` files (no difference), tried about twenty phrases and junk text on the retriever, and forced the failure of each script by hand (no git, a catalog that does not match the `expected` files, an unknown company, an empty evaluation, a corrupt log line).
-2. It found four things the rules misread, each now a question of the bank: a part of a name that is an ordinary word ("van" picked Milhouse Van Houten), "viene" in "¿Qué viene esta semana?" taken as next week (and "la semana del 19" as this week), any "con" taken as "with the user" ("¿Qué prometió Frink con el presupuesto?" lost 2 of 5), and "mi", "yo" and a request with "me" taken as words about the user ("¿Me podés decir qué prometió Frink?" lost 2 of 5). The fix follows "The rule-based retrieval narrows only when it understands the phrase; otherwise it widens", refined twice.
-3. The scripts: the run log writes the commit as `unknown` outside git and skips a corrupt line; `check_dataset.py` and `retrieval_bank.py` answer with a message when the catalog does not match or the company does not exist; `evaluate_extraction.py` logs nothing when nothing was evaluated; the records of the bank and of the questions are TypedDicts and the `type: ignore` comments are gone.
-4. The sensitivity check follows the new rules of the retriever and found, by itself, that nothing in the bank covered the "van" fix: that is how the questions were added.
-5. The CI runs the two checks ("The CI runs the dataset check and the strict retrieval evaluation").
-
-**Important assumptions:**
-- A name that is also an ordinary word ("Rosa", "Pilar") cannot be told from the person with rules; the catalog has none. It stays open (#22).
-- The bank was used again to adjust the rules, so it is still not a fair exam; the questions written independently of the rules are now part of #21 (they were #23).
-- The bank cannot notice a week one day too short, because no commitment of the dataset is due on a weekend; a unit test covers it.
-- The verbs that make "me" mean the user ("me prometió", "me deben", "me entregó", …) are a finite list; any other verb leaves the result wider.
-- The CI workflow was not parsed by a tool; its steps were run one by one in a clean clone.
-- A record written to `runs/metrics.jsonl` during the audit was removed; the older records marked `*` come from uncommitted code.
-
-**Location:** `app/answering/retrieval.py`, `scripts/` (`check_bank_sensitivity.py`, `check_dataset.py`, `evaluate_extraction.py`, `evaluate_retrieval.py`, `retrieval_bank.py`, `retrieval_bank_lamanija.py`, `run_log.py`), `data/lamanija/retrieval_bank.jsonl`, `tests/` (`test_retrieval.py`, `test_retrieval_bank.py`, `test_evaluate_retrieval.py`, `test_run_log.py`), `.github/workflows/ci.yml`. Commits `8dee384`, `d6a5381`, `13f8f98`, `154d70a`, `659d70f`, `d37212d`.
-
-**Tests:** 94 unit tests; `check_dataset.py`, the smoke test, the Docker build and `evaluate_retrieval.py --strict` pass, also in a clean clone; the sensitivity check notices 20 of 21 mutations. Sample of the bank re-derived by hand as said above.
-
-**Issues:** closed #23 (opened earlier today; merged into #21, which now includes its questions).
-Opened #25 (add commitments due on a weekend to the dataset).
+Entries before the 2026-10-16 entry "Chat that answers from the retrieved commitments" are in [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md); this file keeps the most recent ones.
 
 ## 2026-10-16 — Chat that answers from the retrieved commitments
 
@@ -282,3 +208,43 @@ Decisions recorded: "Today is `REFERENCE_DATE`, else the system date" (replaces 
 — Resolved 2026-10-21: the first CI run on GitHub passed, with the container smoke test (the version of Compose on `ubuntu-latest` accepts `!override` and `!reset`).
 
 — Refined 2026-10-21: the timeout of each LLM call is 60 seconds (it was 120) in both clients, and `load_dataset` stops trying after `MAX_CONSECUTIVE_FAILURES` (3) extractions in a row fail, counting the rest as failed: with an unreachable LLM that does not answer, the start waited a timeout per document (24 times). With `openai_compatible` the SDK still retries each call twice, so a call that times out can wait up to three timeouts. A slow machine can need more than 60 seconds for one call (a cold model, a long answer); there is no setting for it yet. `tests/test_sample.py` adds 14 tests (234 pass): the reader of precomputed commitments, `load_dataset` with failures, `prepare_sample` (complete, interrupted and failed loads; "today") and `GET /sample`; broken on purpose (the old check of an empty database, no stop after failures, `who` and `to_whom` swapped), three of them fail.
+
+— Resolved 2026-10-21: `LLM_TIMEOUT_SECONDS` sets it now, per LLM or per task, and the default is 120 s again, from the measurements in `docs/MEASUREMENTS.md`.
+
+## 2026-10-21 — The Claude API as an LLM backend, one LLM per task, and a log of measurements
+
+**Purpose:** let a person with an API key and no Ollama run the app, keep Ollama as the default, and let each task that calls an LLM (extracting commitments, answering the chat) use a different one (#38). Trying the chat with a local model also showed that nobody knew how long it takes, so the time and the tokens are now measured and kept.
+
+**Input:** `LLM_BACKEND` also accepts `anthropic`. An LLM is described by `BACKEND`, `MODEL`, `BASE_URL`, `API_KEY`, `CONTEXT_TOKENS` and `TIMEOUT_SECONDS`, with the prefix `LLM_` (the default) or `EXTRACTOR_LLM_` / `ANSWERER_LLM_` (one task). Keys go in `.env.secrets`, the rest in `.env`.
+
+**Output:** `AnthropicLLM` (`app/llm/anthropic.py`); `LLMSettings` and `Settings.llm_for(task)` (`app/config.py`); `build_llm` takes the settings of one task; `create_app` builds one client per task; `/health` answers `llm_backends` (a backend per task); a timeout per attempt that is configurable (120 s by default); `compose.yaml` passes `.env.secrets` to the container; `.env.example` and `.env.secrets.example` list every variable; a warning at startup when the sample is extracted through a backend that may be paid; `scripts/measure_latency.py` and `docs/MEASUREMENTS.md`; README sections "Use the Claude API instead of Ollama" and "What a paid API costs".
+
+**Logic:**
+1. `Settings.from_env` reads the default LLM (`LLM_*`) and, for each task in `LLM_TASKS`, its own block (`<TASK>_LLM_*`). A block with no variable set is not there. The default falls back to Ollama for what is missing; a task block with any variable takes everything from itself and the app refuses to start naming what it lacks (backend always; model and key for `anthropic` and `openai_compatible`). See "Each task that calls an LLM has its own LLM settings, and a task with any of its own inherits nothing".
+2. `llm_for(task)` returns the task's `LLMSettings` or the default one, with the defaults of the backend applied (address, the Ollama window of 10240, the timeout).
+3. `create_app` builds `{task: build_llm(settings.llm_for(task))}`: two clients even when both are the same. A `llm` passed in code serves both. The extractor exists unless its backend is `fake`; the chat takes the window of the answerer's settings; `/sample` names the extractor's model.
+4. `build_llm` picks the client of the backend. `AnthropicLLM.complete` sends one message with `max_tokens` 8192, joins the text blocks and raises `LLMError` if the API fails, the answer was cut at the limit, Claude declined, or the text is empty. See "Claude has its own client with the Anthropic SDK, not the OpenAI-compatible one".
+5. The keys: the scripts on the host read `.env.secrets` with `load_env_files`; Docker Compose passes it to the container as environment variables and `.dockerignore` keeps it out of the image.
+6. `extract_dataset.py` uses the extractor's settings and `evaluate_chat.py` the answerer's; `--model` replaces only the model. `check_llm.py` asks each distinct LLM once.
+7. `measure_latency.py` sends the questions through `POST /chat` with a wrapper that times the LLM, reads the tokens Ollama reports (`OllamaLLM.last_stats`), samples `nvidia-smi` and prints a report in the format of `docs/MEASUREMENTS.md`. See "The length of the chat's answer is not limited, in the prompt or in the client".
+
+**Important assumptions:**
+- The client of Claude takes no base URL: the image sets `LLM_BASE_URL` to the host's Ollama, so inside Docker the variable always has a value and using it would send the Claude key to that address. A proxy for Claude is not possible.
+- `max_tokens` is 8192. It was not tried with a real Claude: the largest extraction of the sample is about 1000 tokens, but models that think before answering spend part of the limit on it.
+- A variable named like an LLM variable that the app does not read (`EXTRATOR_LLM_BACKEND`, `EXTRACTOR_LLM_MODLE`) stops the start, so a typo is not ignored. A variable of another shape (`MY_LLM_THING`) is left alone. This was my choice alone.
+- `/health` changed its answer from `llm_backend` to `llm_backends`; only the smoke test read it.
+- The timeout is per attempt, and the clients of `openai_compatible` and `anthropic` retry a failed call twice, so one call can take about three times it. 120 s comes from the measurements (the longest answer took 72 s).
+- In Docker, a task that uses Ollama needs its own `..._BASE_URL`, because it does not inherit the image's `LLM_BASE_URL` (written in `.env.example`).
+- `openai_compatible` now needs `LLM_MODEL` and `LLM_API_KEY` (before, it took `qwen2.5:14b` and `ollama`); whoever used it against Ollama's `/v1` has to set them.
+- `anthropic` and `openai_compatible` were not tried with a real key, which is what #38 asks as done. Only `anthropic` was tried with the real SDK against a local server that imitates the API. There is no counting of tokens or money (#42); the cost estimate of the README is rough and not measured.
+- No check of the context window with `anthropic` and `openai_compatible` unless `LLM_CONTEXT_TOKENS` is set; a prompt the API rejects comes back as a failed call (`degraded`).
+- The warning at startup covers any backend that is not `ollama` or `fake`, and says "if that is a paid API", because `openai_compatible` can be a local server.
+- On 2026-10-21 seven chat requests to the local Ollama did not finish in 1 minute and another not in 2, with the laptop on battery. The cause is open and the hypothesis (a limit on the power given to the GPU) is not confirmed; the last entry of `docs/MEASUREMENTS.md` says how to test it.
+- `app.state.llm` became `app.state.llms`; nothing read it.
+- The Docker image was not rebuilt with the new dependency (`docker compose config` and `uv lock --check` pass).
+
+**Location:** `app/llm/anthropic.py`, `app/llm/__init__.py`, `app/llm/ollama.py`, `app/llm/openai_compatible.py`, `app/config.py`, `app/main.py`, `app/ingestion/sample.py`, `compose.yaml`, `.dockerignore`, `.env.example`, `.env.secrets.example`, `scripts/measure_latency.py`, `scripts/check_llm.py`, `scripts/evaluate_chat.py`, `scripts/extract_dataset.py`, `scripts/smoke_test.py`, `pyproject.toml`, `uv.lock`, `docs/MEASUREMENTS.md`, `README.md`.
+
+**Tests:** 234 tests pass, none new: the rules of `app/config.py`, `AnthropicLLM` and `measure_latency.py` have no unit test of their own. Tried by hand: 15 configurations (empty, only the Docker address, missing model or key, incomplete task, typos, invalid numbers); `AnthropicLLM` with the real SDK against a local server (a normal answer, cut, declined, empty, 401, 429, 500; the key never appears in a message; the SDK makes three requests for one failing call); the timeout reaches the client (a server that answers in 3 s, cut at 1 s with `LLM_TIMEOUT_SECONDS=1`, answered with 6); Compose passes a variable of a dummy `.env.secrets` to the container; with the real Ollama, `check_llm.py` passes (window 10240), a document was extracted and the chat answered; `scripts/smoke_test.py` passes. Not run: a real Claude or OpenAI key, `docker compose up` with the new dependency.
+
+**Issues:** closed #38 (its check with a real key moved to #43). Opened while working on it: #41 (let the Docker container keep the stored commitments between runs), #42 (measure and show what the app spends on LLM calls), #43 (try the backends with a real API key) and #44 (unit tests for the configuration per task, the Claude client and the latency script).
