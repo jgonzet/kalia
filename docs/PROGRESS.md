@@ -2,13 +2,12 @@
 
 ## Next
 
-1. #44 — Add unit tests for the per-task LLM configuration, the Claude client and the latency script
-2. #37 — Run the acceptance questions by hand in the browser with the real extractor, and fix what blocks using the page
-3. #35 — Check that an answer reflects a document ingested after the initial load (acceptance question 5)
-4. #34 — Check that the app runs on another PC following only the README
-5. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
+1. #37 — Run the acceptance questions by hand in the browser with the real extractor, and fix what blocks using the page
+2. #35 — Check that an answer reflects a document ingested after the initial load (acceptance question 5)
+3. #34 — Check that the app runs on another PC following only the README
+4. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
 
-Synced at: d5d863d
+Synced at: 54a58d9
 
 This file is filled in with each /close-feature.
 
@@ -248,3 +247,32 @@ Decisions recorded: "Today is `REFERENCE_DATE`, else the system date" (replaces 
 **Tests:** 234 tests pass, none new: the rules of `app/config.py`, `AnthropicLLM` and `measure_latency.py` have no unit test of their own. Tried by hand: 15 configurations (empty, only the Docker address, missing model or key, incomplete task, typos, invalid numbers); `AnthropicLLM` with the real SDK against a local server (a normal answer, cut, declined, empty, 401, 429, 500; the key never appears in a message; the SDK makes three requests for one failing call); the timeout reaches the client (a server that answers in 3 s, cut at 1 s with `LLM_TIMEOUT_SECONDS=1`, answered with 6); Compose passes a variable of a dummy `.env.secrets` to the container; with the real Ollama, `check_llm.py` passes (window 10240), a document was extracted and the chat answered; `scripts/smoke_test.py` passes. Not run: a real Claude or OpenAI key, `docker compose up` with the new dependency.
 
 **Issues:** closed #38 (its check with a real key moved to #43). Opened while working on it: #41 (let the Docker container keep the stored commitments between runs), #42 (measure and show what the app spends on LLM calls), #43 (try the backends with a real API key) and #44 (unit tests for the configuration per task, the Claude client and the latency script).
+
+— Resolved 2026-10-21: the rules of `app/config.py`, `AnthropicLLM` and `measure_latency.py` now have unit tests (#44).
+
+## 2026-10-21 — Unit tests for the LLM settings per task, the Claude client and the latency script
+
+**Purpose:** keep from breaking, without anything failing, three pieces added with #38 that had only been tried by hand with scripts that were not kept (#44). The rule that a task with a variable of its own inherits nothing is the one that protects a key from reaching another provider.
+
+**Input:** none; the tests run without a real key, Ollama, a GPU or the network.
+
+**Output:** 37 tests in three files, no change in `app/` or `scripts/`: `tests/test_llm_settings.py` (17), `tests/test_llm_clients.py` (5) and `tests/test_measure_latency.py` (10).
+
+**Logic:**
+1. `test_llm_settings.py` clears every LLM variable from the environment and checks `Settings.from_env` and `llm_for`: the defaults of Ollama, the task that inherits nothing from the default, one table of incomplete configurations (each must name the variable to set), the invalid numbers, the misspelled variable names and the settings of `anthropic` without an address and with the key out of the `repr`.
+2. `test_llm_clients.py` starts an HTTP server in a thread that imitates `POST /v1/messages` and points the SDK at it with `ANTHROPIC_BASE_URL`. It checks a normal answer (and the request sent), one table of answers that must become `LLMError` (cut at `max_tokens`, declined, empty, 401, 429, 500, none showing the key), and that `timeout_seconds` reaches the three clients.
+3. `test_measure_latency.py` imports the script and uses an LLM that reports tokens like Ollama does, with `nvidia-smi` and the machine description replaced. It checks the percentile, the fingerprint of the questions, where the questions come from, the timer around the LLM, `measure` (also with a failing LLM) and the report, which it reads for the numbers it must show.
+
+**Important assumptions:**
+- The fake server sends `x-should-retry: false`, so the SDK does not retry a 429 or a 500 after a pause. The suite takes about 10 s in all.
+- The SDK installed here (2.1.0) sends the key as `Authorization: Bearer`, not `x-api-key`; the test checks that header and would need a change if the SDK changes it.
+- The timeout test reads private attributes (`OllamaLLM._timeout_seconds`, `_client.timeout` of the other two): there is no public way to read it.
+- First there were 57 tests; cases that checked the same thing were joined in tables to reach 37. The unreachable server and "the report lists only the slowest five" were left out.
+- `main` of the latency script is tested with `--ask`, so it does not depend on the chat bank of a company; the bank questions are checked in `read_questions` with `data/lamanija`.
+- Not covered: the real `nvidia-smi` reading and `machine_description`.
+
+**Location:** `tests/test_llm_settings.py`, `tests/test_llm_clients.py`, `tests/test_measure_latency.py`. Commits `5998494`, `5b3c862`, `54a58d9`.
+
+**Tests:** 271 tests pass (234 before). The code was broken on purpose in four places and at least one test failed each time: the check of "no variable set" in `_read_llm`, the timeout that `build_llm` hands to `AnthropicLLM`, the check of a refusal in `AnthropicLLM.complete` and the rank of `percentile`.
+
+**Issues:** closed #44.
