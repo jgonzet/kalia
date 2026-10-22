@@ -24,3 +24,6 @@ __pycache__/
 
 # Databases and results of evaluation runs
 /runs/
+
+# Editor settings
+/.vscode/
