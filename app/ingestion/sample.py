@@ -36,7 +36,7 @@ def prepare_sample(settings: Settings, store: Store, extractor: CommitmentExtrac
     if not (company_dir / "company.json").is_file():
         raise ValueError(f"SAMPLE_COMPANY={settings.sample_company!r}: no dataset at {company_dir}")
     failed = 0
-    source_docs = DatasetSource(company_dir).documents()
+    source_docs = list(DatasetSource(company_dir).documents())
     if store.load_catalog() is None or any(store.get_document(d.id) is None for d in source_docs):
         if settings.commitments_source == "expected":
             source: CommitmentExtractor | None = ExpectedCommitmentsReader(company_dir, settings.owner_id)
@@ -44,6 +44,16 @@ def prepare_sample(settings: Settings, store: Store, extractor: CommitmentExtrac
             source = extractor
             if source is None:
                 logger.warning("COMMITMENTS_SOURCE=extraction but this LLM backend extracts nothing: no commitments loaded")
+            else:
+                llm = settings.llm_for("extractor")
+                if llm.backend not in ("ollama", "fake"):
+                    logger.warning(
+                        "COMMITMENTS_SOURCE=extraction: %d documents will be sent to %s (%s), one call each. If that is a paid "
+                        "API it charges for them, and this repeats on every start that finds no stored sample",
+                        len(source_docs),
+                        llm.model,
+                        llm.backend,
+                    )
         result = load_dataset(company_dir, store, source)
         failed = len(result.failed)
         logger.info(
