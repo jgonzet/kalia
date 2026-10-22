@@ -6,6 +6,9 @@ services:
     env_file:
       - path: .env
         required: false
+      # API keys: passed to the container as environment variables at startup, never copied into the image.
+      - path: .env.secrets
+        required: false
     environment:
       # The SQLite file lives inside the container (no volume): `docker compose down` deletes it, and the next `up` loads the sample again.
       DB_PATH: /var/lib/kalia/kalia.db
