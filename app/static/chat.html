@@ -8,8 +8,11 @@
   body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
   #log { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1rem; }
   .q { align-self: flex-end; background: #e8f0fe; padding: .5rem .75rem; border-radius: .5rem; }
-  .a { background: #f4f4f4; padding: .5rem .75rem; border-radius: .5rem; white-space: pre-wrap; }
+  .a { background: #f4f4f4; padding: .5rem .75rem; border-radius: .5rem; }
   .a.degraded { background: #fff4e5; }
+  .a h3 { margin: .75rem 0 .25rem; font-size: 1rem; }
+  .a h3:first-child { margin-top: 0; }
+  .a p { margin: 0; min-height: 1em; }
   .a ul { margin: .5rem 0 0; padding-left: 1.25rem; }
   #sample { background: #fffbe6; border: 1px solid #f0e2a0; padding: .5rem .75rem; border-radius: .5rem; margin-bottom: 1rem; font-size: .9rem; }
   form { display: flex; gap: .5rem; }
@@ -35,6 +38,17 @@ function add(className, text) {
   div.textContent = text;
   log.appendChild(div);
   return div;
+}
+
+// Show the "## title" lines as headings and keep every other line as written; the text is never parsed as HTML.
+function renderAnswer(box, text) {
+  box.textContent = "";
+  for (const line of text.split("\n")) {
+    const heading = line.match(/^#{1,6}\s+(.*)/);
+    const element = document.createElement(heading ? "h3" : "p");
+    element.textContent = heading ? heading[1] : line;
+    box.appendChild(element);
+  }
 }
 
 // Say clearly when the data is a sample and where its commitments came from, so nobody reads them as a measure of the extraction.
@@ -67,7 +81,7 @@ document.getElementById("form").addEventListener("submit", async (event) => {
     });
     if (!response.ok) throw new Error(response.status);
     const data = await response.json();
-    box.textContent = data.answer;
+    renderAnswer(box, data.answer);
     if (data.degraded) {
       box.classList.add("degraded");
       const list = document.createElement("ul");
