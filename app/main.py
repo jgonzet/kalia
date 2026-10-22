@@ -11,7 +11,7 @@ from pydantic import BaseModel, StringConstraints
 from app.answering import Answerer
 from app.answering.llm_answerer import LLMAnswerer
 from app.answering.retrieval import RuleRetriever
-from app.config import Settings
+from app.config import LLM_TASKS, Settings
 from app.extraction import CommitmentExtractor
 from app.extraction.llm_extractor import LLMExtractor
 from app.extraction.run import extract_and_store
@@ -28,7 +28,7 @@ MAX_QUESTION_CHARS = 1000
 
 class HealthResponse(BaseModel):
     status: str
-    llm_backend: str
+    llm_backends: dict[str, str]  # the backend of each task that calls an LLM, by task name
 
 
 class SampleResponse(BaseModel):
@@ -87,16 +87,17 @@ def create_app(
     extractor: CommitmentExtractor | None = None,
     answerer: Answerer | None = None,
 ) -> FastAPI:
-    """Build the app; settings come from the environment, the LLM and the store from settings unless given.
+    """Build the app; settings come from the environment, the LLMs and the store from settings unless given.
 
+    Each task that calls an LLM (`LLM_TASKS`) gets the client of its own settings; a given `llm` is used for all of them.
     Without an `extractor`, a real backend (not `fake`) gets an `LLMExtractor`; the fake one extracts nothing.
     Without an `answerer`, the chat uses the rule retriever and the LLM.
     """
     settings = settings or Settings.from_env()
-    llm = llm or build_llm(settings)
+    llms = {task: llm or build_llm(settings.llm_for(task)) for task in LLM_TASKS}
     store = store or SqliteStore(settings.db_path, settings.owner_id)
-    if extractor is None and settings.llm_backend != "fake":
-        extractor = LLMExtractor(llm, settings.owner_id)
+    if extractor is None and settings.llm_for("extractor").backend != "fake":
+        extractor = LLMExtractor(llms["extractor"], settings.owner_id)
     sample: SampleInfo | None = None
     if settings.sample_company:
         settings, sample = prepare_sample(settings, store, extractor)
@@ -104,23 +105,25 @@ def create_app(
     def current_answerer() -> Answerer:
         """The injected answerer, or one built with "today" as of this request, so it does not freeze at startup."""
         today = settings.today
-        return answerer or LLMAnswerer(llm, RuleRetriever(store, today), store, today, context_tokens=settings.context_tokens)
+        return answerer or LLMAnswerer(
+            llms["answerer"], RuleRetriever(store, today), store, today, context_tokens=settings.llm_for("answerer").context_tokens
+        )
 
     app = FastAPI(title="KALIA")
     app.state.settings = settings
-    app.state.llm = llm
+    app.state.llms = llms
     app.state.store = store
 
     @app.get("/health")
     def health() -> HealthResponse:
-        return HealthResponse(status="ok", llm_backend=settings.llm_backend)
+        return HealthResponse(status="ok", llm_backends={task: settings.llm_for(task).backend for task in LLM_TASKS})
 
     @app.get("/sample")
     def sample_info() -> SampleResponse:
         """Tell the chat page whether the data is a sample and where its commitments came from."""
         if sample is None:
             return SampleResponse(loaded=False)
-        model = settings.llm_model if sample.commitments_source == "extraction" else None
+        model = settings.llm_for("extractor").model if sample.commitments_source == "extraction" else None
         return SampleResponse(
             loaded=True,
             company=sample.company,

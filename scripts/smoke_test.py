@@ -54,7 +54,7 @@ def wait_for_health(base_url: str, process: subprocess.Popen[bytes]) -> httpx.Re
 
 def check_fake_llm() -> None:
     """Check the LLM interface answers when the fake backend is selected."""
-    llm = build_llm(Settings(llm_backend="fake"))
+    llm = build_llm(Settings(llm_backend="fake").default_llm())
     answer = llm.complete("ping")
     assert answer, "fake LLM returned an empty answer"
 
@@ -205,7 +205,7 @@ def main() -> int:
     try:
         response = wait_for_health(base_url, process)
         assert response.status_code == 200, f"/health returned {response.status_code}"
-        assert response.json() == {"status": "ok", "llm_backend": "fake"}, response.json()
+        assert response.json() == {"status": "ok", "llm_backends": {"extractor": "fake", "answerer": "fake"}}, response.json()
         check_fake_llm()
         check_ingestion(base_url, db_path)
         check_commitments(db_path)

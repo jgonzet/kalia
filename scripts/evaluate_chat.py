@@ -1,7 +1,7 @@
 """Measure what the LLM of the chat does with a list of commitments that is already chosen, with a real LLM.
 
 A development tool, not part of the app: real users have no answer key. It is how a model or a prompt of the chat is
-compared (the answering prompt is `app/prompts/answer_question.md`, the model is `LLM_MODEL`). See README ("Evaluate the chat").
+compared (the answering prompt is `app/prompts/answer_question.md`, the model is the answerer's: `ANSWERER_LLM_MODEL` if set, else `LLM_MODEL`). See README ("Evaluate the chat").
 
     uv run scripts/evaluate_chat.py lamanija                                  the whole chat bank, with the model in the environment
     uv run scripts/evaluate_chat.py lamanija --model llama3.1
@@ -304,7 +304,8 @@ def main(argv: list[str]) -> int:
     defaults = Settings.from_env()
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("company")
-    parser.add_argument("--model", default=defaults.llm_model, help="model that answers (default: LLM_MODEL)")
+    answerer = defaults.llm_for("answerer")
+    parser.add_argument("--model", default=answerer.model, help="model that answers (default: the answerer's model)")
     parser.add_argument("--prompt", type=Path, default=PROMPT_PATH, help="instructions of the answering prompt (default: the app's)")
     parser.add_argument("--question", action="append", dest="questions", help="only the questions whose id contains this text (repeatable)")
     parser.add_argument("--category", action="append", dest="categories", help="only this category (repeatable)")
@@ -317,18 +318,18 @@ def main(argv: list[str]) -> int:
     if not (company_dir / BANK_FILE).exists():
         print(f"no {BANK_FILE} at {company_dir}: run scripts/chat_bank.py {args.company} first")
         return 1
-    if defaults.llm_backend == "fake":
-        print("LLM_BACKEND=fake: the answers are fixed text, so this only checks the plumbing")
-    llm = build_llm(replace(defaults, llm_model=args.model))
+    if answerer.backend == "fake":
+        print("The backend of the answerer is fake: the answers are fixed text, so this only checks the plumbing")
+    llm = build_llm(replace(answerer, model=args.model))
     try:
-        results, checks, records = evaluate(company_dir, llm, args.prompt, args.questions, args.categories, defaults.context_tokens)
+        results, checks, records = evaluate(company_dir, llm, args.prompt, args.questions, args.categories, answerer.context_tokens)
     except ValueError as error:
         print(error)
         return 1
     print()
     print(format_report(results, checks, args.show))
     if all(r.degraded for r in results):
-        print(f"\nevery answer came back degraded: the LLM did not answer (is {args.model} available at LLM_BASE_URL?). Nothing was logged.")
+        print(f"\nevery answer came back degraded: the LLM did not answer (is {args.model} available at the answerer's endpoint?). Nothing was logged.")
         return 1
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)

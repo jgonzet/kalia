@@ -13,7 +13,8 @@ Two ways to use it, both through the same path as `POST /documents` (the app's p
 
 Then measure it with `DB_PATH=<db> uv run scripts/evaluate_extraction.py <company> --model <model>`.
 
-The backend, the endpoint and the key come from LLM_BACKEND, LLM_BASE_URL and LLM_API_KEY; the model from `--model` (default: LLM_MODEL).
+The backend, the endpoint and the key are those of the extractor task (`EXTRACTOR_LLM_*` if set, else `LLM_*`); the model comes
+from `--model` (default: the extractor's model).
 A document whose LLM call fails is listed at the end and the exit code is 1; its stored commitments stay as they were.
 """
 
@@ -40,7 +41,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("company", nargs="?", help="dataset to load into a new database (not used with --existing)")
     parser.add_argument("--db", type=Path, required=True, help="database to fill in (must not exist, unless --existing)")
     parser.add_argument("--existing", action="store_true", help="extract the documents already stored in --db instead of loading a dataset")
-    parser.add_argument("--model", default=defaults.llm_model, help="model that extracts (default: LLM_MODEL)")
+    parser.add_argument("--model", default=defaults.llm_for("extractor").model, help="model that extracts (default: the extractor's model)")
     args = parser.parse_args(argv)
 
     db_existed = args.db.exists()  # before SqliteStore creates the file
@@ -66,7 +67,7 @@ def main(argv: list[str]) -> int:
         args.db.parent.mkdir(parents=True, exist_ok=True)
         store = SqliteStore(str(args.db), defaults.owner_id)
         load_dataset(company_dir, store)
-    extractor = LLMExtractor(build_llm(replace(defaults, llm_model=args.model)), defaults.owner_id)
+    extractor = LLMExtractor(build_llm(replace(defaults.llm_for("extractor"), model=args.model)), defaults.owner_id)
 
     failed: list[str] = []
     started = time.monotonic()

@@ -4,13 +4,11 @@ import openai
 
 from app.llm import LLMError
 
-TIMEOUT_SECONDS = 60.0
-
 
 class OpenAICompatibleLLM:
-    def __init__(self, base_url: str, model: str, api_key: str) -> None:
+    def __init__(self, base_url: str, model: str, api_key: str, timeout_seconds: float) -> None:
         self._model = model
-        self._client = openai.OpenAI(base_url=base_url, api_key=api_key, timeout=TIMEOUT_SECONDS)
+        self._client = openai.OpenAI(base_url=base_url, api_key=api_key, timeout=timeout_seconds)
 
     def complete(self, prompt: str) -> str:
         try:

@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from app.config import DEFAULT_OLLAMA_CONTEXT_TOKENS, Settings
+from app.config import DEFAULT_OLLAMA_CONTEXT_TOKENS, LLMSettings
 
 
 class LLMError(Exception):
@@ -15,22 +15,23 @@ class LLMClient(Protocol):
         ...
 
 
-def build_llm(settings: Settings) -> LLMClient:
-    """Return the LLM client selected by `settings.llm_backend`."""
-    if settings.llm_backend == "fake":
+def build_llm(llm: LLMSettings) -> LLMClient:
+    """Return the LLM client selected by `llm.backend`; get `llm` from `Settings.llm_for(<task>)`."""
+    if llm.backend == "fake":
         from app.llm.fake import FakeLLM
 
         return FakeLLM()
 
-    if settings.llm_backend == "ollama":
+    if llm.backend == "ollama":
         from app.llm.ollama import OllamaLLM
 
-        return OllamaLLM(settings.base_url, settings.llm_model, settings.context_tokens or DEFAULT_OLLAMA_CONTEXT_TOKENS)
+        return OllamaLLM(llm.base_url, llm.model, llm.context_tokens or DEFAULT_OLLAMA_CONTEXT_TOKENS, llm.timeout_seconds)
+
+    if llm.backend == "anthropic":
+        from app.llm.anthropic import AnthropicLLM
+
+        return AnthropicLLM(llm.model, llm.api_key, llm.timeout_seconds)
 
     from app.llm.openai_compatible import OpenAICompatibleLLM
 
-    return OpenAICompatibleLLM(
-        base_url=settings.base_url,
-        model=settings.llm_model,
-        api_key=settings.llm_api_key,
-    )
+    return OpenAICompatibleLLM(base_url=llm.base_url, model=llm.model, api_key=llm.api_key, timeout_seconds=llm.timeout_seconds)
