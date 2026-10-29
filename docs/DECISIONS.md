@@ -4,6 +4,22 @@ Real choices between alternatives, newest at the top. This file is also filled i
 
 Superseded decisions are in [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md); this file keeps the ones still in force.
 
+## The ingestion check is a manual script with a real LLM, plus a CI test with a scripted extractor
+Date: 2026-10-29
+Chose: `scripts/evaluate_ingestion.py` runs by hand with the extractor and the answerer of the environment and logs its runs; `tests/test_evaluate_ingestion.py` (run by the CI with `pytest`) checks the accounting of its stages with a scripted extractor that makes errors on purpose, and says nothing about any model.
+Rejected: the script in the CI (the CI has no Ollama and no API keys).
+Rejected: the script alone (a change to the accounting of the stages would go unnoticed until someone ran it with a real LLM).
+Source: issue #35, commit a23ef56.
+
+## The ingestion is measured in four stages on the documents the question needs, and a commitment is blamed on the first stage that lost it
+Date: 2026-10-29
+Chose: extraction, storage, retrieval and answer are measured apart, before and after the new document. Retrieval and answer are asked only for what the previous stages delivered (an expected commitment the extractor missed is not counted again as lost in retrieval), and only the new document is isolated. Only the 14 documents that the two `Q5` questions need are loaded, and both questions are asked.
+Rejected: one end-to-end number (a loss could not be placed).
+Rejected: counting a loss in every stage it shows in (the same error would weigh several times).
+Rejected: loading the 24 documents, or reusing a database extracted earlier (more calls for the same question; a stored database stops representing the app when the extraction prompt or the model changes).
+Why: the check exists to place where a commitment is lost or added; the retriever on the full load is measured by the retrieval bank and #21.
+Source: issue #35, commit a23ef56.
+
 ## The length of the chat's answer is not limited, in the prompt or in the client
 Date: 2026-10-21
 Chose: the answering prompt carries no length instruction and `OllamaLLM` sends no cap on the tokens written; the only bound is the timeout of each attempt (`LLM_TIMEOUT_SECONDS`, 120 s). The client of Claude needs a cap because the API asks for one, and uses 8192.

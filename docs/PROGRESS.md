@@ -2,11 +2,10 @@
 
 ## Next
 
-1. #35 — Check that an answer reflects a document ingested after the initial load (acceptance question 5)
-2. #34 — Check that the app runs on another PC following only the README
-3. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
+1. #34 — Check that the app runs on another PC following only the README
+2. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
 
-Synced at: 49d7039
+Synced at: a23ef56
 
 This file is filled in with each /close-feature.
 
@@ -184,3 +183,36 @@ Older entries are in [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md); both files are 
 **Tests:** none new; 271 tests pass. The page was used by hand in a browser: notice, questions 1 to 4, and a second look at the answers after the change of headings.
 
 **Issues:** closed #37. Opened #45 (date first in each line of the answer, with the weekday) and #46 (decide whether the chat prompt includes the org chart); the relative dates of the extractor went as a comment on #26.
+
+## 2026-10-29 — Ingestion check: where a late document is lost or added, stage by stage
+
+**Purpose:** work on #35. Acceptance question 5 (after a new document is ingested, does a related question return an answer that reflects it?) was measured nowhere: the chat bank hands the LLM a list, so "before" and "after" are two lists to it. Now the whole path is run and each stage is measured apart, so a loss or an addition can be placed.
+
+**Input:** `data/<company>/questions.jsonl` (the `Q5` questions and their `after_held_out`), the `expected` files, an extractor LLM and an answerer LLM (`EXTRACTOR_LLM_*` / `ANSWERER_LLM_*`, else `LLM_*`, or `--extractor-model` / `--answerer-model`).
+
+**Output:** `scripts/evaluate_ingestion.py` (run by hand; prints the four stages and logs a run with the stage `ingestion`), `tests/test_evaluate_ingestion.py` (15 tests, run by the CI) and the section "Evaluate the ingestion" of the README. First runs, `qwen2.5:14b` for both tasks: the extractor returned 1 of the 2 commitments of `lamanija-0025` (the other missing, and the one found with the due date 2026-10-14 where `expected` has 2026-10-16); nothing was lost in storage or retrieval; the answer said the retrieved commitment of `q5-semana` in one run and left it out in the other.
+
+**Logic:**
+1. The Q5 questions declare one document that arrives later; the base are the documents their `expected` lists need (14 of 24). The script builds the app (`create_app`) on a temporary database with a recording extractor and drives it with `POST /documents` and `POST /chat`, so the endpoint, the extraction and the chat are the real ones. See "The ingestion is measured in four stages on the documents the question needs, and a commitment is blamed on the first stage that lost it".
+2. Base documents are loaded, each question is asked (before), the new document is ingested, and each question is asked again (after).
+3. Stage 1 compares what the extractor returned for the new document with its `expected` file (`evaluate_document` of `evaluate_extraction.py`). Stage 2 compares the commitments of the other documents before and after, and what the extractor returned with what was stored.
+4. Stage 3 asks, of the commitments the question expects from the new document that stages 1 and 2 delivered (`wanted`), how many the chat retrieved (lost) and how many others of the new document it retrieved (added); before the ingestion it must retrieve none. Stage 4 judges the answer with `chat_judge.py` over everything retrieved: how many `wanted` it says, the wrong people or due date, the invented lines and the commitments of other documents it leaves out, before and after.
+5. The extractor numbers its commitments in the order it returns them, so `expected` ids cannot be used to match: the pairing of stage 1 gives the map from `expected` id to extracted id.
+6. The CI test runs the same check with a scripted extractor (the `expected` commitments of each document, with the errors a test asks for: a missing one, an extra one, a wrong due date, a failed call) and a fake answerer; see "The ingestion check is a manual script with a real LLM, plus a CI test with a scripted extractor".
+
+**Important assumptions:**
+- A wrong due date that takes a commitment out of the question's range (the week) shows in stage 1 (`wrong due`) and in stage 3 (`lost`): a `lost` next to a `wrong due` points to the extraction, not to the retriever. A test fixes it.
+- The errors in the extraction of the 14 base documents are not placed on a stage; they only change what the chat is given (`others_missing`). `evaluate_extraction.py` measures them.
+- The script exits 1 only for faults of the pipeline (the ingestion changed commitments of other documents, or the chat retrieved the new document before it was ingested), not for the quality of a model. When every answer is degraded it says the LLM did not answer and logs nothing, like `evaluate_chat.py`.
+- A failed extraction of the new document counts all its commitments as missing; one of a base document is listed and the run goes on.
+- With only the documents the questions need, the retriever has less to choose from than in the full load; a pass here is a weaker proof of the retrieval than the retrieval bank. The full load is #21.
+- The script imports from `evaluate_extraction.py`, `evaluate_retrieval.py` and `chat_judge.py`, as the other evaluation scripts do; #32 has to update those imports when it moves them. My choice, not discussed beforehand.
+- It goes through `fastapi.testclient` (a dev dependency) and the app's endpoints instead of calling the functions of the app directly, so the handler of `POST /documents` is covered too. My choice, not discussed beforehand.
+- The numbers move between runs: the LLMs run at the server's default temperature, and two runs gave different answer-stage results with the same extraction.
+- The pairing of stage 1 is that of `evaluate_extraction.py`; with two commitments of the same people and due date in the new document it could pair them crosswise. `lamanija-0025` has them in opposite directions, so it does not happen here.
+
+**Location:** `scripts/evaluate_ingestion.py`, `tests/test_evaluate_ingestion.py`, `README.md` ("Evaluate the ingestion"). Commit `a23ef56`.
+
+**Tests:** 286 tests pass (15 new). Breaking two counts of the script on purpose made three of them fail, then the script was put back. Run twice by hand against `qwen2.5:14b`, about two minutes each. The CI checks were run too: `check_dataset.py`, `check_chat_judge.py`, `evaluate_retrieval.py --strict`, `smoke_test.py` and `smoke_test_docker.py` pass.
+
+**Issues:** closed #35. Comments on #26 (what the extractor did with `lamanija-0025`) and #32 (the new script and its imports).

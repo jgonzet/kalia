@@ -79,6 +79,21 @@ curl -X POST http://localhost:8000/documents \
 
 Nothing stays on your machine except the image. `docker compose down` removes the container and its database; `docker compose down --rmi local` also removes the image.
 
+## Evaluate the ingestion
+
+`scripts/evaluate_ingestion.py` checks acceptance question 5 (`docs/SPEC.md`): after a new document is ingested, does a related question return an answer that reflects it? It is a development tool, not part of the app, and it needs a real LLM for the extractor and for the answerer. It uses the `Q5` questions of `data/<company>/questions.jsonl` and the document they declare in `after_held_out`.
+
+1. Have both LLMs reachable (the extractor's, `EXTRACTOR_LLM_*` if set, else `LLM_*`; the answerer's, `ANSWERER_LLM_*` if set, else `LLM_*`).
+2. `uv run scripts/evaluate_ingestion.py lamanija`. Useful options: `--extractor-model`, `--answerer-model`, `--show` to read each answer before and after, `--no-log`. It takes a few minutes with a local model: it extracts only the documents those questions need (14 of 24) plus the new one.
+
+It runs through the code of the app (`POST /documents`, `POST /chat`) on a temporary database: it loads the base documents, asks each question, ingests the new document and asks again. It measures four stages apart, so a loss or an addition can be placed: the extraction of the new document against its `expected` file, the storage (the commitments of the other documents must not change), the retrieval (how many commitments of the new document the chat retrieves, and that it retrieves none before the ingestion) and the answer (how many of the retrieved ones the answer says, with the wrong people or due date, and how many commitments of other documents it leaves out before and after). A commitment is blamed on the first stage that lost it: one the extractor missed is not counted again as lost in retrieval. The script exits 1 if the ingestion changed the commitments of other documents or the chat retrieved the new document before it was ingested, which are pipeline faults and not model quality.
+
+Read the numbers with these limits in mind:
+- The answers are judged with the rules of `scripts/chat_judge.py` (see "Evaluate the chat" for what they can and cannot notice). The LLMs run at the server's default temperature, so the numbers move between runs.
+- With only the documents the questions need, the retriever has less to choose from than in the full load, so a pass here is a weaker proof of the retrieval than the retrieval bank. The whole load is issue #21.
+- Each run is appended to `runs/metrics.jsonl` (stage `ingestion`) with the commit, both models, a hash of both prompts and the questions version; `uv run scripts/run_log.py --stage ingestion` lists them.
+- `tests/test_evaluate_ingestion.py` (the CI runs it) checks the accounting of the stages with a scripted extractor that makes the errors on purpose; it says nothing about any model.
+
 ## Checks
 
 - Smoke test (fake LLM, needs no Ollama, also what CI runs): `uv run scripts/smoke_test.py`
