@@ -6,15 +6,16 @@
 2. #40 — Chat page form to send a document (scope extended in the comments of 2026-10-29)
 3. #49 — Connecting an LLM provider as a one-line change
 4. #55 — Bind the published port to localhost only
-5. #56 — Log why an LLM call failed
+5. #56 — Make the app's log messages visible: LLM failures and startup
 6. #50 — Show in the page whether the LLM is configured and reachable
-7. #43 — Try the real backends with an API key
-8. #54 — Choose and test the demo questions with Ollama and an API model
-9. #51 — Rewrite the README, running first
-10. #52 — Capture the demo flow (screenshots) and embed it in the README
-11. #47 — Test the documented setup on another machine and person
-12. #53 — Publish V0 (public repo, tag)
-13. #39 — Decide what comes after V0
+7. #59 — Audit the first-run path for errors of every kind, not only silent ones
+8. #43 — Try the real backends with an API key
+9. #54 — Choose and test the demo questions with Ollama and an API model
+10. #51 — Rewrite the README, running first
+11. #52 — Capture the demo flow (screenshots) and embed it in the README
+12. #47 — Test the documented setup on another machine and person
+13. #53 — Publish V0 (public repo, tag)
+14. #39 — Decide what comes after V0
 
 Synced at: d589c0b
 
