@@ -2,17 +2,21 @@
 
 ## Next
 
-1. #40 — Chat page form to send a document (scope extended in the comment of 2026-10-29)
-2. #49 — Connecting an LLM provider as a one-line change
-3. #50 — Show in the page whether the LLM is configured and reachable
-4. #43 — Try the real backends with an API key
-5. #51 — Rewrite the README, running first
-6. #52 — Record the demo video and embed it in the README
-7. #47 — Test the documented setup on another machine and person
-8. #53 — Publish V0 (public repo, tag)
-9. #39 — Decide what comes after V0
+1. #58 — Ship a saved real extraction as the sample's commitments instead of the expected files
+2. #40 — Chat page form to send a document (scope extended in the comments of 2026-10-29)
+3. #49 — Connecting an LLM provider as a one-line change
+4. #55 — Bind the published port to localhost only
+5. #56 — Log why an LLM call failed
+6. #50 — Show in the page whether the LLM is configured and reachable
+7. #43 — Try the real backends with an API key
+8. #54 — Choose and test the demo questions with Ollama and an API model
+9. #51 — Rewrite the README, running first
+10. #52 — Capture the demo flow (screenshots) and embed it in the README
+11. #47 — Test the documented setup on another machine and person
+12. #53 — Publish V0 (public repo, tag)
+13. #39 — Decide what comes after V0
 
-Synced at: 5974d3b
+Synced at: d589c0b
 
 This file is filled in with each /close-feature.
 
