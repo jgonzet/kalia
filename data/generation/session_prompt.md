@@ -17,7 +17,7 @@ Sos la sesión que **genera** los documentos sintéticos de `data/lamanija/`. Ot
 1. Leé `CLAUDE.md` y la sección "Generating documents" de `docs/DATASET.md`, y seguí ese procedimiento: `data/generation/base.md`, el `types/` de cada documento, todos los `fields/`, el catálogo de `data/lamanija/`, `story.md` entero y los `expected` de la tanda. Por cada id en `mentions`, leé también ese compromiso en su `expected` y, si ya existe, el texto de su documento.
 2. Antes de generar documentos nuevos, releé los que ya existen en `data/lamanija/documents/` para mantener la coherencia de las historias.
 3. Escribí `data/lamanija/documents/<id>.md` para cada documento de la tanda, en orden de id.
-4. Corré `uv run scripts/check_dataset.py --allow-pending` y arreglá lo que marque en tus textos.
+4. Corré `uv run scripts/dataset/check_dataset.py --allow-pending` y arreglá lo que marque en tus textos.
 5. Releé cada texto contra su `expected`: que contenga exactamente sus compromisos, con el plazo escrito como el `due_text`, sin listas.
 
 ## Qué no hacer

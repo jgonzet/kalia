@@ -4,6 +4,13 @@ Real choices between alternatives, newest at the top. This file is also filled i
 
 Superseded decisions are in [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md); this file keeps the ones still in force.
 
+## `scripts/` is grouped by role and is a package with absolute imports
+Date: 2026-10-29
+Chose: `scripts/operate/` (load, extract, check the LLM), `scripts/dataset/` (dataset checks and the two question banks), `scripts/quality/` (the judge and the run log, `checks/` without an LLM, `evals/` with a real one). `scripts` is a package: scripts import each other as `from scripts.quality import run_log`, and each one puts the repo root in `sys.path` when run by path. The question files of each company load as `scripts.dataset.<bank>_<company>`; pytest's `pythonpath` is only `.`.
+Rejected: flat names with every subfolder added to the path (the `sys.path.insert` calls multiply and a repeated name shadows another silently); `python -m scripts...` (changes every documented command and adds nothing over the package).
+Why: what is product (`operate/`) is told apart from the quality evidence (`quality/`) at a glance, and the end-to-end evaluation (#21) is written in the final layout.
+Source: issue #32, plan in `docs/PLAN.md`.
+
 ## The ingestion check is a manual script with a real LLM, plus a CI test with a scripted extractor
 Date: 2026-10-29
 Chose: `scripts/evaluate_ingestion.py` runs by hand with the extractor and the answerer of the environment and logs its runs; `tests/test_evaluate_ingestion.py` (run by the CI with `pytest`) checks the accounting of its stages with a scripted extractor that makes errors on purpose, and says nothing about any model.
@@ -95,6 +102,7 @@ Chose: the `Dockerfile` copies `app/` and `scripts/check_llm.py`, the one script
 Rejected: copying all of `scripts/` (development tools such as the evaluations and the extraction would sit in the production image; the loader cannot run there anyway because `data/` is not in the image).
 Source: issue #29, `Dockerfile`.
 Superseded 2026-10-21 in part: the image also carries the files of `data/lamanija/` that loading the sample needs (see "The app loads a sample company at startup..."). The rest holds: no development scripts.
+Refined 2026-10-29: the script now lives at `scripts/operate/check_llm.py` (#32).
 
 ## "Today" is `REFERENCE_DATE`, else the system date
 Date: 2026-10-17

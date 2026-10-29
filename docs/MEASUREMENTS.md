@@ -6,7 +6,7 @@ depend on the hardware and the model, so they are kept here with both. How good 
 
 ## How to add an entry
 
-1. `uv run scripts/measure_latency.py` (`--help` lists the options). It prints the report in the format below; the LLM it measures is the
+1. `uv run scripts/quality/evals/measure_latency.py` (`--help` lists the options). It prints the report in the format below; the LLM it measures is the
    answerer's, so set `ANSWERER_LLM_*` or `LLM_*` first.
 2. Paste the report at the end of this file and fill in **Observations**: what the numbers say, what surprised you, what stays open.
 3. Entries go in order, newest at the bottom, and are not rewritten. When something an entry left open is resolved, add a dated
@@ -239,4 +239,4 @@ Through `POST /chat` (the 64 questions once) the longest answer went from 2786 t
 - The code is not the cause: the commit before these changes behaved the same, but two runs overlapped when that was tried, so it proves little.
 - Not reproduced in the more than 250 answers taken with the charger connected.
 
-**Observations:** The cause of those requests not finishing is open. The hypothesis the timeline supports is the battery (a limit on the power the laptop gives the GPU); it is confirmed or discarded by repeating `uv run scripts/measure_latency.py --ask "¿Qué compromisos hay esta semana?" --repeat 20` with the charger disconnected and adding the report here.
+**Observations:** The cause of those requests not finishing is open. The hypothesis the timeline supports is the battery (a limit on the power the laptop gives the GPU); it is confirmed or discarded by repeating `uv run scripts/quality/evals/measure_latency.py --ask "¿Qué compromisos hay esta semana?" --repeat 20` with the charger disconnected and adding the report here.

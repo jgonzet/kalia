@@ -1,7 +1,7 @@
 # History of `answer_question.md`
 
 One row per change of the prompt that was measured: what changed, why, and what it did to the numbers. Git keeps the text of
-every version and each run of `scripts/evaluate_chat.py` logs the hash of the prompt it used (`uv run scripts/run_log.py
+every version and each run of `scripts/quality/evals/evaluate_chat.py` logs the hash of the prompt it used (`uv run scripts/quality/run_log.py
 --stage chat_bank`); this file keeps the reason, which neither of them has. Add a row when a change is measured, before replacing
 a prompt that works (see `docs/DECISIONS.md` and the README, "Evaluate the chat").
 

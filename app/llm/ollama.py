@@ -9,7 +9,7 @@ from app.llm import LLMError
 
 
 class OllamaStats(TypedDict):
-    """What Ollama reports about the last call; `scripts/measure_latency.py` reads it."""
+    """What Ollama reports about the last call; `scripts/quality/evals/measure_latency.py` reads it."""
 
     prompt_tokens: int
     answer_tokens: int
