@@ -1,146 +1,52 @@
-# Plan — Issue #2: dataset sintético y prompts del generador
+# Plan — Issue #32: reorganizar `scripts/` por tema
 
 > Plan de trabajo vivo. Cada sección tiene un estado: `[OPEN]` o `[RESOLVED]`. Una sección `[RESOLVED]` no se vuelve a mostrar salvo que se reabra.
->
-> Los formatos vigentes de los archivos del dataset están en `docs/DATASET.md`. Las secciones 3, 5 y 6 describen el diseño original y no se actualizan.
 
-## 1. Contexto [RESOLVED]
+## 1. Layout [RESOLVED]
 
-V0 necesita datos para probar extracción, almacenamiento, recuperación y chat. Este issue produce **solo archivos** (sin código de la app): una empresa ficticia, 25 documentos escritos por un chatbot externo (Gemini/ChatGPT) y la "clave de respuestas" de cada documento, para después comprobar si la extracción acierta.
-
-## 2. Orden de trabajo y cómo se crean los compromisos [RESOLVED]
-
-Los compromisos **los inventamos nosotros primero**; el chatbot después escribe textos que los contienen. Orden:
-
-1. Catálogo: personas, proyectos, protagonista.
-2. Diseñar, documento por documento, qué compromisos se "plantan" (quién, a quién, qué, para cuándo). Se diseñan hacia atrás desde las 5 preguntas de aceptación (ej. Q4 "compromisos con mi jefe" exige varios compromisos protagonista-jefe en más de un documento). Esto es la clave de respuestas (`expected`).
-3. Escribir los prompts del generador. El prompt de cada tanda lleva la clave de respuestas: "escribí un mail donde Marcos le promete a Laura el presupuesto para el 18/09, sin listarlo".
-4. Generar los 25 documentos en tandas chicas y revisar una muestra a mano.
-
-Los prompts van **antes** de generar, siempre. Casos a cubrir al diseñar (paso 2): Q1 compromisos en ambos sentidos con una persona; Q2 vencimientos dentro, antes y después de la semana de referencia; Q3 una persona en varios compromisos; Q4 jefe en más de un documento; Q5 un documento reservado para ingerir al final y que cambie una respuesta; plazos relativos ("el viernes") y absolutos; compromisos sin fecha; documentos sin compromisos; reuniones de 3+ personas. Un mismo compromiso repetido entre documentos queda afuera (issue #4).
-
-## 3. Estructura de carpetas [RESOLVED]
+`scripts/` tiene 21 archivos (el issue decía 18; se sumaron `evaluate_ingestion`, `measure_latency` y `smoke_test_docker`). Se agrupan por rol:
 
 ```text
-data/
-  generation/                 prompts del generador (compartidos por todas las empresas)
-    base.md                   reglas generales (idioma, tono, formato del encabezado)
-    types/email.md meeting.md chat.md      estilo por tipo de documento
-    fields/commitments.md     cómo pedir que se incluyan compromisos
-  <empresa>/                  ej. data/acme/ ; una segunda empresa = otra carpeta hermana
-    company.json              datos de la empresa y id del protagonista
-    people.jsonl              una persona por línea
-    projects.jsonl            un proyecto por línea
-    documents/acme-0004.md    encabezado + texto libre. Lo ÚNICO que lee el pipeline
-    expected/acme-0004.json   clave de respuestas del documento con el mismo id
+scripts/
+  operate/      load_dataset, extract_dataset, manual_extraction, check_llm
+  dataset/      check_dataset, orgchart, retrieval_bank*, chat_bank*
+  quality/
+    chat_judge, run_log                      (usados por las mediciones y por check_dataset)
+    checks/     smoke_test*, check_chat_judge, check_bank_sensitivity      (sin LLM)
+    evals/      evaluate_*, measure_latency                                (LLM real)
 ```
 
-El nombre de la empresa se decide en el paso 1 del trabajo.
+La carga y extracción de documentos como pipeline disparable por la app no entra acá: es el issue #48 (Post-V0). Mientras tanto `operate/` agrupa los scripts que lo hacen hoy.
 
-## 4. Nombre "documents" [RESOLVED]
+## 2. Imports entre scripts: paquete con imports absolutos [RESOLVED]
 
-Propuesta: **mantenerlo**. Es el término de la SPEC y del código (`Document`, `document_id`, `document_date`); cambiarlo en la carpeta rompería la trazabilidad con el código y las pruebas. Alternativas vistas: `sources` (choca con "fuentes" de la visión y con el issue #3), `inputs`/`items` (vagos), `corpus` (técnico y sin uso en el repo). La ambigüedad se resuelve por contexto: vive dentro de `data/<empresa>/` y la SPEC lo define como "cualquier pieza de entrada: mail, transcripción o chat".
+Opción A. `scripts/` pasa a ser un paquete (`__init__.py` en cada carpeta) y los imports son absolutos (`from scripts.dataset.chat_bank import ...`).
 
-El id es único entre empresas (`<empresa>-NNNN`, 4 dígitos), porque la ingesta es idempotente por id y dos empresas no deben colisionar.
+- Los scripts que no importan `app` (`chat_bank`, `retrieval_bank`, `check_chat_judge`) agregan la raíz del repo a `sys.path`, como ya hacen los demás, porque al correr por ruta solo queda su propia carpeta.
+- `pytest` queda con `pythonpath = ["."]`; se saca `scripts`.
+- La importación dinámica de las preguntas de cada empresa pasa a `scripts.dataset.chat_bank_<empresa>` y `scripts.dataset.retrieval_bank_<empresa>`; desaparece el `sys.path.insert` de `retrieval_bank`.
+- Los comandos siguen siendo `uv run scripts/<carpeta>/<script>.py`.
+- Rechazadas: mantener nombres planos sumando cada subcarpeta al path (los `sys.path.insert` se multiplican y un nombre repetido se pisa sin avisar); `python -m` (cambia todos los comandos sin aportar más que A).
+- Se registra en `docs/DECISIONS.md` al terminar.
 
-## 5. Catálogo expandible: JSONL [RESOLVED]
+## 3. Orden de ejecución [RESOLVED]
 
-Se evaluó JSON único vs JSONL. **JSONL**, un archivo por tipo de entidad:
-- Agregar una persona o proyecto = agregar una línea (diffs limpios, sin editar un objeto gigante).
-- Un campo nuevo no rompe líneas viejas, y un tipo de entidad nuevo (ej. clientes, equipos) = otro archivo `.jsonl`.
-- Cada registro lleva `id` estable y `company`, lo que permite varias empresas y, más adelante, un archivo de vínculos entre ellas (no se diseña ahora).
-- Costo: menos cómodo de leer que JSON indentado; las entidades son planas, así que es chico.
+Un grupo por vez, con `git mv` (mueve el archivo conservando su historial). Después de cada grupo: ajustar sus imports y correr `pytest` y los comandos del CI.
 
-Ejemplo de línea de `people.jsonl`: `{"id":"acme-p03","company":"acme","name":"...","role":"...","area":"...","level":2,"reports_to":"acme-p01"}`. `company.json` es un único objeto (nombre, `user_id` del protagonista). El cargador (otro issue) traduce ids a los nombres que usa el modelo V0.
+1. `dataset/` → `pytest` y `check_dataset`.
+2. `quality/` → `pytest` y los comandos del CI.
+3. `operate/` → Dockerfile, y los smoke tests.
 
-## 6. Clave de respuestas (`expected`) escalable y trazable [RESOLVED]
+## 4. Referencias que apuntan a los scripts [OPEN]
 
-Un archivo por documento, mismo id que el documento, formato JSON:
+Se actualizan al final, una vez movidos los tres grupos:
 
-```json
-{
-  "document_id": "acme-0004",
-  "company": "acme",
-  "type": "email",
-  "date": "2026-09-14",
-  "participants": ["Marcos Paz", "Laura Ríos"],
-  "text_sha256": null,
-  "extractions": {
-    "commitments": [
-      {"who": "Marcos Paz", "to_whom": "Laura Ríos", "what": "enviar el presupuesto revisado", "due": "2026-09-18", "project": "Portal Clientes"}
-    ]
-  }
-}
-```
+- `.github/workflows/ci.yml` (rutas de los comandos).
+- `Dockerfile:17` (`COPY scripts/check_llm.py`); y la decisión "The Docker image carries only `scripts/check_llm.py`" en `docs/DECISIONS.md` (nota "Refined", una línea).
+- `README.md` (unas 30 líneas), `CLAUDE.md` (dos líneas), `docs/` (incluida `DATASET.md`).
+- Docstrings de uso de cada script y mensajes como `run scripts/chat_bank.py ... first`.
+- `data/lamanija/ORGCHART.md` ("Generated ... by `scripts/orgchart.py`") y el generador que escribe esa línea.
+- `scripts/measure_latency.py:245`, que imprime su propio comando en el reporte.
+- `tests/`: imports de módulos movidos.
 
-- **Escalable:** cada campo a extraer es una clave dentro de `extractions`. Agregar "bloqueos" o "decisiones" = una clave nueva, sin tocar las existentes. Clave **ausente** = "no anotado, no evaluar". Lista **vacía** = "se anotó y no hay nada que extraer".
-- **Doble chequeo de identidad** (nombre de archivo solo no alcanza): `document_id`, `type`, `date` y `participants` se repiten desde el encabezado del documento y deben coincidir. `text_sha256` guarda el hash del texto aceptado: si el documento se regenera o edita y la clave queda vieja, el chequeo lo detecta. Empieza en `null` y se completa al aceptar el documento.
-- Los nombres de personas/proyectos coinciden con el catálogo y con `Commitment` (V0 vincula por nombre).
-
-## 7. Script de verificación del dataset [RESOLVED]
-
-`scripts/check_dataset.py` (solo librería estándar, sin dependencias nuevas): comprueba que cada documento tenga su `expected` y viceversa, que el id del archivo coincida con el del encabezado, que `type`/`date`/`participants` coincidan, que el hash coincida (con `--stamp` lo completa), y que los nombres usados existan en el catálogo. Justificación: protege la trazabilidad que pediste y escala a cientos o miles de documentos sin revisión manual de lo mecánico. Queda a revisión manual lo que el script no puede ver: que el texto realmente contenga el compromiso.
-
-## 8. Prompts escalables [RESOLVED]
-
-Prompt de una tanda = `base.md` + `types/<tipo>.md` + extracto del catálogo + clave de respuestas de los documentos de la tanda, con las instrucciones de `fields/<campo>.md`. Agregar un campo a extraer = un archivo nuevo en `fields/`; agregar un tipo de fuente = uno nuevo en `types/`. Se arma a mano (copiar y pegar) al principio; un script solo si resulta tedioso. Son archivos separados, igual que los prompts de la app (DECISIONS: "Prompts as separate files").
-
-## 9. Archivos vs base de datos [RESOLVED]
-
-Pregunta: ¿los JSONL tienen que migrar a una base de datos? **No hace falta migrar los archivos.** La app ya guarda todo en SQLite (DECISIONS: "Storage: SQLite"); el cargador del dataset lee estos archivos y los inserta en SQLite. Los archivos son la fuente del dataset de prueba (como un fixture), no el almacenamiento de la app. Empezar con base de datos ahora no conviene: (a) el módulo de almacenamiento todavía no existe, (b) un chatbot y vos tienen que poder crear, leer y revisar el dataset como texto, con diffs en git, y una base no sirve para eso. Por eso no se abre un issue de migración; el paso "archivos -> SQLite" ya es el issue del cargador (se propone al cierre). Si algún día el catálogo se edita desde la app, la base pasaría a ser la fuente: es una decisión de V1 y no se puede verificar desde hoy.
-
-## 10. Sesiones e issues [RESOLVED]
-
-**Resuelto 2026-10-07:** #2 cerrado con la empresa La Manija Games (`data/lamanija/`, id `lamanija`): `company.json`, `people.jsonl` (12 personas, protagonista `lamanija-p05`) y `projects.jsonl` (4 proyectos). Se agregó `data/lamanija/ORGCHART.md`, generado por `scripts/orgchart.py` a partir de `people.jsonl` (no estaba en el plan). Los issues A, B y C ya existen como #5, #6 y #7.
-
-No se hace todo en una sesión. Lo que no entra hoy se levanta como issue y va a `## Next` de `docs/PROGRESS.md` (con el hash actualizado). Etiqueta `type: feature` y milestone `V0` en todos (existen en el repo). Propuesta, a confirmar antes de correr `gh`:
-
-- **#2 (existente)**: se acota a "Design the synthetic catalog and the dataset layout" (esta sesión): plan copiado a `docs/PLAN.md`, `data/<empresa>/company.json`, `people.jsonl`, `projects.jsonl`.
-- **Nuevo A**: "Design the expected commitments for the 25 documents" (clave de respuestas + tabla pregunta de aceptación -> documentos).
-- **Nuevo B**: "Write the generator prompts and the dataset check script" (`data/generation/`, `scripts/check_dataset.py`).
-- **Nuevo C**: "Generate and review the 25 synthetic documents" (tandas de 5, revisión manual, hash).
-
-`## Next` quedaría: 1. #2 · 2. A · 3. B · 4. C. Al cerrar C, `/close-feature`, se registran en `docs/DECISIONS.md` las decisiones de estructura (JSONL, expected separado, ids por empresa, hash), se agrega una nota de `data/` al README y se proponen los issues del cargador y del script de evaluación contra `expected/`.
-
-## 11. Revisión del plan [RESOLVED]
-
-- Supuesto no verificado: que el chatbot respete la clave de respuestas. Se mitiga con la revisión manual de cada tanda.
-- No hay sobreingeniería de código: solo un script chico. Lo más "extra" son el hash y los ids por empresa, que responden a trazabilidad y a la segunda empresa que pediste.
-- Seguridad: todo sintético; no hay datos reales, credenciales ni cambios en `.gitignore`.
-
-## 12. Issue #5: historia, `expected` y preguntas concretas [RESOLVED]
-
-Reabre y amplía el formato de la sección 6 (que sigue valiendo para todo lo demás). Agregado 2026-10-07.
-
-**Entregables** (`data/lamanija/`): `story.md` (historia de fondo, formato fijo, se pega entero en el prompt de cada tanda), `expected/lamanija-NNNN.json` ×25, `questions.jsonl` (preguntas concretas con los ids de compromiso esperados) y, en `company.json`, `reference_date` (2026-10-12) y `held_out` (`lamanija-0025`).
-
-**Formatos (definitivos en `docs/DATASET.md`):** los campos de cada `expected` (incluidos `projects`, `brief`, `author`, `id` y `due_text` de cada compromiso, `mentions` y `not_commitments`), las reglas de `story.md` y `questions.jsonl` (con `version` y las reglas de cálculo de las respuestas) pasaron a ese archivo, que no rota. Acá no se repiten.
-
-**Objetivos de cobertura** (esqueleto aprobado; el chequeo mecánico es `check_dataset.py`, #6): 25 documentos (9 mails, 8 reuniones, 8 chats), 2026-09-14 a 2026-10-12, Lalo en todos, el reservado fechado en la fecha de referencia. Smithers (jefe de Lalo) en 13 documentos; Burns en 3 reuniones; cada otra persona en ≥3; cada proyecto en ≥4 documentos y ≥5 compromisos; 2 reuniones largas (0012, 0023, hasta ~1200 palabras); 0010 y 0013 sin compromisos. Distribución de plazos respecto de la fecha de referencia (resultado de los `expected` terminados el 2026-10-07; los documentos de septiembre generan vencidos de forma natural y V0 no tiene estado): 75 compromisos, 25 vencidos antes de la semana, 16 dentro (12–18/10), 20 después, 14 sin fecha (algunos con `due_text` que no se puede resolver, como "apenas lo configure" o "todos los viernes"); 15 menciones; 2 plazos que dependen de la fecha de otro hecho ("dos semanas antes de la revisión del prototipo"), que son los más difíciles; ≥10 relativos (de "mañana" a "la semana que viene", sin ambiguos) y ≥10 absolutos.
-
-**Fuera de #5, sin issue (el usuario lo retoma más adelante):** vínculos 1 a 1 de cada persona con Lalo por proyecto (a veces es el jefe del proyecto, a veces al revés). La SPEC de V0 deriva la relación solo de la jerarquía del catálogo, así que esto cambia la SPEC. El catálogo ya lo admite sin rehacer nada: sería otro archivo (`relationships.jsonl`) con ids de persona y de proyecto, según la sección 5.
-
-## 13. Generador: Claude Code en vez de un chatbot externo [RESOLVED]
-
-Agregado 2026-10-09. Reemplaza lo que las secciones 1, 2 y 8 dicen del "chatbot externo (Gemini/ChatGPT)" y de armar el prompt copiando y pegando.
-
-**Qué cambia:** los documentos los escribe Claude Code dentro de este repo. Lee `story.md`, el catálogo, los `expected` y `data/generation/*` directo del disco, escribe `documents/<id>.md` y corre `scripts/check_dataset.py --stamp` en el momento. No hay prompt que pegar en ningún lado. `data/generation/` se mantiene igual: son los archivos que Claude lee antes de cada tanda (base, tipo, campo), y siguen siendo la forma de agregar un tipo o un campo nuevo.
-
-**Por qué:** menos pasos manuales, validación inmediata de cada documento y trazabilidad en git. El plan semanal de tokens se corta el viernes 2026-10-09 a las 17:00, así que #6 y #7 se hacen en esta sesión.
-
-**Alcance de hoy:**
-1. `docs/DATASET.md`: definir el formato del encabezado (no estaba definido).
-2. `data/generation/`: `base.md`, `types/{email,meeting,chat}.md`, `fields/commitments.md`.
-3. `scripts/check_dataset.py` (solo librería estándar) con `--stamp`.
-4. Generar los 25 documentos en 5 tandas de 5, leer a mano todos los textos de cada tanda. El cómo (inline o con subagentes) se le pregunta al usuario antes de empezar.
-5. `/close-feature` al final, si alcanza el tiempo. Si no, queda dicho en `## Next`.
-
-**Limitación conocida (no se corrige en V0):** sin reglas de variedad, los 25 textos pueden parecerse en estructura.
-
-**Riesgo conocido:** el mismo modelo que diseñó los `expected` escribe los textos, así que puede ser más cooperativo que un chatbot ajeno (compromisos más fáciles de extraer que en datos reales). Se anota como limitación del dataset; no se mitiga hoy.
-
-## Verificación
-
-- Cada pregunta de aceptación de la SPEC tiene al menos una pregunta concreta en `questions.jsonl`, con sus compromisos esperados.
-- `uv run scripts/check_dataset.py` sin errores.
-- Muestra revisada a mano en cada tanda.
+Pendiente de definir: si alguna de estas referencias está dentro de entradas viejas de `docs/PROGRESS.md` o `docs/DECISIONS.md` (esas no se reescriben; se deja la ruta vieja y, si hace falta, una nota con fecha).
