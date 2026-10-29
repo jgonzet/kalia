@@ -1,9 +1,9 @@
-"""Tests of the measurement of the retrieval (scripts/evaluate_retrieval.py), with made-up results and a fake retriever."""
+"""Tests of the measurement of the retrieval (scripts/quality/evals/evaluate_retrieval.py), with made-up results and a fake retriever."""
 
 from datetime import date
 from pathlib import Path
 
-import evaluate_retrieval as ev
+import scripts.quality.evals.evaluate_retrieval as ev
 from app.models import Commitment
 
 

@@ -1,4 +1,4 @@
-"""Tests of the latency script (scripts/measure_latency.py) with a fake LLM; the GPU and the machine are not read."""
+"""Tests of the latency script (scripts/quality/evals/measure_latency.py) with a fake LLM; the GPU and the machine are not read."""
 
 import argparse
 import json
@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-import measure_latency as ml
+import scripts.quality.evals.measure_latency as ml
 from app.config import ROOT, Settings
 from app.llm import LLMError
 

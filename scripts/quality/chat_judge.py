@@ -1,6 +1,6 @@
 """Judge an answer of the chat against the commitments the LLM was given, with rules and no second LLM.
 
-Used by `scripts/evaluate_chat.py` and checked by `scripts/check_chat_judge.py`. For every commitment the LLM was given
+Used by `scripts/quality/evals/evaluate_chat.py` and checked by `scripts/quality/checks/check_chat_judge.py`. For every commitment the LLM was given
 (the ones the question needs and the noise) it decides whether the answer says it and, if so, whether it names the
 right people and the right due date; and it finds the lines of the answer that claim a commitment nobody gave.
 
@@ -21,7 +21,7 @@ left out and its line as invented); a line stands for one commitment, so two sai
 judged only on lines with an arrow; dates are read in the forms of `dates_in` only; people by the name parts of four
 letters or more (`MIN_NAME_PART`) and by the words in `USER_WORDS`. What the data must keep for it to work is in
 docs/DATASET.md ("What the judge needs from the dataset"). Making it read many more forms is future work.
-`scripts/check_chat_judge.py` shows what it tells apart and `tests/test_chat_judge.py` pins down its parts.
+`scripts/quality/checks/check_chat_judge.py` shows what it tells apart and `tests/test_chat_judge.py` pins down its parts.
 """
 
 import re

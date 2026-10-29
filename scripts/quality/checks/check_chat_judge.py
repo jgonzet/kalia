@@ -1,13 +1,13 @@
-"""Check that the judge of the chat (`scripts/chat_judge.py`) tells apart the ways an answer can go wrong.
+"""Check that the judge of the chat (`scripts/quality/chat_judge.py`) tells apart the ways an answer can go wrong.
 
-    uv run scripts/check_chat_judge.py
+    uv run scripts/quality/checks/check_chat_judge.py
 
 It needs no dataset and no LLM: it uses a made-up company defined here, with the traps the judge has to survive (two people
 who share a surname, a title before a name, a particle inside a name, a commitment with no date), and judges answers
 written by hand for it. One is perfect and the others have one thing changed each (a commitment left out, a person changed,
 the direction inverted, a date changed, a commitment invented, one that was not needed, a paraphrase, an empty answer). It
 exits 1 if the judge does not see exactly what was changed. Like `check_bank_sensitivity.py`, it shows what the numbers of
-`scripts/evaluate_chat.py` can and cannot notice, so a change of the judge is checked here before its numbers are read.
+`scripts/quality/evals/evaluate_chat.py` can and cannot notice, so a change of the judge is checked here before its numbers are read.
 The CI runs it. The small checks of its parts (dates, names, lines) are in `tests/test_chat_judge.py`.
 """
 
@@ -16,9 +16,10 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+ROOT = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(ROOT))  # make `scripts` importable when this file is run by path
 
-from chat_judge import Item, Judgement, judge  # noqa: E402
+from scripts.quality.chat_judge import Item, Judgement, judge  # noqa: E402
 
 YEAR = 2026
 USER = "u"

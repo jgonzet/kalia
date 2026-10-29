@@ -2,12 +2,12 @@
 
 A development tool, not part of the app: real users have no answer key. See README ("Evaluate the retrieval").
 
-    uv run scripts/evaluate_retrieval.py lamanija                       both suites; logs one run per suite
-    uv run scripts/evaluate_retrieval.py lamanija --suite bank          only the retrieval bank (retrieval_bank.jsonl)
-    uv run scripts/evaluate_retrieval.py lamanija --suite acceptance    only the acceptance questions (questions.jsonl)
-    uv run scripts/evaluate_retrieval.py lamanija --retriever all       the baseline that returns every commitment
-    uv run scripts/evaluate_retrieval.py lamanija --strict              exit code 1 if a commitment is missing where no known gap is declared
-    uv run scripts/evaluate_retrieval.py lamanija --no-log              same, without adding runs to runs/metrics.jsonl
+    uv run scripts/quality/evals/evaluate_retrieval.py lamanija                       both suites; logs one run per suite
+    uv run scripts/quality/evals/evaluate_retrieval.py lamanija --suite bank          only the retrieval bank (retrieval_bank.jsonl)
+    uv run scripts/quality/evals/evaluate_retrieval.py lamanija --suite acceptance    only the acceptance questions (questions.jsonl)
+    uv run scripts/quality/evals/evaluate_retrieval.py lamanija --retriever all       the baseline that returns every commitment
+    uv run scripts/quality/evals/evaluate_retrieval.py lamanija --strict              exit code 1 if a commitment is missing where no known gap is declared
+    uv run scripts/quality/evals/evaluate_retrieval.py lamanija --no-log              same, without adding runs to runs/metrics.jsonl
 
 The retriever works on a temporary database built from the `expected` files, not on the stored commitments:
 this way an extraction error cannot count against the retrieval. A question with `after_held_out` is measured
@@ -28,16 +28,16 @@ from datetime import date
 from pathlib import Path
 from typing import Callable, NotRequired, TypedDict, cast
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))  # make `app` importable
+ROOT = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(ROOT))  # make `app` and `scripts` importable
 
-import run_log  # noqa: E402  (scripts/ is already on sys.path when this file is run)
+from scripts.quality import run_log  # noqa: E402
 from app.answering import Retriever  # noqa: E402
 from app.answering.retrieval import AllCommitmentsRetriever, RuleRetriever  # noqa: E402
 from app.ingestion.dataset import DatasetSource  # noqa: E402
 from app.models import Catalog, Commitment  # noqa: E402
 from app.storage.sqlite import SqliteStore  # noqa: E402
-from evaluate_extraction import load_answer_keys  # noqa: E402
+from scripts.quality.evals.evaluate_extraction import load_answer_keys  # noqa: E402
 from scripts.dataset.retrieval_bank import AfterHeldOut  # noqa: E402
 
 OWNER_ID = "evaluation"

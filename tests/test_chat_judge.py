@@ -1,6 +1,6 @@
-"""Tests of the parts of the judge of the chat (scripts/chat_judge.py): lines, dates, names and the matching of a line to a commitment.
+"""Tests of the parts of the judge of the chat (scripts/quality/chat_judge.py): lines, dates, names and the matching of a line to a commitment.
 
-`scripts/check_chat_judge.py` (which the CI also runs) checks the whole judge on whole answers; these pin down the pieces
+`scripts/quality/checks/check_chat_judge.py` (which the CI also runs) checks the whole judge on whole answers; these pin down the pieces
 it is built from, so a change that breaks one fails here with a name instead of with a count that moved.
 """
 
@@ -8,7 +8,7 @@ from datetime import date
 
 import pytest
 
-from chat_judge import Item, Judgement, content_words, dates_in, judge, people_named, person_aliases, plain, split_answer
+from scripts.quality.chat_judge import Item, Judgement, content_words, dates_in, judge, people_named, person_aliases, plain, split_answer
 
 PEOPLE = {"u": "Ana Ruiz", "b": "Bruno Vega", "l": "Lucía Pérez", "m": "Marta Pérez", "s": "Profesor Soto", "v": "Víctor Van Der Berg"}
 ALIASES = person_aliases(PEOPLE, "u")

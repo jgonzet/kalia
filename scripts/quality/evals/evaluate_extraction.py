@@ -2,15 +2,15 @@
 
 A development tool, not part of the app: real documents have no answer key. See README ("Evaluate the extraction").
 
-    uv run scripts/evaluate_extraction.py lamanija                  table per document (worst first), detail, totals
-    uv run scripts/evaluate_extraction.py lamanija --doc <id>       full detail of one document
-    uv run scripts/evaluate_extraction.py lamanija --out run.json   also save the result as JSON
-    uv run scripts/evaluate_extraction.py lamanija --model <name>   say which model made the commitments; the run is logged
-    uv run scripts/evaluate_extraction.py lamanija --no-log         do not add the run to runs/metrics.jsonl
+    uv run scripts/quality/evals/evaluate_extraction.py lamanija                  table per document (worst first), detail, totals
+    uv run scripts/quality/evals/evaluate_extraction.py lamanija --doc <id>       full detail of one document
+    uv run scripts/quality/evals/evaluate_extraction.py lamanija --out run.json   also save the result as JSON
+    uv run scripts/quality/evals/evaluate_extraction.py lamanija --model <name>   say which model made the commitments; the run is logged
+    uv run scripts/quality/evals/evaluate_extraction.py lamanija --no-log         do not add the run to runs/metrics.jsonl
 
-Every full evaluation (not `--doc`) is appended to the run log (scripts/run_log.py) with the dataset, the database file,
+Every full evaluation (not `--doc`) is appended to the run log (scripts/quality/run_log.py) with the dataset, the database file,
 the model named with `--model` (the stored commitments do not say which model made them) and a hash of the prompt file as
-it is now, which is not the prompt that made them if the file changed since. List the runs with `uv run scripts/run_log.py --stage extraction`.
+it is now, which is not the prompt that made them if the file changed since. List the runs with `uv run scripts/quality/run_log.py --stage extraction`.
 
 Uses DB_PATH and OWNER_ID from the environment. Only documents that are stored and annotated are evaluated.
 Matching, per document: first the pairs with the same people and due date, then, among what is left, the
@@ -27,10 +27,10 @@ from datetime import date
 from difflib import SequenceMatcher
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))  # make `app` importable
+ROOT = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(ROOT))  # make `app` and `scripts` importable
 
-import run_log  # noqa: E402  (scripts/ is already on sys.path when this file is run or imported by another script)
+from scripts.quality import run_log  # noqa: E402
 from app.config import Settings  # noqa: E402
 from app.models import Catalog, Commitment  # noqa: E402
 from app.storage.sqlite import SqliteStore  # noqa: E402

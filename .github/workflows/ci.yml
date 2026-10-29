@@ -15,7 +15,7 @@ jobs:
       - run: uv sync
       - run: uv run pytest
       - run: uv run scripts/dataset/check_dataset.py
-      - run: uv run scripts/check_chat_judge.py
-      - run: uv run scripts/evaluate_retrieval.py lamanija --strict --no-log
-      - run: uv run scripts/smoke_test.py
-      - run: uv run scripts/smoke_test_docker.py
+      - run: uv run scripts/quality/checks/check_chat_judge.py
+      - run: uv run scripts/quality/evals/evaluate_retrieval.py lamanija --strict --no-log
+      - run: uv run scripts/quality/checks/smoke_test.py
+      - run: uv run scripts/quality/checks/smoke_test_docker.py

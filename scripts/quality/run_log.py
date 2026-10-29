@@ -2,8 +2,8 @@
 
 Evaluation scripts call `append_run`; this file also lists what was logged:
 
-    uv run scripts/run_log.py                       every logged run, oldest first
-    uv run scripts/run_log.py --stage retrieval     only the runs of one stage
+    uv run scripts/quality/run_log.py                       every logged run, oldest first
+    uv run scripts/quality/run_log.py --stage retrieval     only the runs of one stage
 
 One JSON object per line in `runs/metrics.jsonl` (git-ignored). `params` and `metrics` are flat, like the
 ones MLflow logs, so moving the history there later is mechanical.
@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypedDict
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_LOG = ROOT / "runs" / "metrics.jsonl"
 
 

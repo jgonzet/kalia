@@ -1,10 +1,10 @@
-"""Tests of the run log (scripts/run_log.py)."""
+"""Tests of the run log (scripts/quality/run_log.py)."""
 
 from pathlib import Path
 
 import pytest
 
-import run_log
+from scripts.quality import run_log
 
 
 def test_a_run_is_appended_and_read_back(tmp_path: Path) -> None:

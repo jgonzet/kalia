@@ -11,7 +11,7 @@ Two ways to use it, both through the same path as `POST /documents` (the app's p
   extracts every stored document and replaces its commitments (the ones from other documents are untouched). It needs
   the catalog to be stored. Do it on a copy if you want to keep the old commitments.
 
-Then measure it with `DB_PATH=<db> uv run scripts/evaluate_extraction.py <company> --model <model>`.
+Then measure it with `DB_PATH=<db> uv run scripts/quality/evals/evaluate_extraction.py <company> --model <model>`.
 
 The backend, the endpoint and the key are those of the extractor task (`EXTRACTOR_LLM_*` if set, else `LLM_*`); the model comes
 from `--model` (default: the extractor's model).

@@ -3,18 +3,18 @@
 A development tool, not part of the app: real users have no answer key. It is how a model or a prompt of the chat is
 compared (the answering prompt is `app/prompts/answer_question.md`, the model is the answerer's: `ANSWERER_LLM_MODEL` if set, else `LLM_MODEL`). See README ("Evaluate the chat").
 
-    uv run scripts/evaluate_chat.py lamanija                                  the whole chat bank, with the model in the environment
-    uv run scripts/evaluate_chat.py lamanija --model llama3.1
-    uv run scripts/evaluate_chat.py lamanija --prompt /tmp/other_prompt.md   a prompt that is not the app's
-    uv run scripts/evaluate_chat.py lamanija --category date --show           one category, with each answer and what was wrong in it
-    uv run scripts/evaluate_chat.py lamanija --question skinner --no-log      the questions whose id contains this text
+    uv run scripts/quality/evals/evaluate_chat.py lamanija                                  the whole chat bank, with the model in the environment
+    uv run scripts/quality/evals/evaluate_chat.py lamanija --model llama3.1
+    uv run scripts/quality/evals/evaluate_chat.py lamanija --prompt /tmp/other_prompt.md   a prompt that is not the app's
+    uv run scripts/quality/evals/evaluate_chat.py lamanija --category date --show           one category, with each answer and what was wrong in it
+    uv run scripts/quality/evals/evaluate_chat.py lamanija --question skinner --no-log      the questions whose id contains this text
 
 The questions are those of `data/<company>/chat_bank.jsonl` (the latest version of each). For each one the LLM is given a
 controlled list, not the output of the retriever: the commitments the question needs plus some it does not (the noise),
 all taken from the `expected` files, so the retrieval and the extraction cannot be blamed for what the answer lacks. The
 question goes through `answer_from_commitments`, the same code the chat runs after it retrieves, and the answer is judged
-by `scripts/chat_judge.py` (rules, no second LLM; what it can and cannot notice is in its docstring and checked by
-`scripts/check_chat_judge.py`).
+by `scripts/quality/chat_judge.py` (rules, no second LLM; what it can and cannot notice is in its docstring and checked by
+`scripts/quality/checks/check_chat_judge.py`).
 
 Per question it counts: the commitments needed (`needed`), how many the answer says (`said`), how many it leaves out
 (`missing`), how many of the noise it says anyway (`extra`), how many it says with the wrong people (`people`) or the wrong
@@ -37,10 +37,10 @@ from datetime import date
 from pathlib import Path
 from typing import Callable
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))  # make `app` importable
+ROOT = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(ROOT))  # make `app` and `scripts` importable
 
-import run_log  # noqa: E402  (scripts/ is already on sys.path when this file is run or imported by another script)
+from scripts.quality import run_log  # noqa: E402
 from app.answering import Answer  # noqa: E402
 from app.answering.llm_answerer import DEGRADED_TEXT, TOO_LONG_TEXT, answer_from_commitments  # noqa: E402
 from app.answering.prompt import PROMPT_PATH  # noqa: E402
@@ -49,8 +49,8 @@ from app.ingestion.dataset import DatasetSource  # noqa: E402
 from app.llm import LLMClient, LLMError, build_llm  # noqa: E402
 from app.models import Catalog, Commitment  # noqa: E402
 from scripts.dataset.chat_bank import BANK_FILE, ChatRecord, latest, read_bank  # noqa: E402
-from chat_judge import Item, Judgement, judge  # noqa: E402
-from evaluate_retrieval import build_store  # noqa: E402
+from scripts.quality.chat_judge import Item, Judgement, judge  # noqa: E402
+from scripts.quality.evals.evaluate_retrieval import build_store  # noqa: E402
 
 STAGE = "chat_bank"
 DEGRADATION_SAMPLE = 8  # commitments the degradation checks hand to the chat

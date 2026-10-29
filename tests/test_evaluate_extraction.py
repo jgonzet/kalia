@@ -1,9 +1,9 @@
-"""Tests of how the extraction evaluation logs a run (scripts/evaluate_extraction.py), with made-up results."""
+"""Tests of how the extraction evaluation logs a run (scripts/quality/evals/evaluate_extraction.py), with made-up results."""
 
 from pathlib import Path
 
-import evaluate_extraction as ev
-import run_log
+import scripts.quality.evals.evaluate_extraction as ev
+from scripts.quality import run_log
 
 
 def document(document_id: str, expected: int, extracted: int, matched: int, field_errors: int = 0) -> ev.DocumentResult:

@@ -3,9 +3,9 @@
 Every question goes through `POST /chat` (retrieval plus the answerer's LLM, as a person using the app would), so the time is
 what that person waits. It needs a real LLM; the tokens are reported only by Ollama (the other backends give seconds only).
 
-    uv run scripts/measure_latency.py                                   the whole chat bank of lamanija
-    uv run scripts/measure_latency.py --ask "¿Cómo viene todo?" --repeat 12    one question, twelve times
-    uv run scripts/measure_latency.py --limit 8 --json runs/latency.json       a few questions, and the raw rows
+    uv run scripts/quality/evals/measure_latency.py                                   the whole chat bank of lamanija
+    uv run scripts/quality/evals/measure_latency.py --ask "¿Cómo viene todo?" --repeat 12    one question, twelve times
+    uv run scripts/quality/evals/measure_latency.py --limit 8 --json runs/latency.json       a few questions, and the raw rows
 
 The LLM is the answerer's (`ANSWERER_LLM_*` if set, else `LLM_*`). Before measuring, one short call loads the model, so the
 first question is not paying for it; `--cold` skips it (unload the model first to measure a cold start).
@@ -28,10 +28,10 @@ from datetime import date
 from pathlib import Path
 from typing import TypedDict
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))  # make `app` importable
+ROOT = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(ROOT))  # make `app` and `scripts` importable
 
-import run_log  # noqa: E402  (scripts/ is already on sys.path when this file is run)
+from scripts.quality import run_log  # noqa: E402
 from app.config import Settings  # noqa: E402
 from app.llm import LLMClient, build_llm  # noqa: E402
 from app.main import create_app  # noqa: E402
@@ -242,7 +242,7 @@ def report(
         f"- Context window: {llm.context_tokens or 'not set'} tokens; timeout: {llm.timeout_seconds:g} s per attempt",
         "",
         "**Method**",
-        f"- Command: `uv run scripts/measure_latency.py {' '.join(sys.argv[1:])}`".rstrip(),
+        f"- Command: `uv run scripts/quality/evals/measure_latency.py {' '.join(sys.argv[1:])}`".rstrip(),
         f"- Questions: {len(questions)} from {source}, fingerprint `{questions_hash(questions)}`",
         f"- Warm-up before measuring: {'no (cold start)' if args.cold else 'yes'}",
         "",

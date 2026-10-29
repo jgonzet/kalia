@@ -1,6 +1,6 @@
 """Smoke test: start the service with the fake LLM, check it, and shut it down.
 
-Run with `uv run scripts/smoke_test.py`. It needs no Ollama and no API keys.
+Run with `uv run scripts/quality/checks/smoke_test.py`. It needs no Ollama and no API keys.
 """
 
 import os
@@ -15,8 +15,8 @@ from pathlib import Path
 import httpx
 from fastapi.testclient import TestClient
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))  # scripts/ is sys.path[0], so make `app` importable
+ROOT = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(ROOT))  # make `app` and `scripts` importable
 
 from app.config import Settings  # noqa: E402
 from app.ingestion.dataset import DatasetSource  # noqa: E402

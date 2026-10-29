@@ -1,6 +1,6 @@
 """Check that the retrieval bank notices when a rule of the rule-based retriever is broken. See README ("Evaluate the retrieval").
 
-    uv run scripts/check_bank_sensitivity.py lamanija
+    uv run scripts/quality/checks/check_bank_sensitivity.py lamanija
 
 For each mutation below, the script breaks one behaviour of `RuleRetriever` in memory (the code on disk is never touched),
 measures the acceptance questions and the retrieval bank again, and counts the questions whose result changed. A mutation
@@ -24,10 +24,10 @@ from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))  # make `app` importable
+ROOT = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(ROOT))  # make `app` and `scripts` importable
 
-import evaluate_retrieval  # noqa: E402  (scripts/ is already on sys.path when this file is run)
+from scripts.quality.evals import evaluate_retrieval  # noqa: E402
 from app.answering import Retriever, retrieval  # noqa: E402
 from app.answering.retrieval import AllCommitmentsRetriever, QuestionFilters  # noqa: E402
 from app.models import Catalog, Commitment  # noqa: E402

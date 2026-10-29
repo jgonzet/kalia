@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
-import run_log
+from scripts.quality import run_log
 from app.config import Settings
 from app.ingestion.dataset import DatasetSource
 from app.llm import LLMError
 from app.models import Catalog, Commitment, Document
-from evaluate_extraction import load_answer_keys
-from evaluate_ingestion import (
+from scripts.quality.evals.evaluate_extraction import load_answer_keys
+from scripts.quality.evals.evaluate_ingestion import (
     Outcome,
     Reading,
     acceptance_questions,

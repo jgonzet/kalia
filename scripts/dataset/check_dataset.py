@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))  # make `scripts` importable when this file is run by path
 
-from scripts.chat_judge import content_words  # noqa: E402
+from scripts.quality.chat_judge import content_words  # noqa: E402
 from scripts.dataset.chat_bank import check_company_chat_bank  # noqa: E402
 from scripts.dataset.retrieval_bank import check_company_bank  # noqa: E402
 

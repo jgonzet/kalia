@@ -6,7 +6,7 @@ import pytest
 
 from app.answering.llm_answerer import DEGRADED_TEXT
 from app.llm import LLMError
-from evaluate_chat import QuestionResult, check_degradation, evaluate, format_report, totals
+from scripts.quality.evals.evaluate_chat import QuestionResult, check_degradation, evaluate, format_report, totals
 
 ROOT = Path(__file__).resolve().parent.parent
 COMPANY_DIR = ROOT / "data" / "lamanija"

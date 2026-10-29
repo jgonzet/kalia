@@ -1,6 +1,6 @@
 """Docker smoke test: start the container the way `docker compose up` does, check the sample is loaded, remove it all.
 
-Run with `uv run scripts/smoke_test_docker.py`. It needs Docker, no Ollama and no API keys: the container runs with the
+Run with `uv run scripts/quality/checks/smoke_test_docker.py`. It needs Docker, no Ollama and no API keys: the container runs with the
 fake LLM, on a free port and without the local `.env`, as a person who just cloned the repo would start it.
 """
 
@@ -15,7 +15,7 @@ from pathlib import Path
 
 import httpx
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent.parent
 PROJECT = "kalia-smoke"
 STARTUP_TIMEOUT_SECONDS = 60.0
 SAMPLE = json.loads((ROOT / "data" / "lamanija" / "company.json").read_text(encoding="utf-8"))

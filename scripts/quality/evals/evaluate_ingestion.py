@@ -4,9 +4,9 @@ A development tool, not part of the app: real documents have no answer key. It i
 `docs/SPEC.md` (after one new document is ingested, does a related question return an answer that reflects it?). See
 README ("Evaluate the ingestion").
 
-    uv run scripts/evaluate_ingestion.py lamanija                                   with the extractor and the answerer of the environment
-    uv run scripts/evaluate_ingestion.py lamanija --extractor-model a --answerer-model b
-    uv run scripts/evaluate_ingestion.py lamanija --show --no-log                   print each answer; do not add the run to runs/metrics.jsonl
+    uv run scripts/quality/evals/evaluate_ingestion.py lamanija                                   with the extractor and the answerer of the environment
+    uv run scripts/quality/evals/evaluate_ingestion.py lamanija --extractor-model a --answerer-model b
+    uv run scripts/quality/evals/evaluate_ingestion.py lamanija --show --no-log                   print each answer; do not add the run to runs/metrics.jsonl
 
 The questions are the `Q5` ones of `data/<company>/questions.jsonl` (the latest version of each). Only the documents those
 questions need are loaded, so the run is shorter than a full load. Everything goes through the code of the app: each
@@ -23,7 +23,7 @@ Four stages, measured apart so a loss or an addition can be placed:
 3. Retrieval: of the commitments the question expects from the new document and that stages 1 and 2 delivered, how many
    the chat retrieves (lost), and how many others of the new document it retrieves (added). Before the ingestion
    the chat must retrieve none of them (leaked).
-4. Answer: of the ones retrieved, how many the answer says (judged by `scripts/chat_judge.py`: rules, no second LLM), with
+4. Answer: of the ones retrieved, how many the answer says (judged by `scripts/quality/chat_judge.py`: rules, no second LLM), with
    what wrong people or due date; lines that look like a commitment nobody gave (invented, an upper bound); and the
    commitments of other documents that the answer leaves out, before and after, to see whether the new document pushed one out.
 
@@ -44,10 +44,10 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))  # make `app` importable
+ROOT = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(ROOT))  # make `app` and `scripts` importable
 
-import run_log  # noqa: E402  (scripts/ is already on sys.path when this file is run or imported by another script)
+from scripts.quality import run_log  # noqa: E402
 from app.answering.prompt import PROMPT_PATH  # noqa: E402
 from app.config import Settings  # noqa: E402
 from app.extraction import CommitmentExtractor  # noqa: E402
@@ -57,10 +57,10 @@ from app.llm import LLMClient, build_llm  # noqa: E402
 from app.main import create_app  # noqa: E402
 from app.models import Catalog, Commitment, Document  # noqa: E402
 from app.storage.sqlite import SqliteStore  # noqa: E402
-from chat_judge import Item, judge  # noqa: E402
-from evaluate_extraction import PROMPT_FILE as EXTRACTION_PROMPT  # noqa: E402
-from evaluate_extraction import DocumentResult, evaluate_document, load_answer_keys  # noqa: E402
-from evaluate_retrieval import QuestionRecord, load_latest_questions  # noqa: E402
+from scripts.quality.chat_judge import Item, judge  # noqa: E402
+from scripts.quality.evals.evaluate_extraction import PROMPT_FILE as EXTRACTION_PROMPT  # noqa: E402
+from scripts.quality.evals.evaluate_extraction import DocumentResult, evaluate_document, load_answer_keys  # noqa: E402
+from scripts.quality.evals.evaluate_retrieval import QuestionRecord, load_latest_questions  # noqa: E402
 
 STAGE = "ingestion"
 ACCEPTANCE = "Q5"
