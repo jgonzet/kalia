@@ -49,4 +49,4 @@ Se actualizan al final, una vez movidos los tres grupos:
 - `scripts/measure_latency.py:245`, que imprime su propio comando en el reporte.
 - `tests/`: imports de módulos movidos.
 
-Pendiente de definir: si alguna de estas referencias está dentro de entradas viejas de `docs/PROGRESS.md` o `docs/DECISIONS.md` (esas no se reescriben; se deja la ruta vieja y, si hace falta, una nota con fecha).
+Rutas viejas dentro de `docs/PROGRESS.md`, `docs/PROGRESS_ARCHIVE.md` y `docs/DECISIONS.md` (no se reescriben) [RESOLVED]: no se agrega tabla de equivalencias, que sería una segunda fuente de verdad y cambiaría el contrato de documentación. Cada script conserva su nombre de archivo, que es único. El registro con fecha va en la entrada de `docs/PROGRESS.md` de #32, y el `CLAUDE.md` del proyecto suma una línea: las entradas anteriores al 2026-10-29 citan los scripts con ruta plana; se ubican con `find scripts -name <nombre>.py`. Nada en `docs/DECISIONS.md` ni en las entradas viejas.
