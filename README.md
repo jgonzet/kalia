@@ -17,9 +17,11 @@ The LLM is replaceable: Ollama through its native API (the default), the Claude 
 
 ## Run
 
-Requires Docker and an LLM: either [Ollama](https://ollama.com) running on the host with the model pulled (default `qwen2.5:14b`), or an API key (see "Use the Claude API instead of Ollama"). Ollama must listen on an address the container can reach, not only on `127.0.0.1` (for example, set `OLLAMA_HOST=0.0.0.0`).
+Requires Docker with Compose v2 (the `docker compose` command) and an LLM: either [Ollama](https://ollama.com) running on the host with the model pulled (default `qwen2.5:14b`, `ollama pull qwen2.5:14b`), or an API key (see "Use the Claude API instead of Ollama"). Ollama must listen on an address the container can reach, not only on `127.0.0.1` (for example, set `OLLAMA_HOST=0.0.0.0`). Loading the sample and opening the page need no LLM; only asking questions does.
 
 ```bash
+git clone <repository URL> kalia
+cd kalia
 docker compose up --build
 ```
 
