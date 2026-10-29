@@ -267,7 +267,7 @@ def main(argv: list[str]) -> int:
     store = SqliteStore(settings.db_path, settings.owner_id)
     catalog = store.load_catalog()
     if catalog is None:
-        print(f"{settings.db_path} has no catalog; run scripts/load_dataset.py first")
+        print(f"{settings.db_path} has no catalog; run scripts/operate/load_dataset.py first")
         return 1
     stored_ids = {d.id for d in store.list_documents()}
     keys = load_answer_keys(company_dir, catalog)

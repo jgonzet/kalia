@@ -1,8 +1,8 @@
 """Manual extraction through an external LLM session, one with no access to the repo.
 
-Run `uv run scripts/manual_extraction.py status` at any point: it says where you are and what to run next.
+Run `uv run scripts/operate/manual_extraction.py status` at any point: it says where you are and what to run next.
 The steps, in order:
-1. `uv run scripts/load_dataset.py lamanija` stores the catalog and the documents.
+1. `uv run scripts/operate/load_dataset.py lamanija` stores the catalog and the documents.
 2. `export` writes `requests/batch-NN.md` (git-ignored).
 3. Open a session in an empty folder outside the repo, paste one request file and let it answer (the only manual step).
 4. Save the answer as `responses/batch-NN.json`.
@@ -17,7 +17,7 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))  # make `app` importable
 
 from app.config import Settings  # noqa: E402
@@ -48,11 +48,11 @@ def show_status(store: SqliteStore, documents: list[Document], requests: Path, r
     if not_imported:
         print("  answered but not imported: " + ", ".join(not_imported))
     if not request_files:
-        print("Next: uv run scripts/manual_extraction.py export")
+        print("Next: uv run scripts/operate/manual_extraction.py export")
     elif unanswered:
         print("Next: give each requests/batch-NN.md to an external Claude session and save its answer as responses/batch-NN.json")
     elif not_imported:
-        print("Next: uv run scripts/manual_extraction.py import responses/batch-*.json")
+        print("Next: uv run scripts/operate/manual_extraction.py import responses/batch-*.json")
     else:
         print("Nothing left to do: every stored document was answered and its commitments are in the database.")
     return 0
@@ -74,7 +74,7 @@ def main(argv: list[str]) -> int:
     catalog = store.load_catalog()
     documents = store.list_documents()
     if catalog is None or not documents:
-        print(f"{settings.db_path} has no catalog or documents. Next: uv run scripts/load_dataset.py <company>")
+        print(f"{settings.db_path} has no catalog or documents. Next: uv run scripts/operate/load_dataset.py <company>")
         return 1
 
     if args.command == "status":

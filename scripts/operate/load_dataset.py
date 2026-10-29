@@ -1,13 +1,13 @@
 """Initial load: store the catalog and the non-held-out documents of a company dataset.
 
-Run with `uv run scripts/load_dataset.py lamanija`. Uses DB_PATH and OWNER_ID from the environment.
+Run with `uv run scripts/operate/load_dataset.py lamanija`. Uses DB_PATH and OWNER_ID from the environment.
 Held-out documents are ingested afterwards through `POST /documents`.
 """
 
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))  # make `app` importable
 
 from app.config import Settings  # noqa: E402

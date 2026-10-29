@@ -3,11 +3,11 @@
 Two ways to use it, both through the same path as `POST /documents` (the app's prompt, `LLMExtractor`, `extract_and_store`):
 
 - New database from a synthetic dataset:
-  `uv run scripts/extract_dataset.py lamanija --db runs/qwen.db --model qwen2.5:14b`
+  `uv run scripts/operate/extract_dataset.py lamanija --db runs/qwen.db --model qwen2.5:14b`
   loads the catalog and the documents of `data/<company>/` (held-out documents excluded) and extracts them. It refuses
   to write into a database that already exists, so a run never mixes with an earlier one.
-- Database that already has its documents (for example one filled with `scripts/load_dataset.py`):
-  `uv run scripts/extract_dataset.py --db kalia.db --existing`
+- Database that already has its documents (for example one filled with `scripts/operate/load_dataset.py`):
+  `uv run scripts/operate/extract_dataset.py --db kalia.db --existing`
   extracts every stored document and replaces its commitments (the ones from other documents are untouched). It needs
   the catalog to be stored. Do it on a copy if you want to keep the old commitments.
 
@@ -24,7 +24,7 @@ import time
 from dataclasses import replace
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))  # make `app` importable
 
 from app.config import Settings  # noqa: E402
@@ -51,7 +51,7 @@ def main(argv: list[str]) -> int:
             return 1
         store = SqliteStore(str(args.db), defaults.owner_id) if db_existed else None
         if store is None or store.load_catalog() is None:
-            print(f"{args.db} does not exist or has no catalog; load a dataset first (scripts/load_dataset.py)")
+            print(f"{args.db} does not exist or has no catalog; load a dataset first (scripts/operate/load_dataset.py)")
             return 1
     else:
         if not args.company:

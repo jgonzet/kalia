@@ -62,7 +62,7 @@ def check_fake_llm() -> None:
 def run_loader(db_path: str) -> None:
     """Run the dataset loader script against the temporary database."""
     env = {**os.environ, "DB_PATH": db_path, "OWNER_ID": OWNER_ID}
-    subprocess.run([sys.executable, "scripts/load_dataset.py", "lamanija"], env=env, cwd=ROOT, check=True)
+    subprocess.run([sys.executable, "scripts/operate/load_dataset.py", "lamanija"], env=env, cwd=ROOT, check=True)
 
 
 def check_ingestion(base_url: str, db_path: str) -> None:

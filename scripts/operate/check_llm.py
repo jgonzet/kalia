@@ -1,7 +1,7 @@
 """Manual check: send a simple question to the real LLM of each task and print its answer.
 
 A task whose LLM is the same as one already checked is not asked again.
-Run inside the container with `docker compose run --rm app python scripts/check_llm.py`.
+Run inside the container with `docker compose run --rm app python scripts/operate/check_llm.py`.
 Not part of the smoke test or CI: it needs a reachable LLM endpoint.
 """
 
@@ -10,7 +10,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # make `app` importable
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))  # make `app` importable
 
 from app.config import LLM_TASKS, LLMSettings, Settings  # noqa: E402
 from app.llm import LLMError, build_llm  # noqa: E402

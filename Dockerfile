@@ -14,7 +14,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 COPY app ./app
-COPY scripts/check_llm.py ./scripts/check_llm.py
+COPY scripts/operate/check_llm.py ./scripts/operate/check_llm.py
 
 # Only what loading the sample company needs: no story, question banks or org chart.
 COPY data/lamanija/company.json data/lamanija/people.jsonl data/lamanija/projects.jsonl ./data/lamanija/
