@@ -215,3 +215,31 @@ Older entries are in [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md); both files are 
 **Tests:** 286 tests pass (15 new). Breaking two counts of the script on purpose made three of them fail, then the script was put back. Run twice by hand against `qwen2.5:14b`, about two minutes each. The CI checks were run too: `check_dataset.py`, `check_chat_judge.py`, `evaluate_retrieval.py --strict`, `smoke_test.py` and `smoke_test_docker.py` pass.
 
 **Issues:** closed #35. Comments on #26 (what the extractor did with `lamanija-0025`) and #32 (the new script and its imports).
+
+## 2026-10-29 — `scripts/` grouped by role
+
+**Purpose:** work on #32. `scripts/` had 21 files in one folder (dataset tools, two question banks, evaluations, runtime checks), so it was hard to tell which was product and which was quality evidence, and the number only grew.
+
+**Input:** the 21 scripts, their imports between each other, and everything that cites their paths (CI, `Dockerfile`, tests, README, `docs/`, `CLAUDE.md`, a generator prompt).
+
+**Output:** `scripts/operate/` (load, extract, check the LLM), `scripts/dataset/` (dataset check, org chart, the two question banks), `scripts/quality/` (the judge and the run log; `checks/` without an LLM, `evals/` with a real one). No script changed what it does; file names are the same.
+
+**Logic:**
+1. Every file was moved with `git mv`, one group at a time (`dataset/`, `quality/`, `operate/`), and after each group the imports were rewritten and the tests and the CI commands run, so a break pointed at one move.
+2. `scripts` is now a package: scripts import each other with absolute paths (`from scripts.quality import run_log`) and each one puts the repo root in `sys.path` when it is run by path. See "`scripts/` is grouped by role and is a package with absolute imports".
+3. The question files of each company are loaded by name (`scripts.dataset.chat_bank_<company>`), so they have to sit next to their engine.
+4. The paths in living documents and in messages the scripts print were rewritten. The entries of `docs/PROGRESS.md`, `docs/PROGRESS_ARCHIVE.md` and `docs/DECISIONS.md` were not: `CLAUDE.md` tells a reader that earlier entries cite flat paths and how to find a script by name.
+
+**Important assumptions:**
+- `load_dataset`, `extract_dataset`, `manual_extraction` and `check_llm` go to `operate/` as they are. Making loading and extracting a pipeline the app can trigger is #48; until then they are the scripts that do it.
+- `chat_judge` and `run_log` sit at the root of `quality/` because the evaluations and `check_dataset` all use them.
+- The four "Command:" lines of past runs in `docs/MEASUREMENTS.md` keep the old path: they record what was run.
+- The generator prompt `data/generation/session_prompt.md` had only its `check_dataset.py` path changed, with your approval; its text is otherwise the same.
+- `pythonpath` of pytest is now only `.`; the tests no longer rely on `scripts/` being on the path.
+- The GitHub CI was not run (it needs a push); the same commands pass locally.
+
+**Location:** `scripts/operate/`, `scripts/dataset/`, `scripts/quality/`, `.github/workflows/ci.yml`, `Dockerfile`, `pyproject.toml`, `README.md` ("Checks"), `docs/DATASET.md`, `CLAUDE.md`. Commits `b8e256b`, `38325b7`, `08a3dec`, `c06de2b`; the plan is `docs/PLAN.md`.
+
+**Tests:** no new tests; 286 pass. After the moves, from a clean state: every module imports, every script answers `--help` from another folder, the six commands of the CI pass (including the Docker smoke test), and `check_llm` ran inside the container. With the real LLM (`qwen2.5:14b`): `evaluate_chat` on the `date` category said 64 and 75 of 131 needed commitments on the old layout and 74 and 77 on the new one; `evaluate_ingestion`, `measure_latency` and `extract_dataset` + `evaluate_extraction` ran to the end (39 of 73 matched, against 37 and 39 on 2026-10-17).
+
+**Issues:** closed #32. Opened none.
