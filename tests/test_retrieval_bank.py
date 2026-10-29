@@ -1,4 +1,4 @@
-"""Tests of the engine that computes the correct answers of the retrieval bank (scripts/retrieval_bank.py).
+"""Tests of the engine that computes the correct answers of the retrieval bank (scripts/dataset/retrieval_bank.py).
 
 They use a tiny made-up company, not the real dataset: an error here would corrupt the answer key without any warning.
 """
@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-import retrieval_bank as rb
-from retrieval_bank import Context, Person, Row, Spec
+import scripts.dataset.retrieval_bank as rb
+from scripts.dataset.retrieval_bank import Context, Person, Row, Spec
 
 TODAY = date(2026, 10, 12)  # a Monday
 
@@ -231,7 +231,7 @@ def test_check_company_bank_skips_a_company_without_a_bank(company: Path) -> Non
 
 def test_check_company_bank_says_when_the_spec_module_is_missing(company: Path) -> None:
     (company / rb.BANK_FILE).write_text("", encoding="utf-8")
-    problems = rb.check_company_bank(company)  # no scripts/retrieval_bank_acme.py exists
+    problems = rb.check_company_bank(company)  # no scripts/dataset/retrieval_bank_acme.py exists
     assert len(problems) == 1 and "retrieval_bank_acme.py does not" in problems[0]
 
 

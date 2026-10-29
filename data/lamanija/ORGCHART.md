@@ -1,6 +1,6 @@
 # La Manija Games — org chart
 
-Generated from `people.jsonl` by `scripts/orgchart.py`; do not edit by hand.
+Generated from `people.jsonl` by `scripts/dataset/orgchart.py`; do not edit by hand.
 
 | id | Name | Role | Area | Level | Reports to |
 |---|---|---|---|---|---|

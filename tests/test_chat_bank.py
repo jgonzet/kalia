@@ -1,4 +1,4 @@
-"""Tests of the engine that computes the lists of the chat bank (scripts/chat_bank.py): the noise, the records and the check.
+"""Tests of the engine that computes the lists of the chat bank (scripts/dataset/chat_bank.py): the noise, the records and the check.
 
 They use a tiny made-up company, not the real dataset: an error here would hand the LLM the wrong list without any warning.
 """
@@ -9,9 +9,9 @@ from pathlib import Path
 
 import pytest
 
-import retrieval_bank as rb
-from chat_bank import BANK_FILE, ChatRecord, ChatSpec, Noise, check_company_chat_bank, compare, compute_records, latest, pick_noise, spread
-from retrieval_bank import Context, Person, Row
+import scripts.dataset.retrieval_bank as rb
+from scripts.dataset.chat_bank import BANK_FILE, ChatRecord, ChatSpec, Noise, check_company_chat_bank, compare, compute_records, latest, pick_noise, spread
+from scripts.dataset.retrieval_bank import Context, Person, Row
 
 TODAY = date(2026, 10, 12)
 BOSS = Person("p1", "Ana Boss", "Director", "Dir", 2, None)

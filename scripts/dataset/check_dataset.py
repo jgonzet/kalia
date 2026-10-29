@@ -1,6 +1,6 @@
 """Check that the documents and the expected files of a synthetic dataset agree, and that its retrieval bank and its chat bank still match them.
 
-Usage: uv run scripts/check_dataset.py [company ...] [--stamp] [--allow-pending]
+Usage: uv run scripts/dataset/check_dataset.py [company ...] [--stamp] [--allow-pending]
 
 Formats are defined in docs/DATASET.md. Whether a text really contains each
 commitment is not checked here: that stays a manual review.
@@ -13,11 +13,14 @@ import re
 import sys
 from pathlib import Path
 
-from chat_bank import check_company_chat_bank
-from chat_judge import content_words
-from retrieval_bank import check_company_bank
+ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(ROOT))  # make `scripts` importable when this file is run by path
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+from scripts.chat_judge import content_words  # noqa: E402
+from scripts.dataset.chat_bank import check_company_chat_bank  # noqa: E402
+from scripts.dataset.retrieval_bank import check_company_bank  # noqa: E402
+
+DATA_DIR = ROOT / "data"
 MIN_JUDGEABLE_WORDS = 3  # words of four letters or more a commitment's `what` needs for the judge of the chat to find it
 COMMITMENT_ID = re.compile(r"^(?P<doc>.+)-c(?P<n>\d+)$")
 HEADER_KEYS = ("id", "type", "date", "participants")

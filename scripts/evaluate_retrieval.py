@@ -38,7 +38,7 @@ from app.ingestion.dataset import DatasetSource  # noqa: E402
 from app.models import Catalog, Commitment  # noqa: E402
 from app.storage.sqlite import SqliteStore  # noqa: E402
 from evaluate_extraction import load_answer_keys  # noqa: E402
-from retrieval_bank import AfterHeldOut  # noqa: E402
+from scripts.dataset.retrieval_bank import AfterHeldOut  # noqa: E402
 
 OWNER_ID = "evaluation"
 SUITE_FILES = {"acceptance": "questions.jsonl", "bank": "retrieval_bank.jsonl"}

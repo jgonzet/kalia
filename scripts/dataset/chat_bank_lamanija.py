@@ -1,5 +1,5 @@
-"""Questions of the chat bank of `data/lamanija/`. The engine and the file format: scripts/chat_bank.py and
-docs/DATASET.md ("Chat bank"); the conditions it is built from and the meaning of every term: scripts/retrieval_bank.py
+"""Questions of the chat bank of `data/lamanija/`. The engine and the file format: scripts/dataset/chat_bank.py and
+docs/DATASET.md ("Chat bank"); the conditions it is built from and the meaning of every term: scripts/dataset/retrieval_bank.py
 and docs/DATASET.md ("What each term means").
 
 Each question says, with a condition over one commitment, what a correct answer contains (`needed`), and with kinds of
@@ -7,13 +7,13 @@ noise what else the LLM is given: the commitments a retrieval could let through 
 with others, the next week, other projects). Only questions the LLM can decide from what its prompt shows are here: the
 user's name, each commitment's people, text, due date, state and project, and today's date. It does not see the org
 chart, the roles or the areas, so questions about "la gente de Arte" or "la Directora de Arte" are not here; the one about "mi jefe" is given no noise.
-To add a question, append a `ChatSpec` (or `reuse` a retrieval question) and run `uv run scripts/chat_bank.py lamanija`.
+To add a question, append a `ChatSpec` (or `reuse` a retrieval question) and run `uv run scripts/dataset/chat_bank.py lamanija`.
 """
 
 from datetime import date, timedelta
 
-from chat_bank import ChatSpec, Noise
-from retrieval_bank import (
+from scripts.dataset.chat_bank import ChatSpec, Noise
+from scripts.dataset.retrieval_bank import (
     Cond,
     Context,
     Person,

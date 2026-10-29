@@ -1,13 +1,13 @@
 """Build and check the chat bank of a synthetic dataset (`data/<company>/chat_bank.jsonl`).
 
-    uv run scripts/chat_bank.py lamanija            add the questions of the spec that are not in the file yet
-    uv run scripts/chat_bank.py lamanija --check    only verify the file against the spec and the `expected` files
+    uv run scripts/dataset/chat_bank.py lamanija            add the questions of the spec that are not in the file yet
+    uv run scripts/dataset/chat_bank.py lamanija --check    only verify the file against the spec and the `expected` files
 
 The chat bank measures what the LLM does with a list of commitments that is already chosen, apart from the retrieval.
 Each question gives the LLM a controlled list: the commitments the question needs (`needed`) plus some it does not
 (`noise`), and the answer is judged against that. Both sets are computed from conditions over the `expected` files, like
-the retrieval bank (`scripts/retrieval_bank.py`, whose conditions and context this file reuses); the conditions are
-written in `scripts/chat_bank_<company>.py`. Nothing here imports `app/`. Formats and limits: docs/DATASET.md ("Chat bank").
+the retrieval bank (`scripts/dataset/retrieval_bank.py`, whose conditions and context this file reuses); the conditions are
+written in `scripts/dataset/chat_bank_<company>.py`. Nothing here imports `app/`. Formats and limits: docs/DATASET.md ("Chat bank").
 
 A published question is never edited: if the computed record of a published question stops matching the file, the
 script stops and says so; the fix is a new `version` of that question.
@@ -23,11 +23,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict, cast
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(ROOT))  # make `scripts` importable when this file is run by path
 
-from retrieval_bank import Cond, Context, Row, load_context, load_rows, load_specs, read_jsonl  # noqa: E402
+from scripts.dataset.retrieval_bank import Cond, Context, Row, load_context, load_rows, load_specs, read_jsonl  # noqa: E402
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = ROOT / "data"
 BANK_FILE = "chat_bank.jsonl"
 FIRST_VERSION = "v1"
 DEFAULT_NOISE_SIZE = 8  # most commitments that are not needed given to the LLM with a question
@@ -110,9 +111,9 @@ def pick_noise(spec: ChatSpec, rows: list[Row]) -> dict[str, str]:
 
 
 def load_chat_specs(company: str, ctx: Context) -> list[ChatSpec]:
-    """Import `scripts/chat_bank_<company>.py` and ask it for the company's specs (it may reuse retrieval questions)."""
+    """Import `scripts/dataset/chat_bank_<company>.py` and ask it for the company's specs (it may reuse retrieval questions)."""
     retrieval = {(s.id, s.version): s for s in load_specs(company, ctx)}
-    module = importlib.import_module(f"chat_bank_{company}")
+    module = importlib.import_module(f"scripts.dataset.chat_bank_{company}")
     return cast(list[ChatSpec], module.specs(ctx, retrieval))
 
 
@@ -169,7 +170,7 @@ def check_company_chat_bank(company_dir: Path) -> list[str]:
     try:
         return compare(build_bank(company_dir), read_bank(path))
     except ModuleNotFoundError:
-        return [f"{BANK_FILE} exists but scripts/chat_bank_{company_dir.name}.py does not"]
+        return [f"{BANK_FILE} exists but scripts/dataset/chat_bank_{company_dir.name}.py does not"]
     except (KeyError, ValueError, OSError) as error:
         return [f"{BANK_FILE} cannot be computed: {type(error).__name__}: {error}"]
 
@@ -204,7 +205,7 @@ def main(argv: list[str]) -> int:
         ctx = load_context(company_dir)
         computed = compute_records(company_dir, load_chat_specs(args.company, ctx), ctx)
     except ModuleNotFoundError:
-        print(f"scripts/chat_bank_{args.company}.py does not exist: write it with a specs(ctx, retrieval) function first")
+        print(f"scripts/dataset/chat_bank_{args.company}.py does not exist: write it with a specs(ctx, retrieval) function first")
         return 1
     except (KeyError, ValueError, OSError) as error:
         print(f"cannot build the bank: {type(error).__name__}: {error}")

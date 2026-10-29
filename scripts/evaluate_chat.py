@@ -48,7 +48,7 @@ from app.config import Settings  # noqa: E402
 from app.ingestion.dataset import DatasetSource  # noqa: E402
 from app.llm import LLMClient, LLMError, build_llm  # noqa: E402
 from app.models import Catalog, Commitment  # noqa: E402
-from chat_bank import BANK_FILE, ChatRecord, latest, read_bank  # noqa: E402
+from scripts.dataset.chat_bank import BANK_FILE, ChatRecord, latest, read_bank  # noqa: E402
 from chat_judge import Item, Judgement, judge  # noqa: E402
 from evaluate_retrieval import build_store  # noqa: E402
 
@@ -316,7 +316,7 @@ def main(argv: list[str]) -> int:
 
     company_dir = ROOT / "data" / args.company
     if not (company_dir / BANK_FILE).exists():
-        print(f"no {BANK_FILE} at {company_dir}: run scripts/chat_bank.py {args.company} first")
+        print(f"no {BANK_FILE} at {company_dir}: run scripts/dataset/chat_bank.py {args.company} first")
         return 1
     if answerer.backend == "fake":
         print("The backend of the answerer is fake: the answers are fixed text, so this only checks the plumbing")

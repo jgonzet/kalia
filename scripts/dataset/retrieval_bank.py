@@ -1,9 +1,9 @@
 """Build and check the retrieval bank of a synthetic dataset (`data/<company>/retrieval_bank.jsonl`).
 
-    uv run scripts/retrieval_bank.py lamanija            add the questions of the spec that are not in the file yet
-    uv run scripts/retrieval_bank.py lamanija --check    only verify the file against the spec and the `expected` files
+    uv run scripts/dataset/retrieval_bank.py lamanija            add the questions of the spec that are not in the file yet
+    uv run scripts/dataset/retrieval_bank.py lamanija --check    only verify the file against the spec and the `expected` files
 
-Each question of the bank is defined in `scripts/retrieval_bank_<company>.py` as a condition over one commitment
+Each question of the bank is defined in `scripts/dataset/retrieval_bank_<company>.py` as a condition over one commitment
 (`Cond`). The correct answer is every commitment of the `expected` files that meets the condition; the condition's
 text is stored in the file as `rule`. Nothing here imports `app/`: the answers must not come from the code under test.
 Formats, definitions of each term and how to extend the bank: docs/DATASET.md ("Retrieval bank").
@@ -24,7 +24,10 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Callable, Iterable, NotRequired, TypedDict, cast
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(ROOT))  # make `scripts` importable when this file is run by path
+
+DATA_DIR = ROOT / "data"
 BANK_FILE = "retrieval_bank.jsonl"
 FIRST_VERSION = "v1"
 
@@ -257,9 +260,8 @@ def load_rows(company_dir: Path, ctx: Context) -> list[Row]:
 
 
 def load_specs(company: str, ctx: Context) -> list[Spec]:
-    """Import `scripts/retrieval_bank_<company>.py` and ask it for the company's specs."""
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    module = importlib.import_module(f"retrieval_bank_{company}")
+    """Import `scripts/dataset/retrieval_bank_<company>.py` and ask it for the company's specs."""
+    module = importlib.import_module(f"scripts.dataset.retrieval_bank_{company}")
     return module.specs(ctx)
 
 
@@ -329,7 +331,7 @@ def check_company_bank(company_dir: Path) -> list[str]:
     try:
         return compare(build_bank(company_dir), read_bank(path))
     except ModuleNotFoundError:
-        return [f"{BANK_FILE} exists but scripts/retrieval_bank_{company_dir.name}.py does not"]
+        return [f"{BANK_FILE} exists but scripts/dataset/retrieval_bank_{company_dir.name}.py does not"]
     except (KeyError, ValueError, OSError) as error:
         return [f"{BANK_FILE} cannot be computed: {type(error).__name__}: {error}"]
 
@@ -372,7 +374,7 @@ def main(argv: list[str]) -> int:
         ctx = load_context(company_dir)
         computed = compute_records(company_dir, load_specs(args.company, ctx), ctx)
     except ModuleNotFoundError:
-        print(f"scripts/retrieval_bank_{args.company}.py does not exist: write it with a specs(ctx) function first")
+        print(f"scripts/dataset/retrieval_bank_{args.company}.py does not exist: write it with a specs(ctx) function first")
         return 1
     except (KeyError, ValueError, OSError) as error:
         print(f"cannot build the bank: {type(error).__name__}: {error}")

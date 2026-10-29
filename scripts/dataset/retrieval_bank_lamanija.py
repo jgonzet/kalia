@@ -1,14 +1,14 @@
-"""Questions of the retrieval bank of `data/lamanija/`. The engine and the rules of every term: scripts/retrieval_bank.py
+"""Questions of the retrieval bank of `data/lamanija/`. The engine and the rules of every term: scripts/dataset/retrieval_bank.py
 and docs/DATASET.md ("Retrieval bank").
 
 Each question says, with a condition over one commitment, what a correct answer contains. The questions are written as a
 user would type them, not to match what the retriever understands today. To add one, append a `Spec` here (the angle it
-covers goes in the coverage table of docs/DATASET.md) and run `uv run scripts/retrieval_bank.py lamanija`.
+covers goes in the coverage table of docs/DATASET.md) and run `uv run scripts/dataset/retrieval_bank.py lamanija`.
 """
 
 from datetime import date, timedelta
 
-from retrieval_bank import (
+from scripts.dataset.retrieval_bank import (
     Context,
     Spec,
     any_of,

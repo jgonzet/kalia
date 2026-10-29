@@ -35,7 +35,7 @@ import run_log  # noqa: E402  (scripts/ is already on sys.path when this file is
 from app.config import Settings  # noqa: E402
 from app.llm import LLMClient, build_llm  # noqa: E402
 from app.main import create_app  # noqa: E402
-from chat_bank import BANK_FILE, latest, read_bank  # noqa: E402
+from scripts.dataset.chat_bank import BANK_FILE, latest, read_bank  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 GPU_SAMPLE_SECONDS = 2

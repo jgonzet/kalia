@@ -25,7 +25,7 @@ def main() -> None:
     out = company_dir / "ORGCHART.md"
     out.write_text(
         f"# {company['name']} — org chart\n\n"
-        "Generated from `people.jsonl` by `scripts/orgchart.py`; do not edit by hand.\n\n"
+        "Generated from `people.jsonl` by `scripts/dataset/orgchart.py`; do not edit by hand.\n\n"
         f"{table}\n"
     )
     print(f"wrote {out}")
