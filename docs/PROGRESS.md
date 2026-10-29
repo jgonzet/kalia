@@ -2,10 +2,9 @@
 
 ## Next
 
-1. #34 — Check that the app runs on another PC following only the README
-2. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
+1. #32 — Reorganize scripts/ by topic (after the functional ones above, before the final README pass)
 
-Synced at: a23ef56
+Synced at: 38f531c
 
 This file is filled in with each /close-feature.
 
