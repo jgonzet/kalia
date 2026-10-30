@@ -3,19 +3,23 @@
 ## Next
 
 1. #58 — Ship a saved real extraction as the sample's commitments instead of the expected files
-2. #40 — Chat page form to send a document (scope extended in the comments of 2026-10-29)
-3. #49 — Connecting an LLM provider as a one-line change
-4. #55 — Bind the published port to localhost only
-5. #56 — Make the app's log messages visible: LLM failures and startup
-6. #50 — Show in the page whether the LLM is configured and reachable
-7. #59 — Audit the first-run path for errors of every kind, not only silent ones
-8. #43 — Try the real backends with an API key
-9. #54 — Choose and test the demo questions with Ollama and an API model
-10. #51 — Rewrite the README, running first
-11. #52 — Capture the demo flow (screenshots) and embed it in the README
-12. #47 — Test the documented setup on another machine and person
-13. #53 — Publish V0 (public repo, tag)
-14. #39 — Decide what comes after V0
+2. #61 — Create an English sample company
+3. #62 — Make the retrieval rules understand English questions
+4. #63 — Answer in English: prompt, statuses and a way to compare it
+5. #64 — Make the English company the sample the app loads by default
+6. #40 — Chat page form to send a document (scope extended in the comments of 2026-10-29)
+7. #49 — Connecting an LLM provider as a one-line change
+8. #55 — Bind the published port to localhost only
+9. #56 — Make the app's log messages visible: LLM failures and startup
+10. #50 — Show in the page whether the LLM is configured and reachable
+11. #59 — Audit the first-run path for errors of every kind, not only silent ones
+12. #43 — Try the real backends with an API key
+13. #54 — Choose and test the demo questions with Ollama and an API model
+14. #51 — Rewrite the README, running first
+15. #52 — Capture the demo flow (screenshots) and embed it in the README
+16. #47 — Test the documented setup on another machine and person
+17. #53 — Publish V0 (public repo, tag)
+18. #39 — Decide what comes after V0
 
 Synced at: d589c0b
 
