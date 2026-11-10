@@ -27,3 +27,6 @@ __pycache__/
 
 # Editor settings
 /.vscode/
+
+# Personal study roadmap (not part of the project)
+/docs/ai_engineer_study_roadmap.md
