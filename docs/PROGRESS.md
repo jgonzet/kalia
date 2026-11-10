@@ -15,13 +15,14 @@
 11. #59 — Audit the first-run path for errors of every kind, not only silent ones
 12. #43 — Try the real backends with an API key
 13. #54 — Choose and test the demo questions with Ollama and an API model
-14. #51 — Rewrite the README, running first
-15. #52 — Capture the demo flow (screenshots) and embed it in the README
-16. #47 — Test the documented setup on another machine and person
-17. #53 — Publish V0 (public repo, tag)
-18. #39 — Decide what comes after V0
+14. #60 — Make the chat page understandable to a first-time visitor (its example questions come from #54)
+15. #51 — Rewrite the README, running first
+16. #52 — Capture the demo flow (screenshots) and embed it in the README
+17. #47 — Test the documented setup on another machine and person
+18. #53 — Publish V0 (public repo, tag)
+19. #39 — Decide what comes after V0
 
-Synced at: d589c0b
+Synced at: 08d8185
 
 This file is filled in with each /close-feature.
 
