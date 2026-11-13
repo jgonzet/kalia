@@ -33,7 +33,7 @@ The chat page is at <http://localhost:8000/> and talks to `POST /chat` (`{"quest
 
 ### The sample company
 
-When the database does not hold the sample yet, the app loads a sample company by itself: La Manija Games, a fictional game studio, with its people and projects and 24 of its 25 documents (the 25th is kept out on purpose, for tests). Its commitments come already computed (from `data/lamanija/expected/`), so nothing is extracted at startup and no LLM is needed to load it. The chat page says so at the top. Asking questions does need Ollama or another LLM.
+When the database does not hold the sample yet, the app loads a sample company by itself: La Manija Games, a fictional game studio, with its people and projects and 24 of its 25 documents (the 25th is kept out on purpose, for tests). Its commitments come from an extraction that a real model made once and that is saved in the repo (`data/lamanija/extracted/`: today Claude, through the manual flow, 2026-10-09), so nothing is extracted at startup and no LLM is needed to load it. It is a real extraction, so it has the errors of that model (see the reference numbers in "Evaluate the extraction"). The chat page says at the top which model made it and when. Asking questions does need Ollama or another LLM.
 
 "Today" for the sample is `REFERENCE_DATE` if you set it, otherwise 2026-10-12 (the sample's own date), otherwise the system date. Documents you send are read against that same date.
 
@@ -125,6 +125,8 @@ There is no paid API setup yet, so the commitments of the stored documents can b
 4. Save the answer as `responses/batch-NN.json` and run `uv run scripts/operate/manual_extraction.py import responses/batch-*.json`.
 
 `import` validates the answers, reports problems and stores the valid commitments (importing again replaces them). `uv run scripts/operate/manual_extraction.py status` says where the process stands and which command comes next.
+
+To keep an extraction with the repo so the sample loads it, `uv run scripts/operate/save_extraction.py lamanija responses/batch-*.json --model "Claude (manual flow)" --slug claudemanual --date 2026-10-09` writes `data/lamanija/extracted/20261009-claudemanual.json` (naming and format in `docs/DATASET.md`). It checks the answers first and writes nothing if one fails.
 
 ## Evaluate the extraction
 
