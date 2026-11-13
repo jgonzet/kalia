@@ -54,7 +54,10 @@ function renderAnswer(box, text) {
 // Say clearly when the data is a sample and where its commitments came from, so nobody reads them as a measure of the extraction.
 fetch("/sample").then((r) => r.json()).then((s) => {
   if (!s.loaded) return;
-  let how = "vienen precalculados, no se extrajeron ahora";
+  let how = "vienen de una extracción guardada";
+  if (s.saved_extraction) {
+    how = `vienen de una extracción ya hecha con ${s.saved_extraction.model} el ${s.saved_extraction.date}, con sus errores; no se extrajeron ahora`;
+  }
   if (s.commitments_source === "extraction") {
     how = s.failed_documents
       ? `se intentaron extraer al arrancar con tu LLM (${s.llm_model}), pero falló en ${s.failed_documents} documentos, que quedaron sin compromisos`

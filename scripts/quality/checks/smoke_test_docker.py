@@ -20,6 +20,7 @@ PROJECT = "kalia-smoke"
 STARTUP_TIMEOUT_SECONDS = 60.0
 SAMPLE = json.loads((ROOT / "data" / "lamanija" / "company.json").read_text(encoding="utf-8"))
 SAMPLE_REFERENCE_DATE = date.fromisoformat(SAMPLE["reference_date"])
+SAVED = json.loads(next((ROOT / "data" / "lamanija" / "extracted").glob("*.json")).read_text(encoding="utf-8"))
 
 # Merged over compose.yaml: a free port, the fake LLM, and no `.env` so the machine's own settings do not leak in.
 OVERRIDE = """\
@@ -69,9 +70,10 @@ def check_sample(base_url: str) -> None:
     assert sample == {
         "loaded": True,
         "company": SAMPLE["name"],
-        "commitments_source": "expected",
+        "commitments_source": "saved",
         "llm_model": None,
         "failed_documents": 0,
+        "saved_extraction": {"id": SAVED["id"], "model": SAVED["model"], "date": SAVED["date"]},
     }, sample
     answer = httpx.post(f"{base_url}/chat", json={"question": "¿Qué compromisos tengo?"}, timeout=10.0).json()
     assert answer["commitments"], "the chat has no commitments: the sample was not loaded"

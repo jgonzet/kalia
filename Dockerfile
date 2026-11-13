@@ -19,7 +19,7 @@ COPY scripts/operate/check_llm.py ./scripts/operate/check_llm.py
 # Only what loading the sample company needs: no story, question banks or org chart.
 COPY data/lamanija/company.json data/lamanija/people.jsonl data/lamanija/projects.jsonl ./data/lamanija/
 COPY data/lamanija/documents ./data/lamanija/documents
-COPY data/lamanija/expected ./data/lamanija/expected
+COPY data/lamanija/extracted ./data/lamanija/extracted
 
 # Writable directory for the SQLite file. Nothing mounts it: the data lives as long as the container does.
 RUN useradd --create-home app && mkdir /var/lib/kalia && chown app /var/lib/kalia

@@ -31,6 +31,14 @@ class HealthResponse(BaseModel):
     llm_backends: dict[str, str]  # the backend of each task that calls an LLM, by task name
 
 
+class SavedExtractionResponse(BaseModel):
+    """Which saved extraction the sample's commitments come from."""
+
+    id: str
+    model: str
+    date: str  # YYYY-MM-DD
+
+
 class SampleResponse(BaseModel):
     """What the chat page says about the loaded data; `loaded` is false when the app has no sample company."""
 
@@ -39,6 +47,7 @@ class SampleResponse(BaseModel):
     commitments_source: str | None = None
     llm_model: str | None = None  # only when the commitments were extracted by the LLM
     failed_documents: int = 0  # documents whose extraction failed when the sample was loaded
+    saved_extraction: SavedExtractionResponse | None = None  # only when the commitments come from a saved extraction
 
 
 class DocumentIn(BaseModel):
@@ -130,6 +139,11 @@ def create_app(
             commitments_source=sample.commitments_source,
             llm_model=model,
             failed_documents=sample.failed_documents,
+            saved_extraction=SavedExtractionResponse(
+                id=sample.saved_extraction.id, model=sample.saved_extraction.model, date=sample.saved_extraction.date.isoformat()
+            )
+            if sample.saved_extraction
+            else None,
         )
 
     @app.post("/documents")

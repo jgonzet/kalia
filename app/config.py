@@ -27,9 +27,9 @@ DEFAULT_LLM_API_KEY = "ollama"
 # answer took 72 seconds (README, "Known limitations"); a slower machine, or one without a GPU, needs more.
 DEFAULT_LLM_TIMEOUT_SECONDS = 120.0
 
-# Where the commitments of the sample company come from: its `expected` files, or the configured LLM.
-CommitmentsSource = Literal["expected", "extraction"]
-COMMITMENTS_SOURCES = ("expected", "extraction")
+# Where the commitments of the sample company come from: its saved extraction, or the configured LLM.
+CommitmentsSource = Literal["saved", "extraction"]
+COMMITMENTS_SOURCES = ("saved", "extraction")
 
 # Ollama's native API is at the server root; any OpenAI-compatible endpoint is at `/v1`.
 DEFAULT_BASE_URLS = {"ollama": "http://localhost:11434", "openai_compatible": "http://localhost:11434/v1"}
@@ -179,7 +179,7 @@ class Settings:
     db_path: str = "kalia.db"
     owner_id: str = "local"
     sample_company: str | None = None
-    commitments_source: CommitmentsSource = "expected"
+    commitments_source: CommitmentsSource = "saved"
 
     def default_llm(self) -> LLMSettings:
         """The LLM of the tasks that have none of their own: the one described by `LLM_*`."""

@@ -37,7 +37,7 @@ def no_machine(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def settings() -> Settings:
-    return replace(Settings(), llm_backend="ollama", sample_company="lamanija", commitments_source="expected", reference_date=None)
+    return replace(Settings(), llm_backend="ollama", sample_company="lamanija", commitments_source="saved", reference_date=None)
 
 
 def questions(*texts: str) -> list[ml.Question]:

@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import ROOT, Settings
-from app.extraction.expected import ExpectedCommitmentsReader
+from app.extraction.saved import find_saved_extraction
 from app.ingestion import ingest_document
 from app.ingestion.dataset import MAX_CONSECUTIVE_FAILURES, DatasetSource, load_dataset
 from app.ingestion.sample import prepare_sample
@@ -48,34 +48,13 @@ def sample_documents() -> int:
     return len(list(DatasetSource(COMPANY).documents()))
 
 
-def expected_commitments() -> int:
-    """How many commitments the `expected` files of the documents that are loaded hold."""
+SAVED = json.loads(find_saved_extraction(COMPANY).read_text(encoding="utf-8"))
+
+
+def saved_commitments() -> int:
+    """How many commitments the shipped saved extraction holds for the documents that are loaded."""
     loaded = {d.id for d in DatasetSource(COMPANY).documents()}
-    total = 0
-    for path in (COMPANY / "expected").glob("*.json"):
-        data = json.loads(path.read_text(encoding="utf-8"))
-        if data["document_id"] in loaded:
-            total += len(data.get("extractions", {}).get("commitments", []))
-    return total
-
-
-def test_reader_turns_names_into_catalog_ids(store: SqliteStore) -> None:
-    source = DatasetSource(COMPANY)
-    catalog = source.catalog()
-    document = source.document("lamanija-0001")
-    commitments = ExpectedCommitmentsReader(COMPANY, OWNER).extract(document, catalog)
-    people = {p.name: p.id for p in catalog.people}
-    projects = {p.name: p.id for p in catalog.projects}
-    first = commitments[0]
-    assert [c.id for c in commitments][:2] == ["lamanija-0001-c1", "lamanija-0001-c2"]
-    assert first.who_id == people["Milhouse Van Houten"] and first.to_whom_id == people["Lalo Landa"]
-    assert first.due == date(2026, 9, 16) and first.project_id == projects["Motocrotos Adventures"]
-    assert first.document_id == document.id and first.document_date == document.date and first.owner_id == OWNER
-
-
-def test_reader_returns_nothing_for_a_document_without_an_expected_file() -> None:
-    document = Document("not-in-the-dataset", "email", date(2026, 1, 1), ("A",), "hi")
-    assert ExpectedCommitmentsReader(COMPANY, OWNER).extract(document, DatasetSource(COMPANY).catalog()) == []
+    return sum(len(items) for doc_id, items in SAVED["documents"].items() if doc_id in loaded)
 
 
 def test_load_dataset_without_extractor_stores_no_commitments(store: SqliteStore) -> None:
@@ -108,8 +87,9 @@ def test_a_success_resets_the_count_of_failures(store: SqliteStore) -> None:
 def test_prepare_sample_loads_the_sample_with_its_commitments(settings: Settings, store: SqliteStore) -> None:
     _, info = prepare_sample(settings, store, None)
     assert len(store.list_documents()) == sample_documents()
-    assert len(store.list_commitments()) == expected_commitments() > 0
-    assert (info.company, info.commitments_source, info.failed_documents) == ("La Manija Games", "expected", 0)
+    assert len(store.list_commitments()) == saved_commitments() > 0
+    assert (info.company, info.commitments_source, info.failed_documents) == ("La Manija Games", "saved", 0)
+    assert info.saved_extraction is not None and info.saved_extraction.id == SAVED["id"]
 
 
 def test_prepare_sample_does_not_load_again_a_complete_store(settings: Settings, store: SqliteStore) -> None:
@@ -126,7 +106,7 @@ def test_prepare_sample_completes_an_interrupted_load(settings: Settings, store:
         ingest_document(document, store)
     prepare_sample(settings, store, None)
     assert len(store.list_documents()) == sample_documents()
-    assert len(store.list_commitments()) == expected_commitments()
+    assert len(store.list_commitments()) == saved_commitments()
 
 
 def test_today_is_the_samples_date_unless_the_reference_date_is_set(settings: Settings, store: SqliteStore) -> None:
@@ -147,17 +127,18 @@ def test_prepare_sample_reports_the_failed_extractions(settings: Settings, store
 
 
 def test_sample_endpoint_says_where_the_commitments_came_from(settings: Settings, tmp_path: Path) -> None:
-    expected = TestClient(create_app(settings)).get("/sample").json()
-    assert expected == {
+    saved = TestClient(create_app(settings)).get("/sample").json()
+    assert saved == {
         "loaded": True,
         "company": "La Manija Games",
-        "commitments_source": "expected",
+        "commitments_source": "saved",
         "llm_model": None,
         "failed_documents": 0,
+        "saved_extraction": {"id": SAVED["id"], "model": SAVED["model"], "date": SAVED["date"]},
     }
     extracted = replace(settings, db_path=str(tmp_path / "x.db"), commitments_source="extraction", llm_model="a-model")
     body = TestClient(create_app(extracted)).get("/sample").json()
-    assert body["commitments_source"] == "extraction" and body["llm_model"] == "a-model"
+    assert body["commitments_source"] == "extraction" and body["llm_model"] == "a-model" and body["saved_extraction"] is None
 
 
 def test_sample_endpoint_says_so_when_there_is_no_sample(tmp_path: Path) -> None:
