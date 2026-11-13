@@ -1,0 +1,558 @@
+{
+  "id": "20261009-claudemanual",
+  "company": "lamanija",
+  "model": "Claude (manual flow)",
+  "date": "2026-10-09",
+  "documents": {
+    "lamanija-0001": [
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "Reordenar los turnos de QA para llegar a la demo de Turrokiller y contarle a Smithers cómo queda",
+        "due": null,
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Milhouse Van Houten",
+        "to_whom": "Lalo Landa",
+        "what": "Pasar la lista de bugs abiertos de Motocrotos, ya limpia",
+        "due": "2026-09-16",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "who": "Patty Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "Mandar un resumen de las reseñas de la tienda de Motocrotos",
+        "due": "2026-09-18",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "Hablar con Burns para confirmar el presupuesto para participar en el festival de juegos y avisar qué dice",
+        "due": null,
+        "project": "Turrokiller"
+      }
+    ],
+    "lamanija-0002": [
+      {
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "Conseguir la aprobación de Burns para el plan de hitos",
+        "due": "2026-09-21",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "Pasar el plan de hitos de la demo de Turrokiller, con las fechas de entrega por área",
+        "due": "2026-09-18",
+        "project": "Turrokiller"
+      }
+    ],
+    "lamanija-0003": [
+      {
+        "who": "Edna Krabappel",
+        "to_whom": "Lalo Landa",
+        "what": "Armar una build de prueba con las cuatro torres",
+        "due": "2026-09-18",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Edna Krabappel",
+        "what": "Mandar la lista de pendientes de gameplay de la demo",
+        "due": "2026-09-16",
+        "project": "Turrokiller"
+      }
+    ],
+    "lamanija-0004": [
+      {
+        "who": "Seymour Skinner",
+        "to_whom": "Lalo Landa",
+        "what": "Pasar la estimación de esfuerzo del netcode cooperativo",
+        "due": "2026-10-06",
+        "project": "Choripixels"
+      },
+      {
+        "who": "Profesor Frink",
+        "to_whom": "Lalo Landa",
+        "what": "Preparar el resumen de cómo está hoy la sincronización entre jugadores",
+        "due": "2026-09-24",
+        "project": "Choripixels"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Seymour Skinner",
+        "what": "Organizar la prueba interna de la alpha con dos jugadores",
+        "due": "2026-09-18",
+        "project": "Choripixels"
+      }
+    ],
+    "lamanija-0005": [
+      {
+        "who": "Milhouse Van Houten",
+        "to_whom": "Lalo Landa",
+        "what": "Armar el plan de pruebas de la demo de Turrokiller",
+        "due": "2026-09-25",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Milhouse Van Houten",
+        "what": "Pasar la build de Edna apenas esté disponible",
+        "due": null,
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Milhouse Van Houten",
+        "to_whom": "Lalo Landa",
+        "what": "Mandar una primera lista de bugs de la build de prueba",
+        "due": "2026-09-21",
+        "project": "Turrokiller"
+      }
+    ],
+    "lamanija-0006": [
+      {
+        "who": "Helen Lovejoy",
+        "to_whom": "Marge Simpson",
+        "what": "Entregar el concept de los tres enemigos principales de la demo",
+        "due": "2026-10-02",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Selma Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "Rehacer el ciclo de caminata del enemigo básico con el diseño nuevo",
+        "due": "2026-10-19",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Edna Krabappel",
+        "to_whom": "Selma Bouvier",
+        "what": "Pasar los tamaños de colisión de los enemigos",
+        "due": "2026-09-23",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Marge Simpson",
+        "what": "Confirmar cuándo se congelan los enemigos de la demo en cuanto se apruebe el plan de hitos",
+        "due": null,
+        "project": "Turrokiller"
+      }
+    ],
+    "lamanija-0007": [
+      {
+        "who": "Patty Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "Juntar los reclamos de usuarios con capturas y pasarlos",
+        "due": "2026-09-24",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "who": "Patty Bouvier",
+        "to_whom": "Waylon Smithers",
+        "what": "Mandar el borrador del comunicado a los usuarios afectados",
+        "due": "2026-09-23",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Patty Bouvier",
+        "what": "Confirmar con backend la fecha estimada del arreglo",
+        "due": "2026-09-23",
+        "project": "Motocrotos Adventures"
+      }
+    ],
+    "lamanija-0008": [
+      {
+        "who": "Profesor Frink",
+        "to_whom": "Lalo Landa",
+        "what": "Desplegar el hotfix de pagos",
+        "due": "2026-09-30",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Profesor Frink",
+        "what": "Pasar las capturas de los usuarios afectados",
+        "due": "2026-09-25",
+        "project": "Motocrotos Adventures"
+      }
+    ],
+    "lamanija-0009": [
+      {
+        "who": "Profesor Frink",
+        "to_whom": "Seymour Skinner",
+        "what": "Armar la propuesta de reconexión con tiempo de gracia",
+        "due": "2026-10-15",
+        "project": "Choripixels"
+      },
+      {
+        "who": "Edna Krabappel",
+        "to_whom": "Profesor Frink",
+        "what": "Exponer los eventos de movimiento para que Frink pueda sincronizarlos",
+        "due": "2026-10-13",
+        "project": "Choripixels"
+      },
+      {
+        "who": "Manjula Nahasapeemapetilon",
+        "to_whom": "Seymour Skinner",
+        "what": "Armar una herramienta que simule pérdida de paquetes",
+        "due": "2026-10-20",
+        "project": "Choripixels"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Seymour Skinner",
+        "what": "Coordinar con Milhouse horas de QA para probar el netcode",
+        "due": null,
+        "project": "Choripixels"
+      }
+    ],
+    "lamanija-0010": [],
+    "lamanija-0011": [
+      {
+        "who": "Helen Lovejoy",
+        "to_whom": "Lalo Landa",
+        "what": "Enviar tres conceptos distintos del parque",
+        "due": "2026-09-30",
+        "project": "Jimboland"
+      }
+    ],
+    "lamanija-0012": [
+      {
+        "who": "Seymour Skinner",
+        "to_whom": "Montgomery Burns",
+        "what": "Pasar el costo de un programador de red freelance",
+        "due": "2026-10-14",
+        "project": "Choripixels"
+      },
+      {
+        "who": "Montgomery Burns",
+        "to_whom": "Seymour Skinner",
+        "what": "Decidir si se contrata un programador de red freelance para Choripixels",
+        "due": "2026-10-16",
+        "project": "Choripixels"
+      },
+      {
+        "who": "Marge Simpson",
+        "to_whom": "Lalo Landa",
+        "what": "Entregar el listado de assets que faltan para la demo de Turrokiller",
+        "due": "2026-10-05",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "Armar el cronograma de octubre con los cuatro proyectos y pasárselo",
+        "due": "2026-10-02",
+        "project": null
+      },
+      {
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "Sumar un tester temporal para la demo de Turrokiller",
+        "due": "2026-10-15",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Marge Simpson",
+        "what": "Coordinar con Selma la agenda de animaciones del update de temporada",
+        "due": null,
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "who": "Marge Simpson",
+        "to_whom": "Montgomery Burns",
+        "what": "Revisar el estilo de arte de Jimboland dos semanas antes de la revisión del prototipo",
+        "due": null,
+        "project": "Jimboland"
+      }
+    ],
+    "lamanija-0013": [],
+    "lamanija-0014": [
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "Pasar la estimación de presupuesto de Jimboland",
+        "due": "2026-10-09",
+        "project": "Jimboland"
+      },
+      {
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "Revisar la estimación de presupuesto y devolver comentarios",
+        "due": "2026-10-13",
+        "project": "Jimboland"
+      }
+    ],
+    "lamanija-0015": [
+      {
+        "who": "Manjula Nahasapeemapetilon",
+        "to_whom": "Lalo Landa",
+        "what": "Mostrar una primera versión del editor de parques",
+        "due": "2026-10-23",
+        "project": "Jimboland"
+      },
+      {
+        "who": "Edna Krabappel",
+        "to_whom": "Manjula Nahasapeemapetilon",
+        "what": "Pasar la lista de funciones de colocación de atracciones",
+        "due": "2026-10-07",
+        "project": "Jimboland"
+      },
+      {
+        "who": "Helen Lovejoy",
+        "to_whom": "Montgomery Burns",
+        "what": "Enviar los tres conceptos finales del parque",
+        "due": "2026-10-30",
+        "project": "Jimboland"
+      },
+      {
+        "who": "Montgomery Burns",
+        "to_whom": "Waylon Smithers",
+        "what": "Definir el tope de presupuesto del prototipo",
+        "due": "2026-10-16",
+        "project": "Jimboland"
+      },
+      {
+        "who": "Waylon Smithers",
+        "to_whom": "Montgomery Burns",
+        "what": "Armar el equipo que va a revisar el prototipo",
+        "due": null,
+        "project": "Jimboland"
+      }
+    ],
+    "lamanija-0016": [
+      {
+        "who": "Marge Simpson",
+        "to_whom": "Lalo Landa",
+        "what": "Aprobar los bocetos de la moto nueva",
+        "due": "2026-10-13",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "who": "Selma Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "Entregar la animación de la nueva moto del update",
+        "due": "2026-10-30",
+        "project": "Motocrotos Adventures"
+      }
+    ],
+    "lamanija-0017": [
+      {
+        "who": "Patty Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "Pasar el calendario de posts del anuncio de la temporada",
+        "due": "2026-10-16",
+        "project": "Motocrotos Adventures"
+      }
+    ],
+    "lamanija-0018": [
+      {
+        "who": "Milhouse Van Houten",
+        "to_whom": "Edna Krabappel",
+        "what": "Pasar los bugs críticos priorizados",
+        "due": "2026-10-07",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Edna Krabappel",
+        "to_whom": "Milhouse Van Houten",
+        "what": "Arreglar los crashes de la build",
+        "due": "2026-10-16",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Selma Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "Corregir las animaciones de enemigos que se cortan",
+        "due": "2026-10-13",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Milhouse Van Houten",
+        "what": "Armar una sesión de playtest con gente externa",
+        "due": null,
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Milhouse Van Houten",
+        "to_whom": "Lalo Landa",
+        "what": "Mandar el informe de QA de la demo",
+        "due": "2026-10-27",
+        "project": "Turrokiller"
+      }
+    ],
+    "lamanija-0019": [
+      {
+        "who": "Seymour Skinner",
+        "to_whom": "Lalo Landa",
+        "what": "Armar el diseño técnico del netcode con reconexión",
+        "due": "2026-10-28",
+        "project": "Choripixels"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "Mandar un resumen del impacto de la estimación en el cronograma",
+        "due": "2026-10-20",
+        "project": "Choripixels"
+      }
+    ],
+    "lamanija-0020": [
+      {
+        "who": "Manjula Nahasapeemapetilon",
+        "to_whom": "Profesor Frink",
+        "what": "Agregar un paso de empaquetado automático al pipeline de builds",
+        "due": "2026-10-21",
+        "project": null
+      },
+      {
+        "who": "Profesor Frink",
+        "to_whom": "Manjula Nahasapeemapetilon",
+        "what": "Dar acceso al servidor de builds apenas lo configure",
+        "due": null,
+        "project": null
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Manjula Nahasapeemapetilon",
+        "what": "Armar la lista de qué builds necesita QA cada semana",
+        "due": "2026-10-12",
+        "project": null
+      }
+    ],
+    "lamanija-0021": [
+      {
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "Pasar los requisitos técnicos del festival para la demo",
+        "due": "2026-10-20",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "Entregar el plan de contingencia de la demo de Turrokiller",
+        "due": "2026-10-22",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "Pasar un resumen de los assets que faltan para la demo",
+        "due": null,
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "Hablar con Marge para sumar un animador temporal a Turrokiller",
+        "due": null,
+        "project": "Turrokiller"
+      }
+    ],
+    "lamanija-0022": [
+      {
+        "who": "Helen Lovejoy",
+        "to_whom": "Lalo Landa",
+        "what": "Entregar la segunda tanda de concept de enemigos de la demo",
+        "due": "2026-10-22",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Helen Lovejoy",
+        "to_whom": "Lalo Landa",
+        "what": "Mandar los bocetos de enemigos de Choripixels",
+        "due": "2026-11-05",
+        "project": "Choripixels"
+      },
+      {
+        "who": "Marge Simpson",
+        "to_whom": "Helen Lovejoy",
+        "what": "Dar feedback sobre los conceptos a los dos días de recibirlos",
+        "due": null,
+        "project": null
+      }
+    ],
+    "lamanija-0023": [
+      {
+        "who": "Patty Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "Publicar el teaser del update de temporada",
+        "due": "2026-11-06",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "who": "Montgomery Burns",
+        "to_whom": "Patty Bouvier",
+        "what": "Aprobar el presupuesto de la campaña de anuncios de la temporada",
+        "due": "2026-10-13",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "who": "Milhouse Van Houten",
+        "to_whom": "Waylon Smithers",
+        "what": "Terminar el plan de regresión del update",
+        "due": "2026-10-16",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "who": "Selma Bouvier",
+        "to_whom": "Lalo Landa",
+        "what": "Entregar los jefes de la demo",
+        "due": "2026-10-26",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Profesor Frink",
+        "to_whom": "Lalo Landa",
+        "what": "Dejar los servidores listos para el pico del update",
+        "due": "2026-11-16",
+        "project": "Motocrotos Adventures"
+      },
+      {
+        "who": "Seymour Skinner",
+        "to_whom": "Montgomery Burns",
+        "what": "Garantizar que la demo corra a 60 fps en la PC del festival una semana antes de la entrega",
+        "due": null,
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Edna Krabappel",
+        "to_whom": "Lalo Landa",
+        "what": "Pulir los controles de torres de la demo",
+        "due": "2026-10-23",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Montgomery Burns",
+        "what": "Mandar el estado de la demo todos los viernes",
+        "due": null,
+        "project": "Turrokiller"
+      }
+    ],
+    "lamanija-0024": [
+      {
+        "who": "Lalo Landa",
+        "to_whom": "Waylon Smithers",
+        "what": "Pasar el informe de estado de Turrokiller para el festival",
+        "due": "2026-10-14",
+        "project": "Turrokiller"
+      },
+      {
+        "who": "Waylon Smithers",
+        "to_whom": "Lalo Landa",
+        "what": "Avisar a Burns que el informe sale el miércoles",
+        "due": "2026-10-09",
+        "project": "Turrokiller"
+      }
+    ]
+  }
+}
