@@ -4,6 +4,21 @@ Real choices between alternatives, newest at the top. This file is also filled i
 
 Superseded decisions are in [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md); this file keeps the ones still in force.
 
+## The sample's commitments come from a saved real extraction, and `expected` leaves the app
+Date: 2026-11-13
+Chose: `COMMITMENTS_SOURCE` is `saved` (the default) or `extraction`. `saved` loads the extraction described in "A saved extraction is a JSON file..." and the chat page says which model made it and when. `ExpectedCommitmentsReader` is removed; the evaluation scripts still read the `expected` files themselves. The image copies `data/lamanija/extracted/` instead of `expected/`.
+Rejected: keeping `expected` as a source (no real use has an answer key, and the demo would show an idealized answer instead of what an extraction gives, errors included).
+Why: the saved extraction is Claude's, 70 of the 73 expected commitments (README, "Evaluate the extraction").
+Source: issue #58, commit c37f07b.
+
+## A saved extraction is a JSON file of names, in `data/<company>/extracted/`
+Date: 2026-11-13
+Chose: `<YYYYMMDD>-<model>.json` (`-N` if the same model repeats that day) with a header (id, company, model, date) and, per document, what the extractor answered, with names; loading turns names into ids through the same validation as a live answer. The app loads the newest file of the company (the last by name); older ones stay as history. Format in `docs/DATASET.md`.
+Rejected: a SQLite file (binary, not reviewable in a diff, tied to the tables of the app).
+Rejected: ids in the file (the script that writes it would hide a name the model got wrong, and the live validation could not be reused).
+Rejected: a variable to choose between files, or stopping when there are several (a selector is not what the app is for; adding a file is how it gets updated).
+Source: issue #58, commits 5af8d0e and c37f07b.
+
 ## `scripts/` is grouped by role and is a package with absolute imports
 Date: 2026-10-29
 Chose: `scripts/operate/` (load, extract, check the LLM), `scripts/dataset/` (dataset checks and the two question banks), `scripts/quality/` (the judge and the run log, `checks/` without an LLM, `evals/` with a real one). `scripts` is a package: scripts import each other as `from scripts.quality import run_log`, and each one puts the repo root in `sys.path` when run by path. The question files of each company load as `scripts.dataset.<bank>_<company>`; pytest's `pythonpath` is only `.`.
@@ -56,6 +71,7 @@ Chose: with `SAMPLE_COMPANY` set (the image sets `lamanija`) and an empty databa
 Rejected: a loader run on the host (the container stays empty); extracting by default (needs a key or a long wait, and the chat would read as a measure of the extraction); sending the dataset through `POST /documents` (same wait, and the app would depend on a client); loading whenever the database is empty with no variable (tests and local runs would load it).
 Source: issue #36, `app/ingestion/sample.py`.
 Refined 2026-10-21: it loads whenever a document of the sample is missing from the database, not only when it is empty, so an interrupted load is completed on the next start.
+Superseded 2026-11-13 in part: the commitments come from a saved extraction by default, not from the `expected` files (see "The sample's commitments come from a saved real extraction..."). The rest holds.
 
 ## The database lives and dies with the container
 Date: 2026-10-21

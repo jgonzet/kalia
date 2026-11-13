@@ -2,27 +2,26 @@
 
 ## Next
 
-1. #58 — Ship a saved real extraction as the sample's commitments instead of the expected files
-2. #61 — Create an English sample company
-3. #62 — Make the retrieval rules understand English questions
-4. #63 — Answer in English: prompt, statuses and a way to compare it
-5. #64 — Make the English company the sample the app loads by default
-6. #40 — Chat page form to send a document (scope extended in the comments of 2026-10-29)
-7. #49 — Connecting an LLM provider as a one-line change
-8. #55 — Bind the published port to localhost only
-9. #56 — Make the app's log messages visible: LLM failures and startup
-10. #50 — Show in the page whether the LLM is configured and reachable
-11. #59 — Audit the first-run path for errors of every kind, not only silent ones
-12. #43 — Try the real backends with an API key
-13. #54 — Choose and test the demo questions with Ollama and an API model
-14. #60 — Make the chat page understandable to a first-time visitor (its example questions come from #54)
-15. #51 — Rewrite the README, running first
-16. #52 — Capture the demo flow (screenshots) and embed it in the README
-17. #47 — Test the documented setup on another machine and person
-18. #53 — Publish V0 (public repo, tag)
-19. #39 — Decide what comes after V0
+1. #61 — Create an English sample company
+2. #62 — Make the retrieval rules understand English questions
+3. #63 — Answer in English: prompt, statuses and a way to compare it
+4. #64 — Make the English company the sample the app loads by default
+5. #40 — Chat page form to send a document (scope extended in the comments of 2026-10-29)
+6. #49 — Connecting an LLM provider as a one-line change
+7. #55 — Bind the published port to localhost only
+8. #56 — Make the app's log messages visible: LLM failures and startup
+9. #50 — Show in the page whether the LLM is configured and reachable
+10. #59 — Audit the first-run path for errors of every kind, not only silent ones
+11. #43 — Try the real backends with an API key
+12. #54 — Choose and test the demo questions with Ollama and an API model
+13. #60 — Make the chat page understandable to a first-time visitor (its example questions come from #54)
+14. #51 — Rewrite the README, running first
+15. #52 — Capture the demo flow (screenshots) and embed it in the README
+16. #47 — Test the documented setup on another machine and person
+17. #53 — Publish V0 (public repo, tag)
+18. #39 — Decide what comes after V0
 
-Synced at: 08d8185
+Synced at: 4a3e029
 
 This file is filled in with each /close-feature.
 
@@ -261,3 +260,32 @@ Older entries are in [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md); both files are 
 **Tests:** no new tests; 286 pass. After the moves, from a clean state: every module imports, every script answers `--help` from another folder, the six commands of the CI pass (including the Docker smoke test), and `check_llm` ran inside the container. With the real LLM (`qwen2.5:14b`): `evaluate_chat` on the `date` category said 64 and 75 of 131 needed commitments on the old layout and 74 and 77 on the new one; `evaluate_ingestion`, `measure_latency` and `extract_dataset` + `evaluate_extraction` ran to the end (39 of 73 matched, against 37 and 39 on 2026-10-17).
 
 **Issues:** closed #32. Opened none.
+
+## 2026-11-13 — The sample loads a saved real extraction instead of the `expected` files
+
+**Purpose:** work on #58. The sample company took its commitments from `data/lamanija/expected/`, the answer key of the dataset, which no real use has: the demo showed an idealized answer. The real extraction (Claude, manual flow, 2026-10-09) existed only on the developer's machine, in git-ignored folders.
+
+**Input:** the three answer files `responses/batch-01..03.json` (git-ignored), and the catalog and documents of `data/lamanija/`.
+
+**Output:** `data/lamanija/extracted/20261009-claudemanual.json` (24 documents, 72 commitments), `app/extraction/saved.py` (the reader and the choice of file), `scripts/operate/save_extraction.py` (writes the file), `COMMITMENTS_SOURCE=saved` as the default next to `extraction`, `GET /sample` with a `saved_extraction` (id, model, date) that the chat page shows, and the `Dockerfile` copying `extracted/`. `ExpectedCommitmentsReader` is removed.
+
+**Logic:**
+1. `save_extraction.py` merges the answer files and checks every document with the same function that checks a live answer (`parse_items`, against the company's catalog). It writes nothing if an item fails, a document has no answer or the id exists. The file keeps what the model said, with names.
+2. At startup `create_app` calls `prepare_sample` when a sample company is set. It asks `find_saved_extraction` for the file (the newest by name) and builds a `SavedExtractionReader`, which checks the header and, for each document that `load_dataset` loads, gives its items to `parse_items`: names become catalog ids and the commitments get their ids (`<document id>-cN`, by order). The reader goes where an LLM extractor went. See "A saved extraction is a JSON file of names, in `data/<company>/extracted/`" and "The sample's commitments come from a saved real extraction, and `expected` leaves the app".
+3. The file is read on every start, even if the store already holds the sample, because the page needs its id, model and date. `COMMITMENTS_SOURCE=extraction` goes through the same code as before.
+4. The image only carries what loading the sample needs, so `extracted/` replaced `expected/` in it.
+
+**Important assumptions:**
+- The header is checked at load: the id inside must be the file name, `company` must be the company's id in `company.json`, and `date` must be `YYYY-MM-DD`. A file that fails stops the start naming the file. My choice, not discussed beforehand.
+- Because the file is read on every start, a broken file stops the app even when the database already holds the sample.
+- Commitment ids come from the order of the valid items, so `lamanija-0001-c2` can be a different commitment than the `expected` file's `c2` when the extractor missed one. Nothing in the app depends on that: evaluations pair by people and due date.
+- `model` is free text (`Claude (manual flow)`) and is what the page shows; the model part of the id (`claudemanual`) is separate and written by hand when the file is made.
+- The `expected` files stay in the dataset: the evaluation scripts, the banks and `check_dataset.py` read them.
+- The inner format has no hash of the documents' text: the `expected` files already have it (see the decision on the format).
+- Not touched: `responses/`, `kalia.db` and `runs/` stay git-ignored and on the developer's machine; ordering `runs/` and its names is not part of this work.
+
+**Location:** `app/extraction/saved.py`, `app/ingestion/sample.py`, `app/config.py`, `app/main.py`, `app/static/chat.html`, `scripts/operate/save_extraction.py`, `data/lamanija/extracted/`, `Dockerfile`, `.env.example`, `README.md`, `docs/DATASET.md`. Commits `5af8d0e`, `c37f07b`, `4a3e029`.
+
+**Tests:** 295 tests pass. `tests/test_saved_extraction.py` is new (11 tests: names to ids, an unknown name, a document that is not in the file, the shipped file without problems, no file, the newest of several, header errors, a broken file); the two tests of the removed reader were replaced by these, and `tests/test_sample.py` now checks the `saved` source and the `/sample` fields. The Docker smoke test passed after the change to the loader; it was not run again after the last edit, which only changed how the file is picked. The GitHub CI was not run (it needs a push).
+
+**Issues:** closed #58. Opened #67 (a settings panel in the chat page for the LLM and extraction options, after V0).
