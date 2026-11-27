@@ -1,10 +1,25 @@
 # KALIA
 
-A contextual assistant for managers, PMs and tech leads. It reads unstructured work documents (emails, meeting transcripts, chats), extracts the commitments people made (who, to whom, what, by when), stores them, and answers questions about them in a chat.
+KALIA is meant to be a copilot for your working day. It lives alongside you, understands the context you work in (who is who, what is going on, what matters now) and uses it to take work off your hands: it reminds you of what you promised, warns you when something deserves your attention, helps you take part in conversations and writes for you, always with your approval. It is a product in progress; this repository is its first slice.
 
 ## Status
 
-V0, a first slice that runs locally for a single user on a synthetic dataset. It validates the pipeline documents -> structured commitments -> grounded answers. It has no proactive behavior and is not a task manager or a generic chatbot.
+V0 is the first slice, and it runs locally for a single user on a synthetic dataset. It reads unstructured documents (emails, meeting transcripts, chats), extracts the commitments people made (who promised what to whom, and by when), stores them and answers questions about them in a chat. It has no proactive behavior and does not listen to meetings: it is not yet the product described above. It is not a task manager or a generic chatbot.
+
+## Example
+
+A question to the chat with the sample company loaded (`qwen2.5:14b` on Ollama, 2026-11-27; the sample's data and questions are in Spanish):
+
+> ¿Qué compromisos tengo con Edna, en ambos sentidos, y para cuándo?
+
+```text
+## Turrokiller
+- Lalo Landa -> Edna Krabappel: mandar la lista de pendientes de gameplay de la demo, 2026-09-16 (atrasado)
+- Lalo Landa -> Edna Krabappel: armar una build de prueba con las cuatro torres, 2026-09-18 (atrasado)
+- Edna Krabappel -> Lalo Landa: pulir los controles de torres de la demo, 2026-10-23 (pendiente)
+```
+
+The page also lists the commitments the answer was built from. Lalo Landa is the user of the sample. The answer is not flawless: the second line has its direction inverted (the stored commitment is Edna's), which is the kind of error described in "Known limitations".
 
 ## How it works
 
@@ -15,12 +30,27 @@ V0, a first slice that runs locally for a single user on a synthetic dataset. It
 
 The LLM is replaceable: Ollama through its native API (the default), the Claude API or any OpenAI-compatible endpoint, local or API-based (`LLM_BACKEND`). Each task that calls an LLM (extracting commitments, answering the chat) can use a different one.
 
+```mermaid
+flowchart LR
+    D["Documents + catalog"] --> X["Extractor"]
+    X -->|commitments| S[("SQLite")]
+    Q["Question in the chat page"] --> R["Rule-based retrieval"]
+    S --> R
+    R -->|relevant commitments| A["Answerer"]
+    A --> OUT["Answer + the commitments it used"]
+    X -.-> L["LLM client"]
+    A -.-> L
+    L -.-> P["Ollama / Claude API / OpenAI-compatible"]
+```
+
+Each box is a package of `app/`: `ingestion/` (catalog and documents), `extraction/` (LLM extractor and its prompt), `storage/` (SQLite), `answering/` (retrieval rules, prompt and answerer), `llm/` (one client per backend) and `main.py` (the FastAPI app and the chat page in `static/`).
+
 ## Run
 
 Requires Docker with Compose v2 (the `docker compose` command) and an LLM: either [Ollama](https://ollama.com) running on the host with the model pulled (default `qwen2.5:14b`, `ollama pull qwen2.5:14b`), or an API key (see "Use the Claude API instead of Ollama"). Ollama must listen on an address the container can reach, not only on `127.0.0.1` (for example, set `OLLAMA_HOST=0.0.0.0`). Loading the sample and opening the page need no LLM; only asking questions does.
 
 ```bash
-git clone <repository URL> kalia
+git clone https://github.com/jgonzet/kalia.git
 cd kalia
 docker compose up --build
 ```
@@ -31,14 +61,6 @@ The app listens on <http://localhost:8000> (`/health` answers when it is up). Th
 
 The chat page is at <http://localhost:8000/> and talks to `POST /chat` (`{"question": "..."}`; 1 to 1000 characters). The answer has the text, the commitments it was built from (with names) and `degraded`: true when the LLM failed and only those commitments came back. "Today" for questions such as "this week" is `REFERENCE_DATE` if set, otherwise the sample company's date when a sample is loaded (see "The sample company"), otherwise the system date. Outside the sample, to ask as of the dataset's day, set it to the `reference_date` in `data/<company>/company.json`. Scripts run with `uv run` read `.env` and `.env.secrets` from the project root (variables already set in the shell win); Docker Compose reads `.env`.
 
-### The sample company
-
-When the database does not hold the sample yet, the app loads a sample company by itself: La Manija Games, a fictional game studio, with its people and projects and 24 of its 25 documents (the 25th is kept out on purpose, for tests). Its commitments come from an extraction that a real model made once and that is saved in the repo (`data/lamanija/extracted/`: today Claude, through the manual flow, 2026-10-09), so nothing is extracted at startup and no LLM is needed to load it. It is a real extraction, so it has the errors of that model (see the reference numbers in "Evaluate the extraction"). The chat page says at the top which model made it and when. Asking questions does need Ollama or another LLM.
-
-"Today" for the sample is `REFERENCE_DATE` if you set it, otherwise 2026-10-12 (the sample's own date), otherwise the system date. Documents you send are read against that same date.
-
-To have your own LLM extract the sample's commitments instead, set `COMMITMENTS_SOURCE=extraction` in `.env` (see `.env.example`). The app then waits until the 24 documents are done before it answers (minutes with a local model), and it repeats this on every `docker compose up` because nothing is kept between runs; with a paid API that costs money each time. A document whose extraction fails is left without commitments and the rest goes on, unless three fail in a row: the LLM is then taken as unreachable and the others are not tried. The notice on the page says how many failed. Each attempt at a call to the LLM waits at most `LLM_TIMEOUT_SECONDS` (default 120); the clients of `openai_compatible` and `anthropic` retry a failed call twice more, so one call can take about three times that.
-
 ### Use the Claude API instead of Ollama
 
 No Ollama needed. Copy `.env.secrets.example` to `.env.secrets` and `.env.example` to `.env`, then:
@@ -48,6 +70,20 @@ No Ollama needed. Copy `.env.secrets.example` to `.env.secrets` and `.env.exampl
 3. `docker compose up --build`.
 
 Any other OpenAI-compatible endpoint is the same with `LLM_BACKEND=openai_compatible`, plus `LLM_BASE_URL` and `LLM_MODEL`. To give one task a different LLM from the other (the extractor with Claude and the chat with Ollama, say), use the `EXTRACTOR_LLM_*` and `ANSWERER_LLM_*` variables described in `.env.example`: a task that sets any of them takes all its settings from them, including its own key.
+
+### Clean up
+
+Nothing stays on your machine except the image. `docker compose down` removes the container and its database; `docker compose down --rmi local` also removes the image.
+
+## Using the app
+
+### The sample company
+
+When the database does not hold the sample yet, the app loads a sample company by itself: La Manija Games, a fictional game studio, with its people and projects and 24 of its 25 documents (the 25th is kept out on purpose, for tests). Its commitments come from an extraction that a real model made once and that is saved in the repo (`data/lamanija/extracted/`: today Claude, through the manual flow, 2026-10-09), so nothing is extracted at startup and no LLM is needed to load it. It is a real extraction, so it has the errors of that model (see the reference numbers in "Evaluate the extraction"). The chat page says at the top which model made it and when. Asking questions does need Ollama or another LLM.
+
+"Today" for the sample is `REFERENCE_DATE` if you set it, otherwise 2026-10-12 (the sample's own date), otherwise the system date. Documents you send are read against that same date.
+
+To have your own LLM extract the sample's commitments instead, set `COMMITMENTS_SOURCE=extraction` in `.env` (see `.env.example`). The app then waits until the 24 documents are done before it answers (minutes with a local model), and it repeats this on every `docker compose up` because nothing is kept between runs; with a paid API that costs money each time. A document whose extraction fails is left without commitments and the rest goes on, unless three fail in a row: the LLM is then taken as unreachable and the others are not tried. The notice on the page says how many failed. Each attempt at a call to the LLM waits at most `LLM_TIMEOUT_SECONDS` (default 120); the clients of `openai_compatible` and `anthropic` retry a failed call twice more, so one call can take about three times that.
 
 ### What a paid API costs
 
@@ -77,26 +113,30 @@ curl -X POST http://localhost:8000/documents \
 
 `type` is `email`, `meeting` or `chat`. The answer is `{"id": "my-document-1", "stored": true, "extracted": true}`; `extracted: false` means the document is stored but no commitments came out (the LLM failed, or the backend is the fake one). Sending the same `id` again replaces the document. Then ask the chat about it.
 
-### Clean up
+## Known limitations
 
-Nothing stays on your machine except the image. `docker compose down` removes the container and its database; `docker compose down --rmi local` also removes the image.
+- `POST /documents` extracts commitments only with a real LLM backend (not the fake one). With the fake one, or if the call fails, the document is stored and the response says `extracted: false`.
+- The Docker image carries only the files needed to load the sample company (`data/lamanija/`: catalog, documents and answer keys), not the question banks or the scripts (except `scripts/operate/check_llm.py`). The evaluation and loading scripts run on the host.
+- The database inside Docker is deleted with the container (`docker compose down`): nothing you send is kept between runs. Outside Docker, `DB_PATH` is a file that stays.
+- Only Ollama has been tried against a real model. The `anthropic` and `openai_compatible` backends have not been tried with a real API key.
+- Single user, no authentication.
+- Content is synthetic and in Spanish.
+- Commitments have no status: all extracted commitments are treated as open. The chat marks each one as `atrasado` (its due date is before "today"), `pendiente` or `sin fecha`, computed by the code; `atrasado` only says the date passed, not that nothing was done.
+- Extraction with a local model finds about half of the commitments (see "Evaluate the extraction"): it skips some documents altogether, writes a short name ("Burns") where the catalog has the full one, so that commitment is discarded, and gets the relative dates wrong more than half of the time. What the chat can answer starts from there (#26).
+- The chat is only as good as its model. With `qwen2.5:14b` it says about two thirds of the commitments a question needs (365 to 384 of 564 in four runs of the chat bank, 2026-10-19), adds some that were noise, and sometimes inverts the direction of a line or changes a person. It does worst on the whole list ("¿Cómo viene todo?") and on "mi jefe". It cannot answer questions about the hierarchy ("¿quién es el jefe de mi jefe?"): the prompt carries the commitments, not the org chart. The page shows the `##` headings of an answer as titles but any other Markdown (`**`) appears raw. The answering prompt is in Spanish, like the data; the extraction prompt is in English. Numbers per category: "Evaluate the chat".
+- With a local model, the time to answer depends on how much the model writes. Measured on 2026-10-21 (RTX 4080 Laptop 12 GB, `qwen2.5:14b`): the median answer took 4 seconds and 9 of 10 took under 13, but a question that brings every commitment ("¿Cómo viene todo?") took from 13 to 72 seconds. Each attempt waits at most 120 seconds by default (`LLM_TIMEOUT_SECONDS`); on a slower machine, or without a GPU, long questions can reach it and come back `degraded`, so raise it there. How it was measured: `docs/MEASUREMENTS.md`; to measure your own machine: `uv run scripts/quality/evals/measure_latency.py`.
+- The chat bank (`docs/DATASET.md`, "Chat bank") measures how the LLM filters and words a list of at most a few dozen commitments on one synthetic dataset, judging the answers with rules. It does not measure questions that need the org chart, the size of a real list, instructions hidden in a document or what the extraction misses, so a good result there does not mean the chat is tested.
+- With Ollama the app asks for a context window of `LLM_CONTEXT_TOKENS` (default 10240, what `qwen2.5:14b` needs to run entirely on a 12 GB GPU) and does not send the LLM a prompt that is estimated not to fit: it answers like when the LLM fails (`degraded`) with a text that says the question brings too many commitments, and the list. The estimate is the length in characters divided by 3 with a 5% margin, not a count with the model's tokenizer, and the room the answer itself needs is not reserved. With `openai_compatible` and `anthropic` there is no check unless `LLM_CONTEXT_TOKENS` is set, as the app cannot make that server use a window (a prompt the API rejects comes back as a failed LLM call, `degraded`). A question that brings every commitment ("¿Qué prometí?" with 72) is about 3900 tokens today (#27).
+- The text of every commitment, which comes from the documents, is put in the prompt as it is. With sources that are not your own, a document could carry instructions for the model (#28).
+- Each commitment points to a single source document. The same commitment mentioned in later documents is stored again as a new one, so near-duplicates can appear.
+- Retrieval works with rules over the question text, not with a model. It understands a person (full name, first name, or a surname no one else shares), "jefe"/"jefa" (the user's boss, or someone's boss: "el jefe de Edna") and the phrases "esta semana", "en la semana" and "la semana que viene". Anything else leaves the result wider: a question with none of the rules gets every commitment, and the LLM has to discard what is not needed. It does not understand days ("hoy", "el viernes", exact dates), months, overdue or undated commitments, projects, areas, roles, topics or typos. A surname shared by two people ("Bouvier") picks no one, silently; a name that is also an ordinary word ("Rosa") would be read as that person. A person named with a word that speaks of the user ("prometí", "me prometió", "con Frink") brings all of their commitments, not only those shared with the user. What each kind of question measures: `docs/DATASET.md` ("Retrieval bank").
+- Every document must come with its type, date and participants as metadata. Sources that do not carry them (meetings, group chats) are not supported yet.
 
-## Evaluate the ingestion
+## Development
 
-`scripts/quality/evals/evaluate_ingestion.py` checks acceptance question 5 (`docs/SPEC.md`): after a new document is ingested, does a related question return an answer that reflects it? It is a development tool, not part of the app, and it needs a real LLM for the extractor and for the answerer. It uses the `Q5` questions of `data/<company>/questions.jsonl` and the document they declare in `after_held_out`.
+Tools for checking and measuring the project. None of them is part of the app.
 
-1. Have both LLMs reachable (the extractor's, `EXTRACTOR_LLM_*` if set, else `LLM_*`; the answerer's, `ANSWERER_LLM_*` if set, else `LLM_*`).
-2. `uv run scripts/quality/evals/evaluate_ingestion.py lamanija`. Useful options: `--extractor-model`, `--answerer-model`, `--show` to read each answer before and after, `--no-log`. It takes a few minutes with a local model: it extracts only the documents those questions need (14 of 24) plus the new one.
-
-It runs through the code of the app (`POST /documents`, `POST /chat`) on a temporary database: it loads the base documents, asks each question, ingests the new document and asks again. It measures four stages apart, so a loss or an addition can be placed: the extraction of the new document against its `expected` file, the storage (the commitments of the other documents must not change), the retrieval (how many commitments of the new document the chat retrieves, and that it retrieves none before the ingestion) and the answer (how many of the retrieved ones the answer says, with the wrong people or due date, and how many commitments of other documents it leaves out before and after). A commitment is blamed on the first stage that lost it: one the extractor missed is not counted again as lost in retrieval. The script exits 1 if the ingestion changed the commitments of other documents or the chat retrieved the new document before it was ingested, which are pipeline faults and not model quality.
-
-Read the numbers with these limits in mind:
-- The answers are judged with the rules of `scripts/quality/chat_judge.py` (see "Evaluate the chat" for what they can and cannot notice). The LLMs run at the server's default temperature, so the numbers move between runs.
-- With only the documents the questions need, the retriever has less to choose from than in the full load, so a pass here is a weaker proof of the retrieval than the retrieval bank. The whole load is issue #21.
-- Each run is appended to `runs/metrics.jsonl` (stage `ingestion`) with the commit, both models, a hash of both prompts and the questions version; `uv run scripts/quality/run_log.py --stage ingestion` lists them.
-- `tests/test_evaluate_ingestion.py` (the CI runs it) checks the accounting of the stages with a scripted extractor that makes the errors on purpose; it says nothing about any model.
-
-## Checks
+### Checks
 
 `scripts/` is grouped by role: `operate/` loads the data, extracts the commitments and checks the LLM; `dataset/` checks the synthetic dataset and builds its question banks; `quality/` holds the checks that need no LLM (`checks/`), the measurements that use a real one (`evals/`), the judge of the chat and the run log.
 
@@ -107,17 +147,17 @@ Read the numbers with these limits in mind:
 - Manual check against the real LLM: `docker compose run --rm app python scripts/operate/check_llm.py`
 - How long the chat takes with your LLM and your machine: `uv run scripts/quality/evals/measure_latency.py` (prints a report in the format of `docs/MEASUREMENTS.md`)
 
-## Configuration
+### Configuration
 
 Environment variables are listed in `.env.example` (settings) and `.env.secrets.example` (API keys), which are the only source.
 
-## Load the synthetic dataset
+### Load the synthetic dataset
 
 Inside Docker the app does this by itself (see "The sample company"). Outside Docker, `uv run scripts/operate/load_dataset.py lamanija` stores the catalog and every document except the held-out one in the SQLite file (`DB_PATH`), without commitments. A further document is added with `POST /documents`.
 
-## Extract commitments with an external Claude session
+### Extract commitments with an external Claude session
 
-There is no paid API setup yet, so the commitments of the stored documents can be extracted by a Claude session opened outside the repo:
+Besides the LLM the app is configured with, the commitments of the stored documents can be extracted by a Claude session opened outside the repo (the flow that made the saved extraction of the sample):
 
 1. Load the dataset (see above).
 2. `uv run scripts/operate/manual_extraction.py export` writes `requests/batch-NN.md` (git-ignored).
@@ -128,7 +168,7 @@ There is no paid API setup yet, so the commitments of the stored documents can b
 
 To keep an extraction with the repo so the sample loads it, `uv run scripts/operate/save_extraction.py lamanija responses/batch-*.json --model "Claude (manual flow)" --slug claudemanual --date 2026-10-09` writes `data/lamanija/extracted/20261009-claudemanual.json` (naming and format in `docs/DATASET.md`). It checks the answers first and writes nothing if one fails.
 
-## Evaluate the extraction
+### Evaluate the extraction
 
 `scripts/quality/evals/evaluate_extraction.py` compares the commitments stored in a database with the answer key of a synthetic dataset (`data/<company>/expected/`). It is a development tool, not part of the app: documents of real users have no answer key. To measure a model or a prompt:
 
@@ -152,7 +192,7 @@ Reference numbers on `lamanija` (73 expected commitments, English prompt), to co
 
 With the local models the chat starts from about half of the commitments (see "Known limitations").
 
-## Evaluate the retrieval
+### Evaluate the retrieval
 
 `scripts/quality/evals/evaluate_retrieval.py` measures how well the retrieval picks the commitments a question needs. Like the extraction evaluation, it is a development tool, not part of the app. Run it with `uv run scripts/quality/evals/evaluate_retrieval.py lamanija`; `--suite bank` or `--suite acceptance` measures only one of the two sets of questions:
 - the **retrieval bank** (`data/<company>/retrieval_bank.jsonl`): many questions grouped by the angle they probe (how a person is named, direction, the org chart, dates, projects, combinations, groups, topics, open questions). It is described in `docs/DATASET.md` ("Retrieval bank"), with how to add questions.
@@ -160,7 +200,7 @@ With the local models the chat starts from about half of the commitments (see "K
 
 It works on a temporary database built from the `expected` files, so an extraction error cannot count against the retrieval. It prints counts only, per category and in total: expected, retrieved, missing and extra (recall and precision over summed counts), and then the questions that differ. A question that changes once the held-out document is ingested is measured before and after. "Missing" is what the LLM can no longer recover; "extra" is what it has to discard. The unit tests in `tests/test_retrieval.py` cover the rules themselves, with small made-up data. `uv run scripts/dataset/retrieval_bank.py lamanija --check` verifies that the bank still agrees with the `expected` files (`scripts/dataset/check_dataset.py` does it too).
 
-### Check that the bank notices a broken rule
+#### Check that the bank notices a broken rule
 
 A bank is only useful if it fails when the retriever breaks. `uv run scripts/quality/checks/check_bank_sensitivity.py lamanija` breaks one behaviour of `RuleRetriever` at a time, in memory and never on disk (ignoring names, "jefe", "jefe de X", "esta semana", "la semana que viene", the dates, "involucr" or more than one person; reading any "semana" as this week; counting "van" in "Van Houten" as a name; a week one day longer or shorter; no accent folding; the words that tell the question is about the user, "me prometió" and similar, or any "me" at all; "con" before a person, or any "con" at all; a retriever that returns everything or nothing), measures both sets of questions again and counts how many results changed. A mutation that changes none is `NOT DETECTED`: nothing in the bank would notice if that behaviour broke by accident.
 
@@ -171,7 +211,7 @@ A bank is only useful if it fails when the retriever breaks. `uv run scripts/qua
 
 Each run is appended to `runs/metrics.jsonl` (git-ignored) with the commit (`*` if the tree had uncommitted changes), the retriever, the dataset, the suite and the questions version. `uv run scripts/quality/run_log.py` lists the runs, so a change can be compared with the ones before it. Use `--no-log` to measure without logging. `--strict` makes the exit code 1 if a question loses commitments without declaring a `known_gap`; it is the line that must hold on every change, and `docs/DATASET.md` ("When a question fails") says what to do with a question that does not pass.
 
-## Evaluate the chat
+### Evaluate the chat
 
 `scripts/quality/evals/evaluate_chat.py` measures what the LLM of the chat does with a list of commitments that is already chosen, with a real LLM. It is a development tool, not part of the app, and it is how a model or a prompt of the chat is compared: the answering prompt is `app/prompts/answer_question.md`, the model is the answerer's (`ANSWERER_LLM_MODEL` if set, else `LLM_MODEL`). The retrieval has its own measurement ("Evaluate the retrieval") and the two together are issue #21.
 
@@ -187,24 +227,20 @@ Read the numbers with these limits in mind:
 - Each run is appended to `runs/metrics.jsonl` (stage `chat_bank`) with the commit, the model, a hash of the prompt file and the bank version; `uv run scripts/quality/run_log.py --stage chat_bank` lists them. Runs of the stage `chat` are from the previous evaluation and are not comparable.
 - After measuring a change of the prompt, add a row to `app/prompts/answer_question.history.md`: what changed, why, and what it did to the numbers.
 
-## Known limitations
+### Evaluate the ingestion
 
-- `POST /documents` extracts commitments only with a real LLM backend (not the fake one). With the fake one, or if the call fails, the document is stored and the response says `extracted: false`.
-- The Docker image carries only the files needed to load the sample company (`data/lamanija/`: catalog, documents and answer keys), not the question banks or the scripts (except `scripts/operate/check_llm.py`). The evaluation and loading scripts run on the host.
-- The database inside Docker is deleted with the container (`docker compose down`): nothing you send is kept between runs. Outside Docker, `DB_PATH` is a file that stays.
-- Only Ollama has been tried against a real model. The `anthropic` and `openai_compatible` backends have not been tried with a real API key.
-- Single user, no authentication.
-- Content is synthetic and in Spanish.
-- Commitments have no status: all extracted commitments are treated as open. The chat marks each one as `atrasado` (its due date is before "today"), `pendiente` or `sin fecha`, computed by the code; `atrasado` only says the date passed, not that nothing was done.
-- Extraction with a local model finds about half of the commitments (see "Evaluate the extraction"): it skips some documents altogether, writes a short name ("Burns") where the catalog has the full one, so that commitment is discarded, and gets the relative dates wrong more than half of the time. What the chat can answer starts from there (#26).
-- The chat answer is only as good as the model: with `qwen2.5:14b` the answers say about two thirds of the commitments the question needs (365 to 384 of 564 in four runs of the chat bank, 2026-10-19), leave out the rest, mix in about 35 commitments that were noise, and sometimes invert the direction of a line or change a person. It does worst on the whole list ("¿Cómo viene todo?": 28 to 60 of 75, the same prompt in different runs), on "mi jefe" (8 or 9 of 18) and on a project named partly (11 to 16 of 29). The page shows the headings (`##`) of the answer as titles but not the rest of the Markdown a model may write (`**`, for instance, appears raw), and it lists the commitments only when the LLM failed. The chat prompt carries the commitments and not the org chart, so a question about the hierarchy ("¿quién es el jefe de mi jefe?") cannot be answered; "mi jefe" works because the retrieval, not the prompt, knows it. The answering prompt is in Spanish, like the data; the extraction prompt is still in English.
-- With a local model, the time to answer depends on how much the model writes. Measured on 2026-10-21 (RTX 4080 Laptop 12 GB, `qwen2.5:14b`, 10240-token window): about 40 tokens per second whatever the temperature of the GPU, a median answer of 4 seconds and 9 of 10 under 13 seconds. A question that brings every commitment ("¿Cómo viene todo?") is the exception: the same question got answers of 500 and of 2700 tokens, from 13 to 72 seconds. The timeout of each attempt is 120 seconds by default (it was 60, which that question exceeded in 4 of 12 runs; `LLM_TIMEOUT_SECONDS` changes it); on a slower machine, or one without a GPU, the long questions can reach it and come back `degraded`, so raise it there. Asking for "at most 10 lines" in the prompt cut the longest answer to 440 tokens but the answers said 262 to 287 of the 564 needed commitments, against 365 to 397 without it, so the answering prompt carries no such limit. The numbers and how they were taken are in `docs/MEASUREMENTS.md`; `uv run scripts/quality/evals/measure_latency.py` measures your own machine.
-- The chat bank (`docs/DATASET.md`, "Chat bank") measures how the LLM filters and words a list of at most a few dozen commitments on one synthetic dataset, judging the answers with rules. It does not measure questions that need the org chart, the size of a real list, instructions hidden in a document or what the extraction misses, so a good result there does not mean the chat is tested.
-- With Ollama the app asks for a context window of `LLM_CONTEXT_TOKENS` (default 10240, what `qwen2.5:14b` needs to run entirely on a 12 GB GPU) and does not send the LLM a prompt that is estimated not to fit: it answers like when the LLM fails (`degraded`) with a text that says the question brings too many commitments, and the list. The estimate is the length in characters divided by 3 with a 5% margin, not a count with the model's tokenizer, and the room the answer itself needs is not reserved. With `openai_compatible` and `anthropic` there is no check unless `LLM_CONTEXT_TOKENS` is set, as the app cannot make that server use a window (a prompt the API rejects comes back as a failed LLM call, `degraded`). A question that brings every commitment ("¿Qué prometí?" with 72) is about 3900 tokens today (#27).
-- The text of every commitment, which comes from the documents, is put in the prompt as it is. With sources that are not your own, a document could carry instructions for the model (#28).
-- Each commitment points to a single source document. The same commitment mentioned in later documents is stored again as a new one, so near-duplicates can appear.
-- Retrieval works with rules over the question text: a person (full name, first name or a surname no one else shares; a name that is also an ordinary word, like a person called "Rosa", would be read as that person), "jefe"/"jefa" (the user's boss, or the boss of someone, "el jefe de Edna"), and the phrases "esta semana", "en la semana" and "la semana que viene". A rule narrows only when it understands the phrase; anything else leaves the result wider, so the LLM that answers can discard what is not needed. A question with none of the rules gets every commitment, and so does one that mentions a week in any other way ("la semana pasada", "la semana del 19", "dentro de una semana"). A person named without a word about the user ("tengo", "prometí", "debo", "me prometió"/"me deben" and similar, or "con" right before the person, as in "con Frink") brings all of their commitments, not only those shared with the user ("mi", "yo" and a request like "¿me podés decir…?" do not count as such a word). A surname shared by two people (such as "Bouvier") picks no one, silently. The user is found in the catalog by name. Today it does not understand days ("hoy", "mañana", "el viernes", exact dates), months, overdue or undated commitments, projects, areas, roles, topics or typos: it returns every commitment and the chat has to discard the rest. The retrieval bank measures all of this (`docs/DATASET.md`).
-- Every document must come with its type, date and participants as metadata. Sources that do not carry them (meetings, group chats) are not supported yet.
+`scripts/quality/evals/evaluate_ingestion.py` checks acceptance question 5 (`docs/SPEC.md`): after a new document is ingested, does a related question return an answer that reflects it? It is a development tool, not part of the app, and it needs a real LLM for the extractor and for the answerer. It uses the `Q5` questions of `data/<company>/questions.jsonl` and the document they declare in `after_held_out`.
+
+1. Have both LLMs reachable (the extractor's, `EXTRACTOR_LLM_*` if set, else `LLM_*`; the answerer's, `ANSWERER_LLM_*` if set, else `LLM_*`).
+2. `uv run scripts/quality/evals/evaluate_ingestion.py lamanija`. Useful options: `--extractor-model`, `--answerer-model`, `--show` to read each answer before and after, `--no-log`. It takes a few minutes with a local model: it extracts only the documents those questions need (14 of 24) plus the new one.
+
+It runs through the code of the app (`POST /documents`, `POST /chat`) on a temporary database: it loads the base documents, asks each question, ingests the new document and asks again. It measures four stages apart, so a loss or an addition can be placed: the extraction of the new document against its `expected` file, the storage (the commitments of the other documents must not change), the retrieval (how many commitments of the new document the chat retrieves, and that it retrieves none before the ingestion) and the answer (how many of the retrieved ones the answer says, with the wrong people or due date, and how many commitments of other documents it leaves out before and after). A commitment is blamed on the first stage that lost it: one the extractor missed is not counted again as lost in retrieval. The script exits 1 if the ingestion changed the commitments of other documents or the chat retrieved the new document before it was ingested, which are pipeline faults and not model quality.
+
+Read the numbers with these limits in mind:
+- The answers are judged with the rules of `scripts/quality/chat_judge.py` (see "Evaluate the chat" for what they can and cannot notice). The LLMs run at the server's default temperature, so the numbers move between runs.
+- With only the documents the questions need, the retriever has less to choose from than in the full load, so a pass here is a weaker proof of the retrieval than the retrieval bank. The whole load is issue #21.
+- Each run is appended to `runs/metrics.jsonl` (stage `ingestion`) with the commit, both models, a hash of both prompts and the questions version; `uv run scripts/quality/run_log.py --stage ingestion` lists them.
+- `tests/test_evaluate_ingestion.py` (the CI runs it) checks the accounting of the stages with a scripted extractor that makes the errors on purpose; it says nothing about any model.
 
 ## Documentation
 
