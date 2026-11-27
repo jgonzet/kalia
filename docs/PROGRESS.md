@@ -2,26 +2,26 @@
 
 ## Next
 
-1. #61 — Create an English sample company
-2. #62 — Make the retrieval rules understand English questions
-3. #63 — Answer in English: prompt, statuses and a way to compare it
-4. #64 — Make the English company the sample the app loads by default
-5. #40 — Chat page form to send a document (scope extended in the comments of 2026-10-29)
-6. #49 — Connecting an LLM provider as a one-line change
-7. #55 — Bind the published port to localhost only
-8. #56 — Make the app's log messages visible: LLM failures and startup
-9. #50 — Show in the page whether the LLM is configured and reachable
-10. #59 — Audit the first-run path for errors of every kind, not only silent ones
-11. #43 — Try the real backends with an API key
-12. #54 — Choose and test the demo questions with Ollama and an API model
-13. #60 — Make the chat page understandable to a first-time visitor (its example questions come from #54)
-14. #51 — Rewrite the README, running first
-15. #52 — Capture the demo flow (screenshots) and embed it in the README
+1. #51 — Rewrite the README, running first
+2. #61 — Create an English sample company
+3. #62 — Make the retrieval rules understand English questions
+4. #63 — Answer in English: prompt, statuses and a way to compare it
+5. #64 — Make the English company the sample the app loads by default
+6. #54 — Choose and test the demo questions with Ollama and an API model
+7. #52 — Capture the demo flow (screenshots) and embed it in the README (needs #61–#64 and #54 first)
+8. #40 — Chat page form to send a document (scope extended in the comments of 2026-10-29)
+9. #49 — Connecting an LLM provider as a one-line change
+10. #55 — Bind the published port to localhost only
+11. #56 — Make the app's log messages visible: LLM failures and startup
+12. #50 — Show in the page whether the LLM is configured and reachable
+13. #59 — Audit the first-run path for errors of every kind, not only silent ones
+14. #43 — Try the real backends with an API key
+15. #60 — Make the chat page understandable to a first-time visitor (its example questions come from #54)
 16. #47 — Test the documented setup on another machine and person
-17. #53 — Publish V0 (public repo, tag)
+17. #53 — Publish V0: tag it (the repo is already public since 2026-11-27)
 18. #39 — Decide what comes after V0
 
-Synced at: 4a3e029
+Synced at: e43b31c
 
 This file is filled in with each /close-feature.
 
