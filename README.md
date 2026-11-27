@@ -209,3 +209,7 @@ Read the numbers with these limits in mind:
 ## Documentation
 
 `docs/SPEC.md` defines the V0 scope, `docs/VISION.md` the product direction, `docs/DATASET.md` the format of the synthetic dataset, `docs/PROGRESS.md` logs closed work, `docs/DECISIONS.md` logs technical decisions and `docs/MEASUREMENTS.md` logs how long the app takes with a real LLM, on which machine. Pending work is tracked as GitHub Issues.
+
+## License
+
+Shown as a portfolio piece. All rights reserved: no license is granted to use, copy or modify the code.
