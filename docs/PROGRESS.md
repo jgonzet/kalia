@@ -2,26 +2,25 @@
 
 ## Next
 
-1. #51 — Rewrite the README, running first
-2. #61 — Create an English sample company
-3. #62 — Make the retrieval rules understand English questions
-4. #63 — Answer in English: prompt, statuses and a way to compare it
-5. #64 — Make the English company the sample the app loads by default
-6. #54 — Choose and test the demo questions with Ollama and an API model
-7. #52 — Capture the demo flow (screenshots) and embed it in the README (needs #61–#64 and #54 first)
-8. #40 — Chat page form to send a document (scope extended in the comments of 2026-10-29)
-9. #49 — Connecting an LLM provider as a one-line change
-10. #55 — Bind the published port to localhost only
-11. #56 — Make the app's log messages visible: LLM failures and startup
-12. #50 — Show in the page whether the LLM is configured and reachable
-13. #59 — Audit the first-run path for errors of every kind, not only silent ones
-14. #43 — Try the real backends with an API key
-15. #60 — Make the chat page understandable to a first-time visitor (its example questions come from #54)
-16. #47 — Test the documented setup on another machine and person
-17. #53 — Publish V0: tag it (the repo is already public since 2026-11-27)
-18. #39 — Decide what comes after V0
+1. #61 — Create an English sample company
+2. #62 — Make the retrieval rules understand English questions
+3. #63 — Answer in English: prompt, statuses and a way to compare it
+4. #64 — Make the English company the sample the app loads by default
+5. #54 — Choose and test the demo questions with Ollama and an API model
+6. #52 — Capture the demo flow (screenshots) and embed it in the README (needs #61–#64 and #54 first)
+7. #40 — Chat page form to send a document (scope extended in the comments of 2026-10-29)
+8. #49 — Connecting an LLM provider as a one-line change
+9. #55 — Bind the published port to localhost only
+10. #56 — Make the app's log messages visible: LLM failures and startup
+11. #50 — Show in the page whether the LLM is configured and reachable
+12. #59 — Audit the first-run path for errors of every kind, not only silent ones
+13. #43 — Try the real backends with an API key
+14. #60 — Make the chat page understandable to a first-time visitor (its example questions come from #54)
+15. #47 — Test the documented setup on another machine and person
+16. #53 — Publish V0: tag it (the repo is already public since 2026-11-27)
+17. #39 — Decide what comes after V0
 
-Synced at: e43b31c
+Synced at: 4e70dba
 
 This file is filled in with each /close-feature.
 
